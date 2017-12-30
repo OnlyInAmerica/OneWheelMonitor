@@ -14,6 +14,8 @@
 		605A6D031FF804ED0047DF03 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 605A6D011FF804ED0047DF03 /* LaunchScreen.storyboard */; };
 		605A6D0E1FF804ED0047DF03 /* OneWheelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605A6D0D1FF804ED0047DF03 /* OneWheelTests.swift */; };
 		605A6D191FF804ED0047DF03 /* OneWheelUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605A6D181FF804ED0047DF03 /* OneWheelUITests.swift */; };
+		605A6D281FF805A60047DF03 /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 605A6D271FF805A60047DF03 /* CoreBluetooth.framework */; };
+		605A6D2A1FF806210047DF03 /* OneWheelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605A6D291FF806210047DF03 /* OneWheelManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -47,6 +49,8 @@
 		605A6D141FF804ED0047DF03 /* OneWheelUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OneWheelUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		605A6D181FF804ED0047DF03 /* OneWheelUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneWheelUITests.swift; sourceTree = "<group>"; };
 		605A6D1A1FF804ED0047DF03 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		605A6D271FF805A60047DF03 /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
+		605A6D291FF806210047DF03 /* OneWheelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneWheelManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -54,6 +58,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				605A6D281FF805A60047DF03 /* CoreBluetooth.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -81,6 +86,7 @@
 				605A6D0C1FF804ED0047DF03 /* OneWheelTests */,
 				605A6D171FF804ED0047DF03 /* OneWheelUITests */,
 				605A6CF61FF804ED0047DF03 /* Products */,
+				605A6D261FF805A60047DF03 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -103,6 +109,7 @@
 				605A6CFF1FF804ED0047DF03 /* Assets.xcassets */,
 				605A6D011FF804ED0047DF03 /* LaunchScreen.storyboard */,
 				605A6D041FF804ED0047DF03 /* Info.plist */,
+				605A6D291FF806210047DF03 /* OneWheelManager.swift */,
 			);
 			path = OneWheel;
 			sourceTree = "<group>";
@@ -123,6 +130,14 @@
 				605A6D1A1FF804ED0047DF03 /* Info.plist */,
 			);
 			path = OneWheelUITests;
+			sourceTree = "<group>";
+		};
+		605A6D261FF805A60047DF03 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				605A6D271FF805A60047DF03 /* CoreBluetooth.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -187,6 +202,9 @@
 		605A6CED1FF804EC0047DF03 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
+				KnownAssetTags = (
+					New,
+				);
 				LastSwiftUpdateCheck = 0920;
 				LastUpgradeCheck = 0920;
 				ORGANIZATIONNAME = "David Brodsky";
@@ -194,6 +212,11 @@
 					605A6CF41FF804EC0047DF03 = {
 						CreatedOnToolsVersion = 9.2;
 						ProvisioningStyle = Automatic;
+						SystemCapabilities = {
+							com.apple.BackgroundModes = {
+								enabled = 1;
+							};
+						};
 					};
 					605A6D081FF804ED0047DF03 = {
 						CreatedOnToolsVersion = 9.2;
@@ -259,6 +282,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				605A6D2A1FF806210047DF03 /* OneWheelManager.swift in Sources */,
 				605A6CFB1FF804ED0047DF03 /* ViewController.swift in Sources */,
 				605A6CF91FF804ED0047DF03 /* AppDelegate.swift in Sources */,
 			);
@@ -426,11 +450,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = U23VFW2NDU;
 				INFOPLIST_FILE = OneWheel/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = pro.dbro.OneWheel;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -440,11 +467,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = U23VFW2NDU;
 				INFOPLIST_FILE = OneWheel/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = pro.dbro.OneWheel;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
