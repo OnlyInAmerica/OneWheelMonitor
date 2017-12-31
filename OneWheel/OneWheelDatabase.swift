@@ -159,10 +159,10 @@ class OneWheelState : Record, CustomStringConvertible {
             description += "Rider \(self.riderPresent ? "On" : "Off"). "
         }
         if prev.footPad1 != self.footPad1 {
-            description += "Right Foot \(self.footPad1 ? "On" : "Off"). "
+            description += "Toe \(self.footPad1 ? "On" : "Off"). "
         }
         if prev.footPad2 != self.footPad2 {
-            description += "Left Foot \(self.footPad2 ? "On" : "Off"). "
+            description += "Heel \(self.footPad2 ? "On" : "Off"). "
         }
         if prev.icsuFault != self.icsuFault {
             description += "U Fault \(self.icsuFault ? "On" : "Off"). "
@@ -184,7 +184,7 @@ class OneWheelState : Record, CustomStringConvertible {
             description += "Speed \(mph). "
         }
         if prev.safetyHeadroom != self.safetyHeadroom {
-            description += "Safety Headroom to \(self.safetyHeadroom). "
+            description += "Headroom to \(self.safetyHeadroom). "
         }
         return description
     }
