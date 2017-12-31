@@ -8,8 +8,22 @@
 
 import Foundation
 import CoreBluetooth
+import AVFoundation
 
 class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate {
+    
+    // Audio feedback
+    public var audioFeedback = false {
+        didSet {
+            if audioFeedback {
+                speechSynth = AVSpeechSynthesizer()
+                speechVoice = AVSpeechSynthesisVoice(language: "en-US")
+            }
+        }
+    }
+    
+    private var speechSynth : AVSpeechSynthesizer?
+    private var speechVoice : AVSpeechSynthesisVoice?
     
     // Database
     public var db : OneWheelDatabase?
@@ -94,18 +108,36 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     }
     
     private func handleUpdatedStatus(_ s: OneWheelStatus) {
-        lastState = OneWheelState(time: Date.init(), riderPresent: s.riderDetected, footPad1: s.riderDetectPad1, footPad2: s.riderDetectPad2, icsuFault: s.icsuFault, icsvFault: s.icsvFault, charging: s.charging, bmsCtrlComms: s.bmsCtrlComms, brokenCapacitor: s.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom)
-        try? db?.insertState(state: lastState)
+        let newState = OneWheelState(time: Date.init(), riderPresent: s.riderDetected, footPad1: s.riderDetectPad1, footPad2: s.riderDetectPad2, icsuFault: s.icsuFault, icsvFault: s.icsvFault, charging: s.charging, bmsCtrlComms: s.bmsCtrlComms, brokenCapacitor: s.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom)
+        try? db?.insertState(state: newState)
+        if audioFeedback {
+            let utterance = AVSpeechUtterance(string: newState.describeDelta(prev: lastState))
+            utterance.voice = speechVoice
+            speechSynth?.speak(utterance)
+        }
+        lastState = newState
     }
     
     private func handleUpdatedRpm(_ rpm: Int16) {
-        lastState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: rpm, safetyHeadroom: lastState.safetyHeadroom)
-        try? db?.insertState(state: lastState)
+        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: rpm, safetyHeadroom: lastState.safetyHeadroom)
+        try? db?.insertState(state: newState)
+        if audioFeedback {
+            let utterance = AVSpeechUtterance(string: newState.describeDelta(prev: lastState))
+            utterance.voice = speechVoice
+            speechSynth?.speak(utterance)
+        }
+        lastState = newState
     }
     
     private func handleUpdatedSafetyHeadroom(_ sh: UInt8) {
-        lastState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: sh)
-        try? db?.insertState(state: lastState)
+        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: sh)
+        try? db?.insertState(state: newState)
+        if audioFeedback {
+            let utterance = AVSpeechUtterance(string: newState.describeDelta(prev: lastState))
+            utterance.voice = speechVoice
+            speechSynth?.speak(utterance)
+        }
+        lastState = newState
     }
     
     // MARK: CBManagerDelegate
@@ -189,8 +221,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             
         case characteristicRpmUuid:
             if let value = characteristic.value {
-                let intValue: Int16 = value.withUnsafeBytes { $0.pointee }
-                NSLog("Peripheral rpm characteristic changed with value \(intValue)")
+                let intValue = Int16(bigEndian: value.withUnsafeBytes { $0.pointee })
                 handleUpdatedRpm(intValue)
             } else {
                 NSLog("Peripheral rpm charactersitic changed with no value")

@@ -159,10 +159,10 @@ class OneWheelState : Record, CustomStringConvertible {
             description += "Rider \(self.riderPresent ? "On" : "Off"). "
         }
         if prev.footPad1 != self.footPad1 {
-            description += "Left Foot \(self.footPad1 ? "On" : "Off"). "
+            description += "Right Foot \(self.footPad1 ? "On" : "Off"). "
         }
         if prev.footPad2 != self.footPad2 {
-            description += "Right Foot \(self.footPad2 ? "On" : "Off"). "
+            description += "Left Foot \(self.footPad2 ? "On" : "Off"). "
         }
         if prev.icsuFault != self.icsuFault {
             description += "U Fault \(self.icsuFault ? "On" : "Off"). "
@@ -180,12 +180,17 @@ class OneWheelState : Record, CustomStringConvertible {
             description += "Broken Capacitor \(self.brokenCapacitor ? "On" : "Off"). "
         }
         if prev.rpm != self.rpm {
-            description += "RPM to \(self.rpm). "
+            let mph = String(format: "%.1f", self.mph())
+            description += "Speed \(mph). "
         }
         if prev.safetyHeadroom != self.safetyHeadroom {
-            description += "Safety Headroom to \(self.rpm). "
+            description += "Safety Headroom to \(self.safetyHeadroom). "
         }
         return description
+    }
+    
+    func mph() -> Double {
+        return 60.0 * (35.0 * Double(rpm)) / 63360.0;
     }
     
 }

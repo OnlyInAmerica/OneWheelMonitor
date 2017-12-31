@@ -21,6 +21,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             .url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
             .appendingPathComponent("ow.sqlite")
         owManager.db = try! OneWheelDatabase(databaseURL.path)
+        owManager.audioFeedback = true
         owManager.start()
         
         let sb = UIStoryboard.init(name: "Main", bundle: nil)
