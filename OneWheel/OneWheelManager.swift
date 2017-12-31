@@ -10,14 +10,19 @@ import Foundation
 import CoreBluetooth
 import AVFoundation
 
-class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate {
+class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate, AVSpeechSynthesizerDelegate {
     
     // Audio feedback
     public var audioFeedback = false {
         didSet {
             if audioFeedback {
                 speechSynth = AVSpeechSynthesizer()
+                speechSynth?.delegate = self
                 speechVoice = AVSpeechSynthesisVoice(language: "en-US")
+                
+                try? AVAudioSession.sharedInstance().setCategory(
+                    AVAudioSessionCategoryPlayback,
+                    with:.duckOthers)
             }
         }
     }
@@ -69,6 +74,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
                 if connectedDevices.count == 1 {
                     // Locally connect to pre-connected peripheral
                     let targetDevice = knownDevices[0]
+                    NSLog("Connecting locally to pre-connected device \(targetDevice.identifier)")
                     connectDevice(targetDevice)
                 } else {
                     NSLog("Unexpected number (\(knownDevices.count) of connected CBPeripherals matching uuid \(primaryDeviceUuid)")
@@ -79,6 +85,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
                 return
             } else {
                 let targetDevice = knownDevices[0]
+                NSLog("Connecting to known device \(targetDevice.identifier)")
                 connectDevice(targetDevice)
             }
         } else {
@@ -98,46 +105,10 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         }
     }
     
-    private func handleConnectedDevice(_ device: CBPeripheral) {
-        connectingDevice = nil
-        connectedDevice = device
-        device.delegate = self
-        
-        device.discoverServices([serviceUuid])
-        // Delegate awaits service discovery
-    }
+    // MARK: AVSpeechSynthesizerDelegate
     
-    private func handleUpdatedStatus(_ s: OneWheelStatus) {
-        let newState = OneWheelState(time: Date.init(), riderPresent: s.riderDetected, footPad1: s.riderDetectPad1, footPad2: s.riderDetectPad2, icsuFault: s.icsuFault, icsvFault: s.icsvFault, charging: s.charging, bmsCtrlComms: s.bmsCtrlComms, brokenCapacitor: s.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom)
-        try? db?.insertState(state: newState)
-        if audioFeedback {
-            let utterance = AVSpeechUtterance(string: newState.describeDelta(prev: lastState))
-            utterance.voice = speechVoice
-            speechSynth?.speak(utterance)
-        }
-        lastState = newState
-    }
-    
-    private func handleUpdatedRpm(_ rpm: Int16) {
-        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: rpm, safetyHeadroom: lastState.safetyHeadroom)
-        try? db?.insertState(state: newState)
-        if audioFeedback {
-            let utterance = AVSpeechUtterance(string: newState.describeDelta(prev: lastState))
-            utterance.voice = speechVoice
-            speechSynth?.speak(utterance)
-        }
-        lastState = newState
-    }
-    
-    private func handleUpdatedSafetyHeadroom(_ sh: UInt8) {
-        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: sh)
-        try? db?.insertState(state: newState)
-        if audioFeedback {
-            let utterance = AVSpeechUtterance(string: newState.describeDelta(prev: lastState))
-            utterance.voice = speechVoice
-            speechSynth?.speak(utterance)
-        }
-        lastState = newState
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        try? AVAudioSession.sharedInstance().setActive(false)
     }
     
     // MARK: CBManagerDelegate
@@ -229,6 +200,49 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         default:
             NSLog("Peripheral unknown charactersitic (\(characteristic.uuid)) changed")
         }
+    }
+    
+    private func handleConnectedDevice(_ device: CBPeripheral) {
+        connectingDevice = nil
+        connectedDevice = device
+        device.delegate = self
+        
+        device.discoverServices([serviceUuid])
+        // Delegate awaits service discovery
+    }
+    
+    private func handleUpdatedStatus(_ s: OneWheelStatus) {
+        let newState = OneWheelState(time: Date.init(), riderPresent: s.riderDetected, footPad1: s.riderDetectPad1, footPad2: s.riderDetectPad2, icsuFault: s.icsuFault, icsvFault: s.icsvFault, charging: s.charging, bmsCtrlComms: s.bmsCtrlComms, brokenCapacitor: s.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom)
+        try? db?.insertState(state: newState)
+        if audioFeedback {
+            speak(newState.describeDelta(prev: lastState))
+        }
+        lastState = newState
+    }
+    
+    private func handleUpdatedRpm(_ rpm: Int16) {
+        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: rpm, safetyHeadroom: lastState.safetyHeadroom)
+        try? db?.insertState(state: newState)
+        if audioFeedback {
+            speak(newState.describeDelta(prev: lastState))
+        }
+        lastState = newState
+    }
+    
+    private func handleUpdatedSafetyHeadroom(_ sh: UInt8) {
+        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: sh)
+        try? db?.insertState(state: newState)
+        if audioFeedback {
+            speak(newState.describeDelta(prev: lastState))
+        }
+        lastState = newState
+    }
+    
+    private func speak(_ text: String) {
+        try? AVAudioSession.sharedInstance().setActive(true)
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = speechVoice
+        speechSynth?.speak(utterance)
     }
 }
 
