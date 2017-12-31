@@ -33,13 +33,13 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     // Used to throttle speed audio alerts
     private let speedMonitor = SpeedMonitor()
     
-    // Database
+    // Persistence
     public var db : OneWheelDatabase?
     private var lastState = OneWheelState()
-    
+    private let data = OneWheelLocalData()
+
     // Bluetooth
     private var cm : CBCentralManager?
-    private let data = OneWheelLocalData()
     
     private var connectingDevice : CBPeripheral?
     private var connectedDevice : CBPeripheral?
@@ -311,6 +311,7 @@ class OneWheelLocalData {
 class SpeedMonitor {
     // Trigger when passing through any of these benchmark speeds (MPH)
     let speedBenchmarksMph = [10.0, 12.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0]
+    let hysteresisMph = 1.0
     
     // A speed index of 0 indicates we passed no benchmarks, 1 indicates we passed the 0-indexed benchmark etc.
     var lastSpeedIdx = 0
@@ -320,8 +321,12 @@ class SpeedMonitor {
         let newSpeedIdx = (speedBenchmarksMph.index { (benchmarkMph) -> Bool in
             newSpeedMph >= benchmarkMph
         } ?? -1) + 1
-        NSLog("SpeedMonitor speed \(newSpeedMph) is idx \(newSpeedIdx), last \(lastSpeedIdx)")
         
+        // Apply Hysteresis when downgrading speed benchmark
+        if newSpeedIdx - lastSpeedIdx == -1 && speedBenchmarksMph[lastSpeedIdx] - newSpeedMph < hysteresisMph {
+            return false
+        }
+
         let isNew = newSpeedIdx != lastSpeedIdx
         lastSpeedIdx = newSpeedIdx
         return isNew
