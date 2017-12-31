@@ -22,7 +22,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
                 
                 try? AVAudioSession.sharedInstance().setCategory(
                     AVAudioSessionCategoryPlayback,
-                    with:.duckOthers)
+                    with:.mixWithOthers)
             }
         }
     }
