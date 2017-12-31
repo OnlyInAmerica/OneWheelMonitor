@@ -11,13 +11,18 @@ import CoreBluetooth
 
 class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate {
     
+    // Database
+    public var db : OneWheelDatabase?
+    private var lastState = OneWheelState()
+    
+    // Bluetooth
     private var cm : CBCentralManager?
     private let data = OneWheelLocalData()
     
     private var connectingDevice : CBPeripheral?
     private var connectedDevice : CBPeripheral?
     
-    // OneWheel BLE UUIDs
+    // Bluetooth - UUIDs
     let serviceUuid = CBUUID.init(string: "e659f300-ea98-11e3-ac10-0800200c9a66")
     
     let characteristicErrorUuid = CBUUID.init(string: "e659f30f-ea98-11e3-ac10-0800200c9a66")
@@ -88,6 +93,21 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         // Delegate awaits service discovery
     }
     
+    private func handleUpdatedStatus(_ s: OneWheelStatus) {
+        lastState = OneWheelState(time: Date.init(), riderPresent: s.riderDetected, footPad1: s.riderDetectPad1, footPad2: s.riderDetectPad2, icsuFault: s.icsuFault, icsvFault: s.icsvFault, charging: s.charging, bmsCtrlComms: s.bmsCtrlComms, brokenCapacitor: s.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom)
+        try? db?.insertState(state: lastState)
+    }
+    
+    private func handleUpdatedRpm(_ rpm: Int16) {
+        lastState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: rpm, safetyHeadroom: lastState.safetyHeadroom)
+        try? db?.insertState(state: lastState)
+    }
+    
+    private func handleUpdatedSafetyHeadroom(_ sh: UInt8) {
+        lastState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: sh)
+        try? db?.insertState(state: lastState)
+    }
+    
     // MARK: CBManagerDelegate
     
     // Peripheral discovered
@@ -153,6 +173,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
                 let intValue: UInt8 = value.withUnsafeBytes { $0.pointee }
                 let status = OneWheelStatus(intValue)
                 NSLog("Peripheral error characteristic changed with status \(status)")
+                handleUpdatedStatus(status)
             } else {
                 NSLog("Peripheral error charactersitic changed with no value")
             }
@@ -161,6 +182,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             if let value = characteristic.value {
                 let intValue: UInt8 = value.withUnsafeBytes { $0.pointee }
                 NSLog("Peripheral headroom characteristic changed with value \(intValue)")
+                handleUpdatedSafetyHeadroom(intValue)
             } else {
                 NSLog("Peripheral headroom charactersitic changed with no value")
             }
@@ -169,6 +191,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             if let value = characteristic.value {
                 let intValue: Int16 = value.withUnsafeBytes { $0.pointee }
                 NSLog("Peripheral rpm characteristic changed with value \(intValue)")
+                handleUpdatedRpm(intValue)
             } else {
                 NSLog("Peripheral rpm charactersitic changed with no value")
             }
@@ -185,6 +208,7 @@ extension UInt8 {
     }
 }
 
+// Struct sent as characteristicErrorUuid value
 class OneWheelStatus : CustomStringConvertible {
 
     let riderDetected: Bool

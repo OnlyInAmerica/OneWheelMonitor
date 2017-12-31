@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		605A6CF91FF804ED0047DF03 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605A6CF81FF804ED0047DF03 /* AppDelegate.swift */; };
-		605A6CFB1FF804ED0047DF03 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605A6CFA1FF804ED0047DF03 /* ViewController.swift */; };
+		605A6CFB1FF804ED0047DF03 /* StateViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605A6CFA1FF804ED0047DF03 /* StateViewController.swift */; };
 		605A6CFE1FF804ED0047DF03 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 605A6CFC1FF804ED0047DF03 /* Main.storyboard */; };
 		605A6D001FF804ED0047DF03 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 605A6CFF1FF804ED0047DF03 /* Assets.xcassets */; };
 		605A6D031FF804ED0047DF03 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 605A6D011FF804ED0047DF03 /* LaunchScreen.storyboard */; };
@@ -16,6 +16,12 @@
 		605A6D191FF804ED0047DF03 /* OneWheelUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605A6D181FF804ED0047DF03 /* OneWheelUITests.swift */; };
 		605A6D281FF805A60047DF03 /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 605A6D271FF805A60047DF03 /* CoreBluetooth.framework */; };
 		605A6D2A1FF806210047DF03 /* OneWheelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605A6D291FF806210047DF03 /* OneWheelManager.swift */; };
+		60705C421FF864E600ECFDE0 /* StateTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60705C401FF864E600ECFDE0 /* StateTableViewCell.swift */; };
+		60705C431FF864E600ECFDE0 /* StateTableViewCell.xib in Resources */ = {isa = PBXBuildFile; fileRef = 60705C411FF864E600ECFDE0 /* StateTableViewCell.xib */; };
+		60E429E11FF849320050BF8F /* OneWheelDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60E429E01FF849320050BF8F /* OneWheelDatabase.swift */; };
+		B771503D70F6FB7B3D522CE5 /* Pods_OneWheelUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F6735238DB921C2BB240C1B8 /* Pods_OneWheelUITests.framework */; };
+		D4DF3F936B454EB5FAF94CDF /* Pods_OneWheel.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 029B3EF094E4A56DD122CE32 /* Pods_OneWheel.framework */; };
+		EB36015B0ACE1F07781D88A3 /* Pods_OneWheelTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B370B058535D445F1CD80A8 /* Pods_OneWheelTests.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,9 +42,14 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		029B3EF094E4A56DD122CE32 /* Pods_OneWheel.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_OneWheel.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		0F147CABBFE9FE3356B892AF /* Pods-OneWheelTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OneWheelTests.debug.xcconfig"; path = "Pods/Target Support Files/Pods-OneWheelTests/Pods-OneWheelTests.debug.xcconfig"; sourceTree = "<group>"; };
+		1FE3767A2429F5B00C309BE0 /* Pods-OneWheel.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OneWheel.debug.xcconfig"; path = "Pods/Target Support Files/Pods-OneWheel/Pods-OneWheel.debug.xcconfig"; sourceTree = "<group>"; };
+		3B370B058535D445F1CD80A8 /* Pods_OneWheelTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_OneWheelTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		468206A4D6B807382ECCB113 /* Pods-OneWheelTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OneWheelTests.release.xcconfig"; path = "Pods/Target Support Files/Pods-OneWheelTests/Pods-OneWheelTests.release.xcconfig"; sourceTree = "<group>"; };
 		605A6CF51FF804ED0047DF03 /* OneWheel.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OneWheel.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		605A6CF81FF804ED0047DF03 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		605A6CFA1FF804ED0047DF03 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		605A6CFA1FF804ED0047DF03 /* StateViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateViewController.swift; sourceTree = "<group>"; };
 		605A6CFD1FF804ED0047DF03 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		605A6CFF1FF804ED0047DF03 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		605A6D021FF804ED0047DF03 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -51,6 +62,13 @@
 		605A6D1A1FF804ED0047DF03 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		605A6D271FF805A60047DF03 /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
 		605A6D291FF806210047DF03 /* OneWheelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneWheelManager.swift; sourceTree = "<group>"; };
+		60705C401FF864E600ECFDE0 /* StateTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateTableViewCell.swift; sourceTree = "<group>"; };
+		60705C411FF864E600ECFDE0 /* StateTableViewCell.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = StateTableViewCell.xib; sourceTree = "<group>"; };
+		60E429E01FF849320050BF8F /* OneWheelDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneWheelDatabase.swift; sourceTree = "<group>"; };
+		62B4FAE9EFC184E29A0BF1B0 /* Pods-OneWheelUITests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OneWheelUITests.debug.xcconfig"; path = "Pods/Target Support Files/Pods-OneWheelUITests/Pods-OneWheelUITests.debug.xcconfig"; sourceTree = "<group>"; };
+		B9CC24C448D96659CF5A6D6E /* Pods-OneWheel.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OneWheel.release.xcconfig"; path = "Pods/Target Support Files/Pods-OneWheel/Pods-OneWheel.release.xcconfig"; sourceTree = "<group>"; };
+		C5E942119980DD1A07F88696 /* Pods-OneWheelUITests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OneWheelUITests.release.xcconfig"; path = "Pods/Target Support Files/Pods-OneWheelUITests/Pods-OneWheelUITests.release.xcconfig"; sourceTree = "<group>"; };
+		F6735238DB921C2BB240C1B8 /* Pods_OneWheelUITests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_OneWheelUITests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,6 +77,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				605A6D281FF805A60047DF03 /* CoreBluetooth.framework in Frameworks */,
+				D4DF3F936B454EB5FAF94CDF /* Pods_OneWheel.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -66,6 +85,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				EB36015B0ACE1F07781D88A3 /* Pods_OneWheelTests.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -73,12 +93,26 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B771503D70F6FB7B3D522CE5 /* Pods_OneWheelUITests.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		473172012033ECB6D804CE7B /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				1FE3767A2429F5B00C309BE0 /* Pods-OneWheel.debug.xcconfig */,
+				B9CC24C448D96659CF5A6D6E /* Pods-OneWheel.release.xcconfig */,
+				0F147CABBFE9FE3356B892AF /* Pods-OneWheelTests.debug.xcconfig */,
+				468206A4D6B807382ECCB113 /* Pods-OneWheelTests.release.xcconfig */,
+				62B4FAE9EFC184E29A0BF1B0 /* Pods-OneWheelUITests.debug.xcconfig */,
+				C5E942119980DD1A07F88696 /* Pods-OneWheelUITests.release.xcconfig */,
+			);
+			name = Pods;
+			sourceTree = "<group>";
+		};
 		605A6CEC1FF804EC0047DF03 = {
 			isa = PBXGroup;
 			children = (
@@ -87,6 +121,7 @@
 				605A6D171FF804ED0047DF03 /* OneWheelUITests */,
 				605A6CF61FF804ED0047DF03 /* Products */,
 				605A6D261FF805A60047DF03 /* Frameworks */,
+				473172012033ECB6D804CE7B /* Pods */,
 			);
 			sourceTree = "<group>";
 		};
@@ -104,12 +139,15 @@
 			isa = PBXGroup;
 			children = (
 				605A6CF81FF804ED0047DF03 /* AppDelegate.swift */,
-				605A6CFA1FF804ED0047DF03 /* ViewController.swift */,
+				605A6CFA1FF804ED0047DF03 /* StateViewController.swift */,
 				605A6CFC1FF804ED0047DF03 /* Main.storyboard */,
 				605A6CFF1FF804ED0047DF03 /* Assets.xcassets */,
 				605A6D011FF804ED0047DF03 /* LaunchScreen.storyboard */,
 				605A6D041FF804ED0047DF03 /* Info.plist */,
 				605A6D291FF806210047DF03 /* OneWheelManager.swift */,
+				60E429E01FF849320050BF8F /* OneWheelDatabase.swift */,
+				60705C401FF864E600ECFDE0 /* StateTableViewCell.swift */,
+				60705C411FF864E600ECFDE0 /* StateTableViewCell.xib */,
 			);
 			path = OneWheel;
 			sourceTree = "<group>";
@@ -136,6 +174,9 @@
 			isa = PBXGroup;
 			children = (
 				605A6D271FF805A60047DF03 /* CoreBluetooth.framework */,
+				029B3EF094E4A56DD122CE32 /* Pods_OneWheel.framework */,
+				3B370B058535D445F1CD80A8 /* Pods_OneWheelTests.framework */,
+				F6735238DB921C2BB240C1B8 /* Pods_OneWheelUITests.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -147,9 +188,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 605A6D1D1FF804ED0047DF03 /* Build configuration list for PBXNativeTarget "OneWheel" */;
 			buildPhases = (
+				93A46B3C14C19B9EF51261D6 /* [CP] Check Pods Manifest.lock */,
 				605A6CF11FF804EC0047DF03 /* Sources */,
 				605A6CF21FF804EC0047DF03 /* Frameworks */,
 				605A6CF31FF804EC0047DF03 /* Resources */,
+				A75AABE60251C48234A6A4A2 /* [CP] Embed Pods Frameworks */,
+				9CEE6C79DF21CCE212BB738E /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -164,9 +208,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 605A6D201FF804ED0047DF03 /* Build configuration list for PBXNativeTarget "OneWheelTests" */;
 			buildPhases = (
+				154E569983C80D81E7F58744 /* [CP] Check Pods Manifest.lock */,
 				605A6D051FF804ED0047DF03 /* Sources */,
 				605A6D061FF804ED0047DF03 /* Frameworks */,
 				605A6D071FF804ED0047DF03 /* Resources */,
+				83F78594FC47C71586CBC023 /* [CP] Embed Pods Frameworks */,
+				CF60C231FBEAECBC7D28790A /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -182,9 +229,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 605A6D231FF804ED0047DF03 /* Build configuration list for PBXNativeTarget "OneWheelUITests" */;
 			buildPhases = (
+				54A680314E27DB939CAB9383 /* [CP] Check Pods Manifest.lock */,
 				605A6D101FF804ED0047DF03 /* Sources */,
 				605A6D111FF804ED0047DF03 /* Frameworks */,
 				605A6D121FF804ED0047DF03 /* Resources */,
+				07CF75E55C7F6A20CCF78286 /* [CP] Embed Pods Frameworks */,
+				4CAED0EA3177F6A1EF254C74 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -258,6 +308,7 @@
 				605A6D031FF804ED0047DF03 /* LaunchScreen.storyboard in Resources */,
 				605A6D001FF804ED0047DF03 /* Assets.xcassets in Resources */,
 				605A6CFE1FF804ED0047DF03 /* Main.storyboard in Resources */,
+				60705C431FF864E600ECFDE0 /* StateTableViewCell.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -277,13 +328,165 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		07CF75E55C7F6A20CCF78286 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-OneWheelUITests/Pods-OneWheelUITests-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		154E569983C80D81E7F58744 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-OneWheelTests-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		4CAED0EA3177F6A1EF254C74 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "[CP] Copy Pods Resources";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-OneWheelUITests/Pods-OneWheelUITests-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		54A680314E27DB939CAB9383 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-OneWheelUITests-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		83F78594FC47C71586CBC023 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-OneWheelTests/Pods-OneWheelTests-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		93A46B3C14C19B9EF51261D6 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-OneWheel-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		9CEE6C79DF21CCE212BB738E /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "[CP] Copy Pods Resources";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-OneWheel/Pods-OneWheel-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		A75AABE60251C48234A6A4A2 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${SRCROOT}/Pods/Target Support Files/Pods-OneWheel/Pods-OneWheel-frameworks.sh",
+				"${BUILT_PRODUCTS_DIR}/GRDB.swift/GRDB.framework",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/GRDB.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-OneWheel/Pods-OneWheel-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		CF60C231FBEAECBC7D28790A /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "[CP] Copy Pods Resources";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-OneWheelTests/Pods-OneWheelTests-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		605A6CF11FF804EC0047DF03 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				605A6D2A1FF806210047DF03 /* OneWheelManager.swift in Sources */,
-				605A6CFB1FF804ED0047DF03 /* ViewController.swift in Sources */,
+				60E429E11FF849320050BF8F /* OneWheelDatabase.swift in Sources */,
+				60705C421FF864E600ECFDE0 /* StateTableViewCell.swift in Sources */,
+				605A6CFB1FF804ED0047DF03 /* StateViewController.swift in Sources */,
 				605A6CF91FF804ED0047DF03 /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -448,6 +651,7 @@
 		};
 		605A6D1E1FF804ED0047DF03 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 1FE3767A2429F5B00C309BE0 /* Pods-OneWheel.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
@@ -465,6 +669,7 @@
 		};
 		605A6D1F1FF804ED0047DF03 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = B9CC24C448D96659CF5A6D6E /* Pods-OneWheel.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
@@ -482,6 +687,7 @@
 		};
 		605A6D211FF804ED0047DF03 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 0F147CABBFE9FE3356B892AF /* Pods-OneWheelTests.debug.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -498,6 +704,7 @@
 		};
 		605A6D221FF804ED0047DF03 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 468206A4D6B807382ECCB113 /* Pods-OneWheelTests.release.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -514,6 +721,7 @@
 		};
 		605A6D241FF804ED0047DF03 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 62B4FAE9EFC184E29A0BF1B0 /* Pods-OneWheelUITests.debug.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
@@ -529,6 +737,7 @@
 		};
 		605A6D251FF804ED0047DF03 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C5E942119980DD1A07F88696 /* Pods-OneWheelUITests.release.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;

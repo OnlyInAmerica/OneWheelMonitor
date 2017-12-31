@@ -17,7 +17,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        let databaseURL = try! FileManager.default
+            .url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            .appendingPathComponent("ow.sqlite")
+        owManager.db = try! OneWheelDatabase(databaseURL.path)
         owManager.start()
+        
+        let sb = UIStoryboard.init(name: "Main", bundle: nil)
+        let vc = sb.instantiateInitialViewController() as! StateViewController
+        vc.db = owManager.db
+        self.window?.rootViewController = vc
         return true
     }
 
