@@ -249,6 +249,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = speechVoice
         speechSynth?.speak(utterance)
+        // AVSpeechSynthesizerDelegate will set AVAudioSession inactive on didFinish
     }
 }
 
