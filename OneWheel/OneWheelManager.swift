@@ -30,6 +30,9 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     private var speechSynth : AVSpeechSynthesizer?
     private var speechVoice : AVSpeechSynthesisVoice?
     
+    // Used to throttle speed audio alerts
+    private let speedMonitor = SpeedMonitor()
+    
     // Database
     public var db : OneWheelDatabase?
     private var lastState = OneWheelState()
@@ -222,8 +225,10 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     
     private func handleUpdatedRpm(_ rpm: Int16) {
         let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: rpm, safetyHeadroom: lastState.safetyHeadroom)
-        try? db?.insertState(state: newState)
-        if audioFeedback {
+        // Lets not create new events for every speed update. Eventually let's create another table or in-memory structure for speed
+        //try? db?.insertState(state: newState)
+        let mph = newState.mph()
+        if audioFeedback && speedMonitor.passedBenchmark(mph){
             speak(newState.describeDelta(prev: lastState))
         }
         lastState = newState
@@ -240,6 +245,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     
     private func speak(_ text: String) {
         try? AVAudioSession.sharedInstance().setActive(true)
+        speechSynth?.stopSpeaking(at: .word)
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = speechVoice
         speechSynth?.speak(utterance)
@@ -299,5 +305,25 @@ class OneWheelLocalData {
         } else {
             return nil
         }
+    }
+}
+
+class SpeedMonitor {
+    // Trigger when passing through any of these benchmark speeds (MPH)
+    let speedBenchmarksMph = [10.0, 12.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0]
+    
+    // A speed index of 0 indicates we passed no benchmarks, 1 indicates we passed the 0-indexed benchmark etc.
+    var lastSpeedIdx = 0
+    
+    func passedBenchmark(_ newSpeedMph: Double) -> Bool {
+        
+        let newSpeedIdx = (speedBenchmarksMph.index { (benchmarkMph) -> Bool in
+            newSpeedMph >= benchmarkMph
+        } ?? -1) + 1
+        NSLog("SpeedMonitor speed \(newSpeedMph) is idx \(newSpeedIdx), last \(lastSpeedIdx)")
+        
+        let isNew = newSpeedIdx != lastSpeedIdx
+        lastSpeedIdx = newSpeedIdx
+        return isNew
     }
 }
