@@ -363,11 +363,13 @@ class BenchmarkMonitor {
     
     // A benchmark index of benchmarks.count indicates we passed no benchmarks, otherwise value indicates that indexed benchmark passed.
     var lastBenchmarkIdx = 0
+    var lastLastBenchmarkIdx = 0
     
     init(benchmarks: [Double], hysteresis: Double) {
         self.benchmarks = benchmarks.sorted().reversed()
         self.hysteresis = hysteresis
         self.lastBenchmarkIdx = benchmarks.count
+        self.lastLastBenchmarkIdx = benchmarks.count
     }
     
     func passedBenchmark(_ val: Double) -> Bool {
@@ -376,11 +378,12 @@ class BenchmarkMonitor {
         }) ?? benchmarks.count)
         NSLog("idx \(lastBenchmarkIdx) -> \(newBenchmarkIdx)")
         // Apply Hysteresis when downgrading speed benchmark
-        if newBenchmarkIdx - lastBenchmarkIdx == 1 && benchmarks[lastBenchmarkIdx] - val < hysteresis {
+        if newBenchmarkIdx == lastLastBenchmarkIdx && abs(benchmarks[lastBenchmarkIdx] - val) < hysteresis {
             return false
         }
         
         let isNew = newBenchmarkIdx != lastBenchmarkIdx
+        lastLastBenchmarkIdx = lastBenchmarkIdx
         lastBenchmarkIdx = newBenchmarkIdx
         return isNew
     }
