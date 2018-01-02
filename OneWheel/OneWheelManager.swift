@@ -266,7 +266,8 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         //try? db?.insertState(state: newState)
         let mph = newState.mph()
         if audioFeedback && speedMonitor.passedBenchmark(mph){
-            speak(newState.describeDelta(prev: lastState))
+            let mphRound = Int(mph)
+            speak("Speed \(mphRound)")
         }
         lastState = newState
     }
