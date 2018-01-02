@@ -31,8 +31,9 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     private var speechVoice : AVSpeechSynthesisVoice?
     
     // Used to throttle speed audio alerts
-    private let speedMonitor = SpeedMonitor()
-    
+    private let speedMonitor: BenchmarkMonitor = SpeedMonitor()
+    private let batteryMonitor: BenchmarkMonitor = BatteryMonitor()
+
     // Persistence
     public var db : OneWheelDatabase?
     private var lastState = OneWheelState()
@@ -50,6 +51,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     let characteristicErrorUuid = CBUUID.init(string: "e659f30f-ea98-11e3-ac10-0800200c9a66")
     let characteristicSafetyHeadroomUuid = CBUUID.init(string: "e659f317-ea98-11e3-ac10-0800200c9a66")
     let characteristicRpmUuid = CBUUID.init(string: "e659f30b-ea98-11e3-ac10-0800200c9a66")
+    let characteristicBatteryUuid = CBUUID.init(string: "e659f303-ea98-11e3-ac10-0800200c9a66")
 
     func start() {
         cm = CBCentralManager.init(delegate: self, queue: nil, options: nil)
@@ -148,7 +150,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             return service.uuid == serviceUuid
         }).first {
             NSLog("Peripheral target service discovered. Discovering characteristics")
-            peripheral.discoverCharacteristics([characteristicRpmUuid, characteristicErrorUuid, characteristicSafetyHeadroomUuid], for: service)
+            peripheral.discoverCharacteristics([characteristicRpmUuid, characteristicErrorUuid, characteristicSafetyHeadroomUuid, characteristicBatteryUuid], for: service)
         }
     }
     
@@ -162,8 +164,17 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             for characteristic in characteristics {
                 NSLog("Peripheral enabling notification for characteristic \(characteristic)")
                 peripheral.setNotifyValue(true, for: characteristic)
+                if (characteristic.uuid == characteristicBatteryUuid || characteristic.uuid == characteristicSafetyHeadroomUuid) {
+                    peripheral.readValue(for: characteristic)
+                    //peripheral.discoverDescriptors(for: characteristic)
+                }
             }
         }
+    }
+    
+    // Characteristic descriptor discovered
+    func peripheral(_ peripheral: CBPeripheral, didDiscoverDescriptorsFor characteristic: CBCharacteristic, error: Error?) {
+        NSLog("Got descriptor for \(characteristic.uuid) : \(characteristic.descriptors)")
     }
     
     // Characterisitc notification register result
@@ -178,7 +189,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             if let value = characteristic.value {
                 let intValue: UInt8 = value.withUnsafeBytes { $0.pointee }
                 let status = OneWheelStatus(intValue)
-                NSLog("Peripheral error characteristic changed with status \(status)")
+                NSLog("Peripheral error characteristic changed with status \(value) -> \(status)")
                 handleUpdatedStatus(status)
             } else {
                 NSLog("Peripheral error charactersitic changed with no value")
@@ -186,9 +197,11 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
 
         case characteristicSafetyHeadroomUuid:
             if let value = characteristic.value {
-                let intValue: UInt8 = value.withUnsafeBytes { $0.pointee }
-                NSLog("Peripheral headroom characteristic changed with value \(intValue)")
-                handleUpdatedSafetyHeadroom(intValue)
+                let intValue = Int16(bigEndian: value.withUnsafeBytes { $0.pointee })
+                NSLog("Peripheral headroom characteristic changed with value \(value.base64EncodedString()) -> \(intValue)")
+                if intValue <= UInt8.max && intValue >= UInt8.min { // TODO : Is this actually a Int16?
+                    handleUpdatedSafetyHeadroom(UInt8(intValue))
+                }
             } else {
                 NSLog("Peripheral headroom charactersitic changed with no value")
             }
@@ -199,6 +212,17 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
                 handleUpdatedRpm(intValue)
             } else {
                 NSLog("Peripheral rpm charactersitic changed with no value")
+            }
+            
+        case characteristicBatteryUuid:
+            if let value = characteristic.value {
+                let intValue = Int16(bigEndian: value.withUnsafeBytes { $0.pointee })
+                NSLog("Peripheral battery characteristic changed \(value.base64EncodedString()) -> \(intValue)")
+                if intValue <= UInt8.max && intValue >= UInt8.min { // TODO : Is this actually a Int16?
+                    handleUpdatedBattery(UInt8(intValue))
+                }
+            } else {
+                NSLog("Peripheral battery level charactersitic changed with no value")
             }
         default:
             NSLog("Peripheral unknown charactersitic (\(characteristic.uuid)) changed")
@@ -215,7 +239,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     }
     
     private func handleUpdatedStatus(_ s: OneWheelStatus) {
-        let newState = OneWheelState(time: Date.init(), riderPresent: s.riderDetected, footPad1: s.riderDetectPad1, footPad2: s.riderDetectPad2, icsuFault: s.icsuFault, icsvFault: s.icsvFault, charging: s.charging, bmsCtrlComms: s.bmsCtrlComms, brokenCapacitor: s.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom)
+        let newState = OneWheelState(time: Date.init(), riderPresent: s.riderDetected, footPad1: s.riderDetectPad1, footPad2: s.riderDetectPad2, icsuFault: s.icsuFault, icsvFault: s.icsvFault, charging: s.charging, bmsCtrlComms: s.bmsCtrlComms, brokenCapacitor: s.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel)
         try? db?.insertState(state: newState)
         if audioFeedback {
             speak(newState.describeDelta(prev: lastState))
@@ -224,7 +248,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     }
     
     private func handleUpdatedRpm(_ rpm: Int16) {
-        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: rpm, safetyHeadroom: lastState.safetyHeadroom)
+        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel)
         // Lets not create new events for every speed update. Eventually let's create another table or in-memory structure for speed
         //try? db?.insertState(state: newState)
         let mph = newState.mph()
@@ -235,9 +259,19 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     }
     
     private func handleUpdatedSafetyHeadroom(_ sh: UInt8) {
-        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: sh)
+        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: sh, batteryLevel: lastState.batteryLevel)
         try? db?.insertState(state: newState)
         if audioFeedback {
+            speak(newState.describeDelta(prev: lastState))
+        }
+        lastState = newState
+    }
+    
+    private func handleUpdatedBattery(_ batteryLevel: UInt8) {
+        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: batteryLevel)
+        // Lets not create new events for every battery update. Eventually let's create another table or in-memory structure for battery
+        //try? db?.insertState(state: newState)
+        if audioFeedback && batteryMonitor.passedBenchmark(Double(batteryLevel)){
             speak(newState.describeDelta(prev: lastState))
         }
         lastState = newState
@@ -309,27 +343,50 @@ class OneWheelLocalData {
     }
 }
 
-class SpeedMonitor {
-    // Trigger when passing through any of these benchmark speeds (MPH)
-    let speedBenchmarksMph = [10.0, 12.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0]
-    let hysteresisMph = 1.0
+class BenchmarkMonitor {
+    let benchmarks: [Double]
+    let hysteresis: Double
     
-    // A speed index of 0 indicates we passed no benchmarks, 1 indicates we passed the 0-indexed benchmark etc.
-    var lastSpeedIdx = 0
+    // A benchmark index of benchmarks.count indicates we passed no benchmarks, otherwise value indicates that indexed benchmark passed.
+    var lastBenchmarkIdx = 0
     
-    func passedBenchmark(_ newSpeedMph: Double) -> Bool {
-        
-        let newSpeedIdx = (speedBenchmarksMph.index { (benchmarkMph) -> Bool in
-            newSpeedMph >= benchmarkMph
-        } ?? -1) + 1
-        
+    init(benchmarks: [Double], hysteresis: Double) {
+        self.benchmarks = benchmarks.sorted().reversed()
+        self.hysteresis = hysteresis
+        self.lastBenchmarkIdx = benchmarks.count
+    }
+    
+    func passedBenchmark(_ val: Double) -> Bool {
+        let newBenchmarkIdx = (benchmarks.index(where: { (benchmarkVal) -> Bool in
+            val >= benchmarkVal
+        }) ?? benchmarks.count)
+        NSLog("idx \(lastBenchmarkIdx) -> \(newBenchmarkIdx)")
         // Apply Hysteresis when downgrading speed benchmark
-        if newSpeedIdx - lastSpeedIdx == -1 && speedBenchmarksMph[lastSpeedIdx] - newSpeedMph < hysteresisMph {
+        if newBenchmarkIdx - lastBenchmarkIdx == 1 && benchmarks[lastBenchmarkIdx] - val < hysteresis {
             return false
         }
-
-        let isNew = newSpeedIdx != lastSpeedIdx
-        lastSpeedIdx = newSpeedIdx
+        
+        let isNew = newBenchmarkIdx != lastBenchmarkIdx
+        lastBenchmarkIdx = newBenchmarkIdx
         return isNew
+    }
+}
+
+class SpeedMonitor: BenchmarkMonitor {
+    
+    init() {
+        let benchmarks = [10.0, 12.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0]
+        let hysteresis = 1.0
+        super.init(benchmarks: benchmarks, hysteresis: hysteresis)
+    }
+}
+
+class BatteryMonitor: BenchmarkMonitor {
+    
+    init() {
+        // 1% increments from [0-10]%, then 10% increments
+        let benchmarks = Array(stride(from: 0.0, to: 10.0, by: 1.0)) + Array(stride(from: 10.0, to: 100.0, by: 10.0))
+        let hysteresis = 1.0
+        super.init(benchmarks: benchmarks, hysteresis: hysteresis)
     }
 }

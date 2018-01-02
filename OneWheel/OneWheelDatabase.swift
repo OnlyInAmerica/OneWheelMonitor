@@ -51,6 +51,7 @@ var migrator: DatabaseMigrator {
             t.column("brokenCapacitor", .boolean).notNull()
             t.column("rpm", .integer).notNull()
             t.column("safetyHeadroom", .integer).notNull()
+            t.column("batteryLevel", .integer).notNull()
         }
     }
     return migrator
@@ -73,6 +74,7 @@ class OneWheelState : Record, CustomStringConvertible {
     let brokenCapacitor: Bool
     let rpm: Int16
     let safetyHeadroom: UInt8
+    let batteryLevel : UInt8
     
     override init() {
         self.time = Date()
@@ -86,6 +88,7 @@ class OneWheelState : Record, CustomStringConvertible {
         self.brokenCapacitor = false
         self.rpm = 0
         self.safetyHeadroom = 0
+        self.batteryLevel = 0
     
         super.init()
     }
@@ -101,7 +104,8 @@ class OneWheelState : Record, CustomStringConvertible {
         bmsCtrlComms: Bool,
         brokenCapacitor: Bool,
         rpm: Int16,
-        safetyHeadroom: UInt8) {
+        safetyHeadroom: UInt8,
+        batteryLevel: UInt8) {
         
         self.time = time
         self.riderPresent = riderPresent
@@ -114,6 +118,7 @@ class OneWheelState : Record, CustomStringConvertible {
         self.brokenCapacitor = brokenCapacitor
         self.rpm = rpm
         self.safetyHeadroom = safetyHeadroom
+        self.batteryLevel = batteryLevel
         
         super.init()
     }
@@ -130,6 +135,7 @@ class OneWheelState : Record, CustomStringConvertible {
         brokenCapacitor = row["brokenCapacitor"]
         rpm = row["rpm"]
         safetyHeadroom = row["safetyHeadroom"]
+        batteryLevel = row["batteryLevel"]
         
         super.init()
     }
@@ -146,6 +152,7 @@ class OneWheelState : Record, CustomStringConvertible {
         container["brokenCapacitor"] = brokenCapacitor
         container["rpm"] = rpm
         container["safetyHeadroom"] = safetyHeadroom
+        container["batteryLevel"] = batteryLevel
     }
     
     var description: String {
@@ -185,6 +192,9 @@ class OneWheelState : Record, CustomStringConvertible {
         }
         if prev.safetyHeadroom != self.safetyHeadroom {
             description += "Headroom to \(self.safetyHeadroom). "
+        }
+        if prev.batteryLevel != self.batteryLevel {
+            description += "Battery \(self.batteryLevel). "
         }
         return description
     }
