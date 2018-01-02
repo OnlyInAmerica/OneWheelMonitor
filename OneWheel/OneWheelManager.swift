@@ -133,6 +133,19 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         handleConnectedDevice(peripheral)
     }
     
+    // Peripheral disconnected
+    func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
+        // TODO : Allow user to control if auto re-connection is desired
+        NSLog("Peripheral disconnected: \(peripheral.identifier) - \(peripheral.name ?? "No Name")")
+        if peripheral.identifier == connectedDevice?.identifier {
+            NSLog("Reconnecting disconnected peripheral")
+            if audioFeedback {
+                speak("Reconnecting")
+            }
+            connectDevice(peripheral)
+        }
+    }
+    
     // CentralManager state changed
     public func centralManagerDidUpdateState(_ central: CBCentralManager) {
         NSLog("CentralManager state changed to \(central.state)")
