@@ -6,6 +6,7 @@
     <dependencies>
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="13772"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -13,25 +14,50 @@
         <scene sceneID="tne-QT-ifu">
             <objects>
                 <viewController storyboardIdentifier="StatesView" useStoryboardIdentifierAsRestorationIdentifier="YES" id="BYZ-38-t0r" customClass="StateViewController" customModule="OneWheel" customModuleProvider="target" sceneMemberID="viewController">
-                    <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" id="XxB-nN-iEN">
+                    <view key="view" contentMode="scaleToFill" id="jO2-gx-x8t">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                        <subviews>
+                            <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" translatesAutoresizingMaskIntoConstraints="NO" id="9jk-z6-Egr">
+                                <rect key="frame" x="0.0" y="72" width="375" height="595"/>
+                                <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                            </tableView>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Searching for OneWheel..." textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="r2Y-gv-3TY">
+                                <rect key="frame" x="16" y="52" width="200" height="20.5"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <button opaque="NO" contentMode="scaleToFill" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="P8a-tF-x0u">
+                                <rect key="frame" x="281" y="38" width="78" height="30"/>
+                                <state key="normal" title="Disconnect"/>
+                            </button>
+                        </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
-                        <prototypes>
-                            <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" id="oS8-tu-wJA" customClass="StateTableViewCell" customModule="OneWheel" customModuleProvider="target">
-                                <rect key="frame" x="0.0" y="28" width="375" height="44"/>
-                                <autoresizingMask key="autoresizingMask"/>
-                                <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="oS8-tu-wJA" id="scq-0g-CYB">
-                                    <rect key="frame" x="0.0" y="0.0" width="375" height="43.5"/>
-                                    <autoresizingMask key="autoresizingMask"/>
-                                </tableViewCellContentView>
-                            </tableViewCell>
-                        </prototypes>
-                        <sections/>
-                    </tableView>
+                        <constraints>
+                            <constraint firstItem="9jk-z6-Egr" firstAttribute="bottom" secondItem="xwC-ng-wHO" secondAttribute="bottom" id="4Y5-2Z-XuC"/>
+                            <constraint firstItem="r2Y-gv-3TY" firstAttribute="top" secondItem="xwC-ng-wHO" secondAttribute="top" constant="32" id="9Fe-C5-FWa"/>
+                            <constraint firstItem="9jk-z6-Egr" firstAttribute="leading" secondItem="xwC-ng-wHO" secondAttribute="leading" id="Hxi-YR-A8W"/>
+                            <constraint firstItem="9jk-z6-Egr" firstAttribute="trailing" secondItem="xwC-ng-wHO" secondAttribute="trailing" id="N4G-h5-iEh"/>
+                            <constraint firstItem="9jk-z6-Egr" firstAttribute="trailing" secondItem="xwC-ng-wHO" secondAttribute="trailing" id="Nwy-yu-HjR"/>
+                            <constraint firstItem="r2Y-gv-3TY" firstAttribute="leading" secondItem="xwC-ng-wHO" secondAttribute="leading" constant="16" id="S03-Aa-zqD"/>
+                            <constraint firstItem="9jk-z6-Egr" firstAttribute="leading" secondItem="xwC-ng-wHO" secondAttribute="leading" id="hAL-5B-J7q"/>
+                            <constraint firstItem="9jk-z6-Egr" firstAttribute="bottom" secondItem="xwC-ng-wHO" secondAttribute="bottom" id="hXG-0n-Bf7"/>
+                            <constraint firstItem="P8a-tF-x0u" firstAttribute="baseline" secondItem="r2Y-gv-3TY" secondAttribute="baseline" id="mhd-GN-sea"/>
+                            <constraint firstItem="9jk-z6-Egr" firstAttribute="top" secondItem="xwC-ng-wHO" secondAttribute="top" constant="52" id="nIG-Ca-WK4"/>
+                            <constraint firstItem="xwC-ng-wHO" firstAttribute="trailing" secondItem="P8a-tF-x0u" secondAttribute="trailing" constant="16" id="z5F-yk-yhN"/>
+                        </constraints>
+                        <viewLayoutGuide key="safeArea" id="xwC-ng-wHO"/>
+                    </view>
+                    <connections>
+                        <outlet property="disconnectButton" destination="P8a-tF-x0u" id="wtE-qJ-jDC"/>
+                        <outlet property="onewheelLabel" destination="r2Y-gv-3TY" id="1dQ-HN-IKU"/>
+                        <outlet property="tableView" destination="9jk-z6-Egr" id="2Up-4i-Wkf"/>
+                    </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
+            <point key="canvasLocation" x="45.600000000000001" y="19.340329835082461"/>
         </scene>
     </scenes>
 </document>

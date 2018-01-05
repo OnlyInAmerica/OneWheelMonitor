@@ -26,7 +26,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         
         let sb = UIStoryboard.init(name: "Main", bundle: nil)
         let vc = sb.instantiateInitialViewController() as! StateViewController
-        vc.db = owManager.db
+        vc.owManager = owManager
         self.window?.rootViewController = vc
         return true
     }

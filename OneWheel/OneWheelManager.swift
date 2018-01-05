@@ -12,6 +12,9 @@ import AVFoundation
 
 class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate, AVSpeechSynthesizerDelegate {
     
+    // Listener
+    var connListener: ConnectionListener?
+    
     // Audio feedback
     public var audioFeedback = false {
         didSet {
@@ -59,7 +62,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     }
     
     func discoveredDevices() -> [OneWheel] {
-        return []
+        return [] // TODO
     }
     
     func stop() {
@@ -71,7 +74,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     
     private func findDevice() {
         let cm = self.cm!
-        if let primaryDeviceUuid = data.getPrimaryeviceUUID() {
+        if let primaryDeviceUuid = data.getPrimaryDeviceUUID() {
             // Connect known device
             let knownDevices = cm.retrievePeripherals(withIdentifiers: [primaryDeviceUuid])
             if knownDevices.count == 0 {
@@ -142,6 +145,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             if audioFeedback {
                 speak("Reconnecting")
             }
+            connListener?.onDisconnected(oneWheel: OneWheel(peripheral))
             connectDevice(peripheral)
         }
     }
@@ -247,8 +251,13 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         connectedDevice = device
         device.delegate = self
         
+        connListener?.onConnected(oneWheel: OneWheel(device))
         device.discoverServices([serviceUuid])
         // Delegate awaits service discovery
+        
+        if audioFeedback {
+            speak("Connected")
+        }
     }
     
     private func handleUpdatedStatus(_ s: OneWheelStatus) {
@@ -338,6 +347,17 @@ class OneWheelStatus : CustomStringConvertible {
 
 class OneWheel {
     
+    var name: String? {
+        get {
+            return self.peripheral.name
+        }
+    }
+    
+    private let peripheral: CBPeripheral
+    
+    init(_ peripheral: CBPeripheral) {
+        self.peripheral = peripheral
+    }
 }
 
 class OneWheelLocalData {
@@ -348,7 +368,7 @@ class OneWheelLocalData {
         data.setValue(uuid.uuidString, forKeyPath: keyUuid)
     }
     
-    func getPrimaryeviceUUID() -> UUID? {
+    func getPrimaryDeviceUUID() -> UUID? {
         if let stringUuid = data.string(forKey: keyUuid) {
             return UUID.init(uuidString: stringUuid)
         } else {
@@ -378,7 +398,7 @@ class BenchmarkMonitor {
         }) ?? benchmarks.count)
         NSLog("idx \(lastBenchmarkIdx) -> \(newBenchmarkIdx)")
         // Apply Hysteresis when downgrading speed benchmark
-        if newBenchmarkIdx == lastLastBenchmarkIdx && abs(benchmarks[lastBenchmarkIdx] - val) < hysteresis {
+        if newBenchmarkIdx == lastLastBenchmarkIdx && abs(getBenchmarkVal(lastBenchmarkIdx) - val) < hysteresis {
             return false
         }
         
@@ -386,6 +406,13 @@ class BenchmarkMonitor {
         lastLastBenchmarkIdx = lastBenchmarkIdx
         lastBenchmarkIdx = newBenchmarkIdx
         return isNew
+    }
+    
+    func getBenchmarkVal(_ index: Int) -> Double {
+        if index >= benchmarks.count {
+            return 0 // TODO : assumes DESC sort
+        }
+        return benchmarks[index]
     }
 }
 
@@ -406,4 +433,9 @@ class BatteryMonitor: BenchmarkMonitor {
         let hysteresis = 1.0
         super.init(benchmarks: benchmarks, hysteresis: hysteresis)
     }
+}
+
+protocol ConnectionListener {
+    func onConnected(oneWheel: OneWheel)
+    func onDisconnected(oneWheel: OneWheel)
 }

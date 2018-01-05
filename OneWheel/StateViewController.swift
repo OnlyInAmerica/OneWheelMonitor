@@ -9,24 +9,37 @@
 import UIKit
 import GRDB
 
-class StateViewController: UITableViewController {
+class StateViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, ConnectionListener {
     
-    var db : OneWheelDatabase?
+    @IBOutlet weak var onewheelLabel: UILabel!
+    @IBOutlet weak var disconnectButton: UIButton!
+    @IBOutlet var tableView: UITableView!
     
+    var owConnectionDesired = true
+    var owManager : OneWheelManager?
+
     private var controller: FetchedRecordsController<OneWheelState>!
     
     private let dateFormatter = DateFormatter()
+    private let data = OneWheelLocalData()
 
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
+        
+        self.owManager?.connListener = self
+        updateUi(isConnected: false, onewheel: nil)
+        disconnectButton.addTarget(self, action: #selector(disconnectClick(_:)), for: .touchUpInside)
+
+        self.tableView.delegate = self
+        self.tableView.dataSource = self
         
         self.dateFormatter.locale = Locale(identifier: "en_US_POSIX")
         dateFormatter.dateFormat = "HH:mm:ss.SSS"
         
         self.tableView.register(UINib(nibName: "StateTableViewCell", bundle: nil), forCellReuseIdentifier: "State")
         
-        self.controller = try! db?.getStateRecordsController()
+        self.controller = try! owManager?.db?.getStateRecordsController()
             
         if let controller = self.controller {
             controller.trackChanges(
@@ -61,6 +74,7 @@ class StateViewController: UITableViewController {
                 },
                 didChange: { [unowned self] _ in
                     self.tableView.endUpdates()
+                    self.tableView.scrollToNearestSelectedRow(at: UITableViewScrollPosition.bottom, animated: true)
             })
             try! controller.performFetch()
         }
@@ -69,6 +83,18 @@ class StateViewController: UITableViewController {
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
+    }
+    
+    @objc func disconnectClick(_ sender: UIButton) {
+        NSLog("Click")
+        owConnectionDesired = !owConnectionDesired
+        if owConnectionDesired {
+            self.disconnectButton.setTitle("Disconnect", for: UIControlState.normal)
+            owManager?.start()
+        } else {
+            self.disconnectButton.setTitle("Connect", for: UIControlState.normal)
+            owManager?.stop()
+        }
     }
 }
 
@@ -89,25 +115,44 @@ extension StateViewController {
         cell.timeLabel.text = stateTime
     }
     
-    override func numberOfSections(in tableView: UITableView) -> Int {
+    // MARK UITableViewDelegate
+    
+    func numberOfSections(in tableView: UITableView) -> Int {
         return controller.sections.count
     }
     
-    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return controller.sections[section].numberOfRecords
     }
     
-    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "State", for: indexPath)
         configure(cell as! StateTableViewCell, at: indexPath)
         return cell
     }
     
-    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
+    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
         // Delete the state
 //        let state = controller.record(at: indexPath)
 //        try! dbQueue.inDatabase { db in
 //            _ = try state.delete(db)
 //        }
+    }
+    
+    func updateUi(isConnected: Bool, onewheel: OneWheel?) {
+        if isConnected {
+            self.onewheelLabel.text = onewheel?.name ?? "OneWheel"
+        } else {
+            self.onewheelLabel.text = "Searching for OneWheel..."
+        }
+    }
+    
+    // MARK: ConnectionListener
+    func onConnected(oneWheel: OneWheel) {
+        updateUi(isConnected: true, onewheel: oneWheel)
+    }
+    
+    func onDisconnected(oneWheel: OneWheel) {
+        updateUi(isConnected: false, onewheel: oneWheel)
     }
 }

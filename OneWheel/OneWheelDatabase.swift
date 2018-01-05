@@ -191,7 +191,7 @@ class OneWheelState : Record, CustomStringConvertible {
             description += "Speed \(mph). "
         }
         if prev.safetyHeadroom != self.safetyHeadroom {
-            description += "Headroom to \(self.safetyHeadroom). "
+            description += "Headroom \(self.safetyHeadroom). "
         }
         if prev.batteryLevel != self.batteryLevel {
             description += "Battery \(self.batteryLevel). "
