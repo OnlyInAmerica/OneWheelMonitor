@@ -32,6 +32,12 @@ class OneWheelDatabase {
             request: OneWheelState.order(Column("time")))
         return controller
     }
+    
+    func clear() throws {
+        try dbQueue.inDatabase { (db) in
+            try OneWheelState.deleteAll(db)
+        }
+    }
 }
 
 var migrator: DatabaseMigrator {
