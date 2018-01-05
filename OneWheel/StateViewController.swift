@@ -9,11 +9,12 @@
 import UIKit
 import GRDB
 
-class StateViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, ConnectionListener {
+class StateViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, ConnectionListener, GraphDataSource {
     
     @IBOutlet weak var onewheelLabel: UILabel!
     @IBOutlet weak var disconnectButton: UIButton!
     @IBOutlet var tableView: UITableView!
+    @IBOutlet var graphView: OneWheelGraphView!
     
     var owConnectionDesired = true
     var owManager : OneWheelManager?
@@ -26,6 +27,11 @@ class StateViewController: UIViewController, UITableViewDelegate, UITableViewDat
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
+        
+        self.graphView.dataSource = self
+        self.graphView.addSeries(newSeries: OneWheelGraphView.SpeedSeries(name: "Speed", color: UIColor.black.cgColor))
+        self.graphView.addSeries(newSeries: OneWheelGraphView.BatterySeries(name: "Battery", color: UIColor.blue.cgColor))
+        self.graphView.addSeries(newSeries: OneWheelGraphView.ErrorSeries(name: "Error", color: UIColor.red.cgColor))
         
         self.owManager?.connListener = self
         updateUi(isConnected: false, onewheel: nil)
@@ -43,38 +49,41 @@ class StateViewController: UIViewController, UITableViewDelegate, UITableViewDat
             
         if let controller = self.controller {
             controller.trackChanges(
-                willChange: { [unowned self] _ in
-                    self.tableView.beginUpdates()
-                },
-                onChange: { [unowned self] (controller, record, change) in
-                    switch change {
-                    case .insertion(let indexPath):
-                        self.tableView.insertRows(at: [indexPath], with: .fade)
-                        
-                    case .deletion(let indexPath):
-                        self.tableView.deleteRows(at: [indexPath], with: .fade)
-                        
-                    case .update(let indexPath, _):
-                        if let cell = self.tableView.cellForRow(at: indexPath) {
-                            self.configure(cell as! StateTableViewCell, at: indexPath)
-                        }
-                        
-                    case .move(let indexPath, let newIndexPath, _):
-                        // Actually move cells around for more demo effect :-)
-                        let cell = self.tableView.cellForRow(at: indexPath)
-                        self.tableView.moveRow(at: indexPath, to: newIndexPath)
-                        if let cell = cell {
-                            self.configure(cell as! StateTableViewCell, at: newIndexPath)
-                        }
-                        
-                        // A quieter animation:
-                        // self.tableView.deleteRows(at: [indexPath], with: .fade)
-                        // self.tableView.insertRows(at: [newIndexPath], with: .fade)
-                    }
-                },
+//                willChange: { [unowned self] _ in
+//                    NSLog("FetchedResultsController willChange")
+//                    self.tableView.beginUpdates()
+//                },
+//                onChange: { [unowned self] (controller, record, change) in
+//                    switch change {
+//                    case .insertion(let indexPath):
+//                        self.tableView.insertRows(at: [indexPath], with: .fade)
+//
+//                    case .deletion(let indexPath):
+//                        self.tableView.deleteRows(at: [indexPath], with: .fade)
+//
+//                    case .update(let indexPath, _):
+//                        if let cell = self.tableView.cellForRow(at: indexPath) {
+//                            self.configure(cell as! StateTableViewCell, at: indexPath)
+//                        }
+//
+//                    case .move(let indexPath, let newIndexPath, _):
+//                        // Actually move cells around for more demo effect :-)
+//                        let cell = self.tableView.cellForRow(at: indexPath)
+//                        self.tableView.moveRow(at: indexPath, to: newIndexPath)
+//                        if let cell = cell {
+//                            self.configure(cell as! StateTableViewCell, at: newIndexPath)
+//                        }
+//
+//                        // A quieter animation:
+//                        // self.tableView.deleteRows(at: [indexPath], with: .fade)
+//                        // self.tableView.insertRows(at: [newIndexPath], with: .fade)
+//                    }
+//                },
                 didChange: { [unowned self] _ in
-                    self.tableView.endUpdates()
+//                    self.tableView.endUpdates()
                     self.tableView.scrollToNearestSelectedRow(at: UITableViewScrollPosition.bottom, animated: true)
+                    self.graphView.setNeedsDisplay()
+                    self.tableView.reloadData()
             })
             try! controller.performFetch()
         }
@@ -96,9 +105,17 @@ class StateViewController: UIViewController, UITableViewDelegate, UITableViewDat
             owManager?.stop()
         }
     }
+    
+    func updateUi(isConnected: Bool, onewheel: OneWheel?) {
+        if isConnected {
+            self.onewheelLabel.text = onewheel?.name ?? "OneWheel"
+        } else {
+            self.onewheelLabel.text = "Searching for OneWheel..."
+        }
+    }
 }
 
-// MARK: - UITableViewDataSource
+// MARK: - UITableViewDataSource + UITableViewDelegate
 extension StateViewController {
     func configure(_ cell: StateTableViewCell, at indexPath: IndexPath) {
         let state = controller.record(at: indexPath)
@@ -122,7 +139,8 @@ extension StateViewController {
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return controller.sections[section].numberOfRecords
+        let numRows = controller.sections[section].numberOfRecords
+        return numRows
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -138,21 +156,31 @@ extension StateViewController {
 //            _ = try state.delete(db)
 //        }
     }
-    
-    func updateUi(isConnected: Bool, onewheel: OneWheel?) {
-        if isConnected {
-            self.onewheelLabel.text = onewheel?.name ?? "OneWheel"
-        } else {
-            self.onewheelLabel.text = "Searching for OneWheel..."
-        }
-    }
-    
-    // MARK: ConnectionListener
+}
+
+// MARK: ConnectionListener
+
+extension StateViewController {
     func onConnected(oneWheel: OneWheel) {
         updateUi(isConnected: true, onewheel: oneWheel)
     }
     
     func onDisconnected(oneWheel: OneWheel) {
         updateUi(isConnected: false, onewheel: oneWheel)
+    }
+}
+
+// MARK: GraphDataSource
+
+extension StateViewController {
+    func getCount() -> Int {
+        let numItems = controller.sections[0].numberOfRecords
+        NSLog("\(numItems) graph items")
+        return numItems
+    }
+    
+    func getStateForIndex(index: Int) -> OneWheelState {
+        let state = controller.record(at: IndexPath(row: index, section: 0))
+        return state
     }
 }

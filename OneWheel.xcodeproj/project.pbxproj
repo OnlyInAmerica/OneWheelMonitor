@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		604313EB1FFFFA9100B21214 /* OneWheelGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 604313EA1FFFFA9100B21214 /* OneWheelGraphView.swift */; };
 		605A6CF91FF804ED0047DF03 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605A6CF81FF804ED0047DF03 /* AppDelegate.swift */; };
 		605A6CFB1FF804ED0047DF03 /* StateViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605A6CFA1FF804ED0047DF03 /* StateViewController.swift */; };
 		605A6CFE1FF804ED0047DF03 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 605A6CFC1FF804ED0047DF03 /* Main.storyboard */; };
@@ -47,6 +48,7 @@
 		1FE3767A2429F5B00C309BE0 /* Pods-OneWheel.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OneWheel.debug.xcconfig"; path = "Pods/Target Support Files/Pods-OneWheel/Pods-OneWheel.debug.xcconfig"; sourceTree = "<group>"; };
 		3B370B058535D445F1CD80A8 /* Pods_OneWheelTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_OneWheelTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		468206A4D6B807382ECCB113 /* Pods-OneWheelTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OneWheelTests.release.xcconfig"; path = "Pods/Target Support Files/Pods-OneWheelTests/Pods-OneWheelTests.release.xcconfig"; sourceTree = "<group>"; };
+		604313EA1FFFFA9100B21214 /* OneWheelGraphView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OneWheelGraphView.swift; sourceTree = "<group>"; };
 		605A6CF51FF804ED0047DF03 /* OneWheel.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OneWheel.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		605A6CF81FF804ED0047DF03 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		605A6CFA1FF804ED0047DF03 /* StateViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateViewController.swift; sourceTree = "<group>"; };
@@ -138,6 +140,7 @@
 		605A6CF71FF804ED0047DF03 /* OneWheel */ = {
 			isa = PBXGroup;
 			children = (
+				604313EA1FFFFA9100B21214 /* OneWheelGraphView.swift */,
 				605A6CF81FF804ED0047DF03 /* AppDelegate.swift */,
 				605A6CFA1FF804ED0047DF03 /* StateViewController.swift */,
 				605A6CFC1FF804ED0047DF03 /* Main.storyboard */,
@@ -487,6 +490,7 @@
 				60E429E11FF849320050BF8F /* OneWheelDatabase.swift in Sources */,
 				60705C421FF864E600ECFDE0 /* StateTableViewCell.swift in Sources */,
 				605A6CFB1FF804ED0047DF03 /* StateViewController.swift in Sources */,
+				604313EB1FFFFA9100B21214 /* OneWheelGraphView.swift in Sources */,
 				605A6CF91FF804ED0047DF03 /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

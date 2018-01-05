@@ -282,7 +282,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     private func handleUpdatedRpm(_ rpm: Int16) {
         let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel)
         // Lets not create new events for every speed update. Eventually let's create another table or in-memory structure for speed
-        //try? db?.insertState(state: newState)
+        try? db?.insertState(state: newState)
         let mph = newState.mph()
         if audioFeedback && speedMonitor.passedBenchmark(mph){
             let mphRound = Int(mph)
@@ -302,8 +302,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     
     private func handleUpdatedBattery(_ batteryLevel: UInt8) {
         let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: batteryLevel)
-        // Lets not create new events for every battery update. Eventually let's create another table or in-memory structure for battery
-        //try? db?.insertState(state: newState)
+        try? db?.insertState(state: newState)
         if audioFeedback && batteryMonitor.passedBenchmark(Double(batteryLevel)){
             speak(newState.describeDelta(prev: lastState))
         }

@@ -6,6 +6,7 @@
     <dependencies>
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="13772"/>
+        <capability name="Constraints to layout margins" minToolsVersion="6.0"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -19,38 +20,46 @@
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                         <subviews>
                             <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" translatesAutoresizingMaskIntoConstraints="NO" id="9jk-z6-Egr">
-                                <rect key="frame" x="0.0" y="72" width="375" height="595"/>
+                                <rect key="frame" x="0.0" y="275" width="375" height="392"/>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="392" id="ysu-vB-4lo"/>
+                                </constraints>
                             </tableView>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Searching for OneWheel..." textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="r2Y-gv-3TY">
-                                <rect key="frame" x="16" y="52" width="200" height="20.5"/>
+                                <rect key="frame" x="16" y="52" width="200" height="21"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <button opaque="NO" contentMode="scaleToFill" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="P8a-tF-x0u">
-                                <rect key="frame" x="281" y="38" width="78" height="30"/>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="mbN-aS-kiI" customClass="OneWheelGraphView" customModule="OneWheel" customModuleProvider="target">
+                                <rect key="frame" x="0.0" y="81" width="375" height="196"/>
+                                <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                            </view>
+                            <button opaque="NO" contentMode="scaleToFill" verticalHuggingPriority="251" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="P8a-tF-x0u">
+                                <rect key="frame" x="281" y="48" width="78" height="30"/>
                                 <state key="normal" title="Disconnect"/>
                             </button>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                         <constraints>
-                            <constraint firstItem="9jk-z6-Egr" firstAttribute="bottom" secondItem="xwC-ng-wHO" secondAttribute="bottom" id="4Y5-2Z-XuC"/>
-                            <constraint firstItem="r2Y-gv-3TY" firstAttribute="top" secondItem="xwC-ng-wHO" secondAttribute="top" constant="32" id="9Fe-C5-FWa"/>
-                            <constraint firstItem="9jk-z6-Egr" firstAttribute="leading" secondItem="xwC-ng-wHO" secondAttribute="leading" id="Hxi-YR-A8W"/>
-                            <constraint firstItem="9jk-z6-Egr" firstAttribute="trailing" secondItem="xwC-ng-wHO" secondAttribute="trailing" id="N4G-h5-iEh"/>
-                            <constraint firstItem="9jk-z6-Egr" firstAttribute="trailing" secondItem="xwC-ng-wHO" secondAttribute="trailing" id="Nwy-yu-HjR"/>
-                            <constraint firstItem="r2Y-gv-3TY" firstAttribute="leading" secondItem="xwC-ng-wHO" secondAttribute="leading" constant="16" id="S03-Aa-zqD"/>
-                            <constraint firstItem="9jk-z6-Egr" firstAttribute="leading" secondItem="xwC-ng-wHO" secondAttribute="leading" id="hAL-5B-J7q"/>
-                            <constraint firstItem="9jk-z6-Egr" firstAttribute="bottom" secondItem="xwC-ng-wHO" secondAttribute="bottom" id="hXG-0n-Bf7"/>
-                            <constraint firstItem="P8a-tF-x0u" firstAttribute="baseline" secondItem="r2Y-gv-3TY" secondAttribute="baseline" id="mhd-GN-sea"/>
-                            <constraint firstItem="9jk-z6-Egr" firstAttribute="top" secondItem="xwC-ng-wHO" secondAttribute="top" constant="52" id="nIG-Ca-WK4"/>
-                            <constraint firstItem="xwC-ng-wHO" firstAttribute="trailing" secondItem="P8a-tF-x0u" secondAttribute="trailing" constant="16" id="z5F-yk-yhN"/>
+                            <constraint firstItem="mbN-aS-kiI" firstAttribute="leading" secondItem="9jk-z6-Egr" secondAttribute="leading" id="GJb-bM-Blz"/>
+                            <constraint firstItem="9jk-z6-Egr" firstAttribute="bottom" secondItem="xwC-ng-wHO" secondAttribute="bottom" id="MK8-Ir-U9n"/>
+                            <constraint firstItem="r2Y-gv-3TY" firstAttribute="top" secondItem="xwC-ng-wHO" secondAttribute="top" constant="32" id="PDJ-WI-xWN"/>
+                            <constraint firstItem="mbN-aS-kiI" firstAttribute="trailing" secondItem="9jk-z6-Egr" secondAttribute="trailing" id="RY6-6w-PaJ"/>
+                            <constraint firstItem="P8a-tF-x0u" firstAttribute="baseline" secondItem="r2Y-gv-3TY" secondAttribute="baseline" id="YM4-8x-19E"/>
+                            <constraint firstItem="P8a-tF-x0u" firstAttribute="trailing" secondItem="jO2-gx-x8t" secondAttribute="trailingMargin" id="bls-dO-FQ0"/>
+                            <constraint firstAttribute="trailing" secondItem="mbN-aS-kiI" secondAttribute="trailing" id="k95-gv-tgZ"/>
+                            <constraint firstItem="xwC-ng-wHO" firstAttribute="bottom" secondItem="mbN-aS-kiI" secondAttribute="bottom" constant="390" id="kps-ub-dTh"/>
+                            <constraint firstItem="mbN-aS-kiI" firstAttribute="top" secondItem="r2Y-gv-3TY" secondAttribute="bottom" constant="8" symbolic="YES" id="odZ-Y1-meI"/>
+                            <constraint firstItem="mbN-aS-kiI" firstAttribute="leading" secondItem="jO2-gx-x8t" secondAttribute="leading" id="pq4-fQ-IOq"/>
+                            <constraint firstItem="r2Y-gv-3TY" firstAttribute="leading" secondItem="jO2-gx-x8t" secondAttribute="leadingMargin" id="trg-xM-Hp7"/>
                         </constraints>
                         <viewLayoutGuide key="safeArea" id="xwC-ng-wHO"/>
                     </view>
                     <connections>
                         <outlet property="disconnectButton" destination="P8a-tF-x0u" id="wtE-qJ-jDC"/>
+                        <outlet property="graphView" destination="mbN-aS-kiI" id="sVi-t5-nMS"/>
                         <outlet property="onewheelLabel" destination="r2Y-gv-3TY" id="1dQ-HN-IKU"/>
                         <outlet property="tableView" destination="9jk-z6-Egr" id="2Up-4i-Wkf"/>
                     </connections>
