@@ -12,6 +12,8 @@ import AVFoundation
 
 class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate, AVSpeechSynthesizerDelegate {
     
+    var startRequested = false
+    
     // Listener
     var connListener: ConnectionListener?
     
@@ -57,6 +59,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     let characteristicBatteryUuid = CBUUID.init(string: "e659f303-ea98-11e3-ac10-0800200c9a66")
 
     func start() {
+        startRequested = true
         cm = CBCentralManager.init(delegate: self, queue: nil, options: nil)
         // delegate awaits poweredOn state
     }
@@ -66,6 +69,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     }
     
     func stop() {
+        startRequested = false
         cm?.stopScan()
         if let device = connectedDevice {
             cm?.cancelPeripheralConnection(device)
@@ -143,10 +147,16 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         if peripheral.identifier == connectedDevice?.identifier {
             NSLog("Reconnecting disconnected peripheral")
             if audioFeedback {
-                speak("Reconnecting")
+                if startRequested {
+                    speak("Reconnecting")
+                } else {
+                    speak("Disconnected")
+                }
             }
             connListener?.onDisconnected(oneWheel: OneWheel(peripheral))
-            connectDevice(peripheral)
+            if startRequested {
+                connectDevice(peripheral)
+            }
         }
     }
     
