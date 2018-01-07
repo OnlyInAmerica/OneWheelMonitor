@@ -34,7 +34,7 @@ class OneWheelDatabase {
     }
     
     func clear() throws {
-        try dbQueue.inDatabase { (db) in
+        let _ = try dbQueue.inDatabase { (db) in
             try OneWheelState.deleteAll(db)
         }
     }
