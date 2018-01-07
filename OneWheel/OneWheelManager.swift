@@ -371,7 +371,12 @@ class OneWheel {
 
 class OneWheelLocalData {
     private let keyUuid = "ow_uuid"
+
     private let data = UserDefaults.standard
+    
+    func clearPrimaryDeviceUUID() {
+        data.removeObject(forKey: keyUuid)
+    }
     
     func setPrimaryDeviceUUID(_ uuid: UUID) {
         data.setValue(uuid.uuidString, forKeyPath: keyUuid)

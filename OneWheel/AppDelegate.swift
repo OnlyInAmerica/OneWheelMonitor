@@ -24,10 +24,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         owManager.audioFeedback = true
         owManager.start()
         
-        let sb = UIStoryboard.init(name: "Main", bundle: nil)
-        let vc = sb.instantiateInitialViewController() as! StateViewController
+        let vc = ((self.window?.rootViewController as! UINavigationController).topViewController as! StateViewController)
         vc.owManager = owManager
-        self.window?.rootViewController = vc
         return true
     }
 

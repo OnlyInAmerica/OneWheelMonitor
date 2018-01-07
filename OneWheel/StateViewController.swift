@@ -11,9 +11,11 @@ import GRDB
 
 class StateViewController: UIViewController {
     
-    @IBOutlet weak var onewheelLabel: UILabel!
-    @IBOutlet weak var connStatusLabel: UIButton!
     @IBOutlet var graphView: OneWheelGraphView!
+    @IBOutlet var connActionButton: UIBarButtonItem!
+    @IBOutlet var newRideButton: UIBarButtonItem!
+    @IBOutlet var muteAudioButton: UIBarButtonItem!
+    @IBOutlet var unpairButton: UIBarButtonItem!
     
     var owManager : OneWheelManager!
 
@@ -39,7 +41,18 @@ class StateViewController: UIViewController {
         
         self.owManager.connListener = self
         updateUi(isConnected: false, onewheel: nil)
-        connStatusLabel.addTarget(self, action: #selector(disconnectClick(_:)), for: .touchUpInside)
+        
+        connActionButton.target = self
+        connActionButton.action = #selector(connActionClick(_:))
+        
+        newRideButton.target = self
+        newRideButton.action = #selector(newRideClick(_:))
+
+        muteAudioButton.target = self
+        muteAudioButton.action = #selector(muteAudioClick(_:))
+        
+        unpairButton.target = self
+        unpairButton.action = #selector(unpairClick(_:))
         
         self.dateFormatter.locale = Locale(identifier: "en_US_POSIX")
         dateFormatter.dateFormat = "HH:mm:ss.SSS"
@@ -72,7 +85,7 @@ class StateViewController: UIViewController {
         // Dispose of any resources that can be recreated.
     }
     
-    @objc func disconnectClick(_ sender: UIButton) {
+    @objc func connActionClick(_ sender: UIButton) {
         let owConnectionDesired = !owManager.startRequested
         if owConnectionDesired {
             owManager?.start()
@@ -83,16 +96,52 @@ class StateViewController: UIViewController {
         updateUi(isConnected: false, onewheel: nil)
     }
     
+    @objc func newRideClick(_ sender: UIButton) {
+        let alert = UIAlertController(title: "Delete Previous Ride?", message: "Starting a new ride will delete data from the previous ride", preferredStyle: UIAlertControllerStyle.alert)
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+        alert.addAction(UIAlertAction(title: "Ok", style: .default, handler: { action in
+            if action.style == .default {
+                try? self.owManager.db?.clear()
+            }
+            }))
+        self.present(alert, animated: true, completion: nil)
+    }
+    
+    @objc func muteAudioClick(_ sender: UIButton) {
+        let audioFeedbackDesired = !owManager.audioFeedback
+        if audioFeedbackDesired {
+            owManager.audioFeedback = true
+            muteAudioButton.title = "Mute Audio"
+        } else {
+            owManager.audioFeedback = false
+            muteAudioButton.title = "Unmute Audio"
+        }
+    }
+    
+    @objc func unpairClick(_ sender: UIButton) {
+        let alert = UIAlertController(title: "Unpair OneWheel?", message: "The next time you click 'Connect', the first OneWheel found will become the paired device", preferredStyle: UIAlertControllerStyle.alert)
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+        alert.addAction(UIAlertAction(title: "Ok", style: .default, handler: { action in
+            if action.style == .default {
+                // Clear primary device selection and disconnect
+                self.data.clearPrimaryDeviceUUID()
+                self.owManager?.stop()
+                self.updateUi(isConnected: false, onewheel: nil)
+            }
+        }))
+        self.present(alert, animated: true, completion: nil)
+    }
+    
     func updateUi(isConnected: Bool, onewheel: OneWheel?) {
         if isConnected {
-            self.onewheelLabel.text = onewheel?.name ?? "OneWheel"
-            self.connStatusLabel.setTitle("Disconnect", for: UIControlState.normal)
+            self.navigationItem.title = onewheel?.name ?? "OneWheel"
+            self.connActionButton.title = "Disconnect"
         } else if owManager.startRequested {
-            self.onewheelLabel.text = "Searching for OneWheel..."
-            self.connStatusLabel.setTitle("Stop", for: UIControlState.normal)
+            self.navigationItem.title = "Searching for OneWheel..."
+            self.connActionButton.title = "Stop"
         } else {
-            self.onewheelLabel.text = ""
-            self.connStatusLabel.setTitle("Connect", for: UIControlState.normal)
+            self.navigationItem.title = ""
+            self.connActionButton.title = "Connect"
         }
     }
 }
