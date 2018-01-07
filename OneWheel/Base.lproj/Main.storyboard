@@ -18,8 +18,8 @@
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                         <subviews>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Searching for OneWheel..." textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="r2Y-gv-3TY">
-                                <rect key="frame" x="16" y="52" width="200" height="21"/>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" misplaced="YES" text="Searching for OneWheel..." textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="r2Y-gv-3TY">
+                                <rect key="frame" x="16" y="33" width="200" height="21"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
@@ -28,8 +28,8 @@
                                 <rect key="frame" x="0.0" y="81" width="375" height="586"/>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                             </view>
-                            <button opaque="NO" contentMode="scaleToFill" verticalHuggingPriority="251" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="P8a-tF-x0u">
-                                <rect key="frame" x="281" y="48" width="78" height="30"/>
+                            <button opaque="NO" contentMode="scaleToFill" verticalHuggingPriority="251" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="P8a-tF-x0u">
+                                <rect key="frame" x="281" y="28" width="78" height="30"/>
                                 <state key="normal" title="Disconnect"/>
                             </button>
                         </subviews>
@@ -50,7 +50,7 @@
                         <viewLayoutGuide key="safeArea" id="xwC-ng-wHO"/>
                     </view>
                     <connections>
-                        <outlet property="disconnectButton" destination="P8a-tF-x0u" id="wtE-qJ-jDC"/>
+                        <outlet property="connStatusLabel" destination="P8a-tF-x0u" id="wtE-qJ-jDC"/>
                         <outlet property="graphView" destination="mbN-aS-kiI" id="sVi-t5-nMS"/>
                         <outlet property="onewheelLabel" destination="r2Y-gv-3TY" id="1dQ-HN-IKU"/>
                     </connections>

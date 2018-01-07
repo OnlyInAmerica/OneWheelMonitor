@@ -12,11 +12,10 @@ import GRDB
 class StateViewController: UIViewController {
     
     @IBOutlet weak var onewheelLabel: UILabel!
-    @IBOutlet weak var disconnectButton: UIButton!
+    @IBOutlet weak var connStatusLabel: UIButton!
     @IBOutlet var graphView: OneWheelGraphView!
     
-    var owConnectionDesired = true
-    var owManager : OneWheelManager?
+    var owManager : OneWheelManager!
 
     private var controller: FetchedRecordsController<OneWheelState>!
     
@@ -38,14 +37,14 @@ class StateViewController: UIViewController {
             .cgColor))
         self.graphView.contentMode = .redraw // redraw on bounds change
         
-        self.owManager?.connListener = self
+        self.owManager.connListener = self
         updateUi(isConnected: false, onewheel: nil)
-        disconnectButton.addTarget(self, action: #selector(disconnectClick(_:)), for: .touchUpInside)
+        connStatusLabel.addTarget(self, action: #selector(disconnectClick(_:)), for: .touchUpInside)
         
         self.dateFormatter.locale = Locale(identifier: "en_US_POSIX")
         dateFormatter.dateFormat = "HH:mm:ss.SSS"
         
-        self.controller = try! owManager?.db?.getStateRecordsController()
+        self.controller = try! owManager.db?.getStateRecordsController()
             
         if let controller = self.controller {
             controller.trackChanges(
@@ -74,22 +73,26 @@ class StateViewController: UIViewController {
     }
     
     @objc func disconnectClick(_ sender: UIButton) {
-        NSLog("Click")
-        owConnectionDesired = !owConnectionDesired
+        let owConnectionDesired = !owManager.startRequested
         if owConnectionDesired {
-            self.disconnectButton.setTitle("Disconnect", for: UIControlState.normal)
             owManager?.start()
         } else {
-            self.disconnectButton.setTitle("Connect", for: UIControlState.normal)
             owManager?.stop()
         }
+        // On button click we're about to disconnect or about to start searching
+        updateUi(isConnected: false, onewheel: nil)
     }
     
     func updateUi(isConnected: Bool, onewheel: OneWheel?) {
         if isConnected {
             self.onewheelLabel.text = onewheel?.name ?? "OneWheel"
-        } else {
+            self.connStatusLabel.setTitle("Disconnect", for: UIControlState.normal)
+        } else if owManager.startRequested {
             self.onewheelLabel.text = "Searching for OneWheel..."
+            self.connStatusLabel.setTitle("Stop", for: UIControlState.normal)
+        } else {
+            self.onewheelLabel.text = ""
+            self.connStatusLabel.setTitle("Connect", for: UIControlState.normal)
         }
     }
 }

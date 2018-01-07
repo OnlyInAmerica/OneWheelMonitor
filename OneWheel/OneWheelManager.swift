@@ -12,7 +12,7 @@ import AVFoundation
 
 class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate, AVSpeechSynthesizerDelegate {
     
-    var startRequested = false
+    private(set) var startRequested = false
     
     // Listener
     var connListener: ConnectionListener?
