@@ -19,13 +19,11 @@ class StateViewController: UIViewController {
     
     var owManager : OneWheelManager!
 
-    private var controller: FetchedRecordsController<OneWheelState>!
+    private var controller: FetchedRecordsController<OneWheelState>?
     
     private let dateFormatter = DateFormatter()
     private let data = OneWheelLocalData()
     
-    private var graphNeedsDisplay = false
-
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
@@ -56,33 +54,37 @@ class StateViewController: UIViewController {
         
         self.dateFormatter.locale = Locale(identifier: "en_US_POSIX")
         dateFormatter.dateFormat = "HH:mm:ss.SSS"
-        
-        self.controller = try! owManager.db?.getStateRecordsController()
-            
-        if let controller = self.controller {
-            controller.trackChanges(
-                didChange: { [unowned self] _ in
-                    let state = UIApplication.shared.applicationState
-                    if state == .active {
-                        self.graphView.setNeedsDisplay()
-                    } else {
-                        self.graphNeedsDisplay = true
-                    }
-            })
-            try! controller.performFetch()
-        }
     }
     
-    override func viewWillAppear(_ animated: Bool) {
-        if graphNeedsDisplay {
-            self.graphView.setNeedsDisplay()
-            graphNeedsDisplay = false
+    func subscribeToState(doSubscribe: Bool) {
+        if doSubscribe {
+            setupController()
+        } else {
+            self.controller = nil
+            NSLog("Dereference controller")
         }
     }
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
+    }
+    
+    func setupController() {
+        self.controller = try! owManager.db?.getStateRecordsController()
+        
+        if let controller = self.controller {
+            controller.trackChanges(
+                didChange: { [unowned self] _ in
+                    NSLog("Controller didChange")
+                    let state = UIApplication.shared.applicationState
+                    if state == .active {
+                        self.graphView.setNeedsDisplay()
+                    }
+            })
+            try! controller.performFetch()
+            NSLog("Setup controller")
+        }
     }
     
     @objc func connActionClick(_ sender: UIButton) {
@@ -160,13 +162,13 @@ extension StateViewController: ConnectionListener {
 // MARK: GraphDataSource
 extension StateViewController: GraphDataSource {
     func getCount() -> Int {
-        let numItems = controller.sections[0].numberOfRecords
+        let numItems = controller?.sections[0].numberOfRecords ?? 0
         NSLog("\(numItems) graph items")
         return numItems
     }
     
     func getStateForIndex(index: Int) -> OneWheelState {
-        let state = controller.record(at: IndexPath(row: index, section: 0))
+        let state = controller!.record(at: IndexPath(row: index, section: 0))
         return state
     }
 }
