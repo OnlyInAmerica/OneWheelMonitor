@@ -54,6 +54,9 @@ class StateViewController: UIViewController {
         
         self.dateFormatter.locale = Locale(identifier: "en_US_POSIX")
         dateFormatter.dateFormat = "HH:mm:ss.SSS"
+        
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(sender:)))
+        graphView.addGestureRecognizer(tapGesture)
     }
     
     func subscribeToState(doSubscribe: Bool) {
@@ -84,6 +87,13 @@ class StateViewController: UIViewController {
             })
             try! controller.performFetch()
             NSLog("Setup controller")
+        }
+    }
+    
+    @objc func handleTap(sender: UITapGestureRecognizer) {
+        if let hidden = navigationController?.isNavigationBarHidden {
+            navigationController?.setNavigationBarHidden(!hidden, animated: true)
+            navigationController?.setToolbarHidden(!hidden, animated: true)
         }
     }
     
