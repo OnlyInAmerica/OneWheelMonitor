@@ -256,6 +256,8 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         }
     }
     
+    // MARK: Handle property update
+    
     private func handleConnectedDevice(_ device: CBPeripheral) {
         connectingDevice = nil
         connectedDevice = device
@@ -300,11 +302,22 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         lastState = newState
     }
     
-    private func handleUpdatedBattery(_ batteryLevel: UInt8) {
-        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: batteryLevel)
+    private func handleUpdatedBattery(_ batteryLevelInt: UInt8) {
+        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: batteryLevelInt)
         try? db?.insertState(state: newState)
-        if audioFeedback && batteryMonitor.passedBenchmark(Double(batteryLevel)){
-            speak(newState.describeDelta(prev: lastState))
+        let batteryLevel = Double(batteryLevelInt)
+        if audioFeedback && batteryMonitor.passedBenchmark(batteryLevel){
+            // Only speak the benchmark battery val. e.g: 70%, not 69%
+            let currentBattBenchmark = batteryMonitor.getBenchmarkVal(batteryMonitor.lastBenchmarkIdx) // "last"BenchmarkIdx relative to last call to #passedBenchmark
+            let lastBattBenchmark = batteryMonitor.getBenchmarkVal(batteryMonitor.lastLastBenchmarkIdx)
+
+            let currentBattDiff = abs(currentBattBenchmark - batteryLevel)
+            let lastBattDiff = abs(lastBattBenchmark - batteryLevel)
+            if (currentBattDiff < lastBattDiff) {
+                speak("Battery \(currentBattBenchmark)")
+            } else {
+                speak("Battery \(lastBattBenchmark)")
+            }
         }
         lastState = newState
     }
@@ -434,7 +447,7 @@ class SpeedMonitor: BenchmarkMonitor {
     
     init() {
         let benchmarks = [10.0, 12.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0]
-        let hysteresis = 1.0
+        let hysteresis = 1.5
         super.init(benchmarks: benchmarks, hysteresis: hysteresis)
     }
 }
