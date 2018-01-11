@@ -57,6 +57,7 @@ class StateViewController: UIViewController {
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(sender:)))
         graphView.addGestureRecognizer(tapGesture)
+        setupController()
     }
     
     func subscribeToState(doSubscribe: Bool) {
