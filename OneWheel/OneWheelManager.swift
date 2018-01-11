@@ -314,9 +314,9 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             let currentBattDiff = abs(currentBattBenchmark - batteryLevel)
             let lastBattDiff = abs(lastBattBenchmark - batteryLevel)
             if (currentBattDiff < lastBattDiff) {
-                speak("Battery \(currentBattBenchmark)")
+                speak("Battery \(Int(currentBattBenchmark))")
             } else {
-                speak("Battery \(lastBattBenchmark)")
+                speak("Battery \(Int(lastBattBenchmark))")
             }
         }
         lastState = newState
