@@ -93,7 +93,7 @@ class OneWheelState : Record, CustomStringConvertible {
         self.bmsCtrlComms = false
         self.brokenCapacitor = false
         self.rpm = 0
-        self.safetyHeadroom = 0
+        self.safetyHeadroom = 100
         self.batteryLevel = 0
     
         super.init()
