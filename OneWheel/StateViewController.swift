@@ -60,6 +60,14 @@ class StateViewController: UIViewController {
         setupController()
     }
     
+    override func viewDidAppear(_ animated: Bool) {
+        subscribeToState(doSubscribe: true)
+    }
+    
+    override func viewDidDisappear(_ animated: Bool) {
+        subscribeToState(doSubscribe: false)
+    }
+    
     func subscribeToState(doSubscribe: Bool) {
         if doSubscribe {
             setupController()
