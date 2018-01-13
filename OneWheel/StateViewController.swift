@@ -54,7 +54,6 @@ class StateViewController: UIViewController {
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(sender:)))
         graphView.addGestureRecognizer(tapGesture)
-        setupController()
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -92,6 +91,7 @@ class StateViewController: UIViewController {
                     }
             })
             try! controller.performFetch()
+            self.graphView.setNeedsDisplay()
             NSLog("Setup controller")
         }
     }
