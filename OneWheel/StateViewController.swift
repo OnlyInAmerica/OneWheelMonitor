@@ -29,12 +29,9 @@ class StateViewController: UIViewController {
         // Do any additional setup after loading the view, typically from a nib.
         
         self.graphView.dataSource = self
-        self.graphView.addSeries(newSeries: OneWheelGraphView.SpeedSeries(name: "Speed", color: UIColor(red: 0.29, green: 0.29, blue: 0.29, alpha: 1.0)
-            .cgColor))
-        self.graphView.addSeries(newSeries: OneWheelGraphView.BatterySeries(name: "Battery", color: UIColor(red: 0.37, green: 0.47, blue: 0.66, alpha: 1.0)
-.cgColor))
-        self.graphView.addSeries(newSeries: OneWheelGraphView.ErrorSeries(name: "Error", color: UIColor(red: 0.89, green: 0.13, blue: 0.13, alpha: 0.1)
-            .cgColor))
+        self.graphView.addSeries(newSeries: OneWheelGraphView.ErrorSeries(name: "Error", color: UIColor(red: 0.89, green: 0.13, blue: 0.13, alpha: 0.1).cgColor))
+        self.graphView.addSeries(newSeries: OneWheelGraphView.SpeedSeries(name: "Speed", color: UIColor(red: 0.29, green: 0.29, blue: 0.29, alpha: 1.0).cgColor))
+        self.graphView.addSeries(newSeries: OneWheelGraphView.BatterySeries(name: "Battery", color: UIColor(red:0.00, green:0.68, blue:0.94, alpha:1.0).cgColor))
         self.graphView.contentMode = .redraw // redraw on bounds change
         
         self.owManager.connListener = self
