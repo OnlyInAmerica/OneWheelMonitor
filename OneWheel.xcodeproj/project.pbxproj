@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		602B200C2009E64900B4BDC3 /* AlertQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 602B200B2009E64900B4BDC3 /* AlertQueue.swift */; };
 		602B2014200A775100B4BDC3 /* OneWheelBenchmarkMonitorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 602B2013200A775100B4BDC3 /* OneWheelBenchmarkMonitorTests.swift */; };
+		602B2025200A804000B4BDC3 /* OneWheelAlertQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 602B2024200A804000B4BDC3 /* OneWheelAlertQueueTests.swift */; };
+		602B202E200A817000B4BDC3 /* SpeechAlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 602B202D200A817000B4BDC3 /* SpeechAlertManager.swift */; };
 		604313EB1FFFFA9100B21214 /* OneWheelGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 604313EA1FFFFA9100B21214 /* OneWheelGraphView.swift */; };
 		605A6CF91FF804ED0047DF03 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605A6CF81FF804ED0047DF03 /* AppDelegate.swift */; };
 		605A6CFB1FF804ED0047DF03 /* StateViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605A6CFA1FF804ED0047DF03 /* StateViewController.swift */; };
@@ -27,6 +29,13 @@
 
 /* Begin PBXContainerItemProxy section */
 		602B2016200A775100B4BDC3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 605A6CED1FF804EC0047DF03 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 605A6CF41FF804EC0047DF03;
+			remoteInfo = OneWheel;
+		};
+		602B2027200A804000B4BDC3 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 605A6CED1FF804EC0047DF03 /* Project object */;
 			proxyType = 1;
@@ -59,6 +68,10 @@
 		602B2011200A775100B4BDC3 /* OneWheelBenchmarkMonitorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OneWheelBenchmarkMonitorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		602B2013200A775100B4BDC3 /* OneWheelBenchmarkMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneWheelBenchmarkMonitorTests.swift; sourceTree = "<group>"; };
 		602B2015200A775100B4BDC3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		602B2022200A804000B4BDC3 /* OneWheelAlertQueueTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OneWheelAlertQueueTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		602B2024200A804000B4BDC3 /* OneWheelAlertQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneWheelAlertQueueTests.swift; sourceTree = "<group>"; };
+		602B2026200A804000B4BDC3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		602B202D200A817000B4BDC3 /* SpeechAlertManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechAlertManager.swift; sourceTree = "<group>"; };
 		604313EA1FFFFA9100B21214 /* OneWheelGraphView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OneWheelGraphView.swift; sourceTree = "<group>"; };
 		605A6CF51FF804ED0047DF03 /* OneWheel.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OneWheel.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		605A6CF81FF804ED0047DF03 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -84,6 +97,13 @@
 
 /* Begin PBXFrameworksBuildPhase section */
 		602B200E200A775100B4BDC3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		602B201F200A804000B4BDC3 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -140,6 +160,25 @@
 			path = OneWheelBenchmarkMonitorTests;
 			sourceTree = "<group>";
 		};
+		602B2023200A804000B4BDC3 /* OneWheelAlertQueueTests */ = {
+			isa = PBXGroup;
+			children = (
+				602B2024200A804000B4BDC3 /* OneWheelAlertQueueTests.swift */,
+				602B2026200A804000B4BDC3 /* Info.plist */,
+			);
+			path = OneWheelAlertQueueTests;
+			sourceTree = "<group>";
+		};
+		602B202C200A816000B4BDC3 /* Alerts */ = {
+			isa = PBXGroup;
+			children = (
+				602B200B2009E64900B4BDC3 /* AlertQueue.swift */,
+				602B202D200A817000B4BDC3 /* SpeechAlertManager.swift */,
+			);
+			name = Alerts;
+			path = "New Group";
+			sourceTree = "<group>";
+		};
 		605A6CEC1FF804EC0047DF03 = {
 			isa = PBXGroup;
 			children = (
@@ -147,6 +186,7 @@
 				605A6D0C1FF804ED0047DF03 /* OneWheelTests */,
 				605A6D171FF804ED0047DF03 /* OneWheelUITests */,
 				602B2012200A775100B4BDC3 /* OneWheelBenchmarkMonitorTests */,
+				602B2023200A804000B4BDC3 /* OneWheelAlertQueueTests */,
 				605A6CF61FF804ED0047DF03 /* Products */,
 				605A6D261FF805A60047DF03 /* Frameworks */,
 				473172012033ECB6D804CE7B /* Pods */,
@@ -160,6 +200,7 @@
 				605A6D091FF804ED0047DF03 /* OneWheelTests.xctest */,
 				605A6D141FF804ED0047DF03 /* OneWheelUITests.xctest */,
 				602B2011200A775100B4BDC3 /* OneWheelBenchmarkMonitorTests.xctest */,
+				602B2022200A804000B4BDC3 /* OneWheelAlertQueueTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -167,7 +208,7 @@
 		605A6CF71FF804ED0047DF03 /* OneWheel */ = {
 			isa = PBXGroup;
 			children = (
-				602B200B2009E64900B4BDC3 /* AlertQueue.swift */,
+				602B202C200A816000B4BDC3 /* Alerts */,
 				604313EA1FFFFA9100B21214 /* OneWheelGraphView.swift */,
 				605A6CF81FF804ED0047DF03 /* AppDelegate.swift */,
 				605A6CFA1FF804ED0047DF03 /* StateViewController.swift */,
@@ -229,6 +270,24 @@
 			name = OneWheelBenchmarkMonitorTests;
 			productName = OneWheelBenchmarkMonitorTests;
 			productReference = 602B2011200A775100B4BDC3 /* OneWheelBenchmarkMonitorTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		602B2021200A804000B4BDC3 /* OneWheelAlertQueueTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 602B202B200A804000B4BDC3 /* Build configuration list for PBXNativeTarget "OneWheelAlertQueueTests" */;
+			buildPhases = (
+				602B201E200A804000B4BDC3 /* Sources */,
+				602B201F200A804000B4BDC3 /* Frameworks */,
+				602B2020200A804000B4BDC3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				602B2028200A804000B4BDC3 /* PBXTargetDependency */,
+			);
+			name = OneWheelAlertQueueTests;
+			productName = OneWheelAlertQueueTests;
+			productReference = 602B2022200A804000B4BDC3 /* OneWheelAlertQueueTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		605A6CF41FF804EC0047DF03 /* OneWheel */ = {
@@ -311,6 +370,11 @@
 						ProvisioningStyle = Automatic;
 						TestTargetID = 605A6CF41FF804EC0047DF03;
 					};
+					602B2021200A804000B4BDC3 = {
+						CreatedOnToolsVersion = 9.2;
+						ProvisioningStyle = Automatic;
+						TestTargetID = 605A6CF41FF804EC0047DF03;
+					};
 					605A6CF41FF804EC0047DF03 = {
 						CreatedOnToolsVersion = 9.2;
 						ProvisioningStyle = Automatic;
@@ -349,12 +413,20 @@
 				605A6D081FF804ED0047DF03 /* OneWheelTests */,
 				605A6D131FF804ED0047DF03 /* OneWheelUITests */,
 				602B2010200A775100B4BDC3 /* OneWheelBenchmarkMonitorTests */,
+				602B2021200A804000B4BDC3 /* OneWheelAlertQueueTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		602B200F200A775100B4BDC3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		602B2020200A804000B4BDC3 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -546,6 +618,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		602B201E200A804000B4BDC3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				602B2025200A804000B4BDC3 /* OneWheelAlertQueueTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		605A6CF11FF804EC0047DF03 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -556,6 +636,7 @@
 				605A6CFB1FF804ED0047DF03 /* StateViewController.swift in Sources */,
 				604313EB1FFFFA9100B21214 /* OneWheelGraphView.swift in Sources */,
 				605A6CF91FF804ED0047DF03 /* AppDelegate.swift in Sources */,
+				602B202E200A817000B4BDC3 /* SpeechAlertManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -582,6 +663,11 @@
 			isa = PBXTargetDependency;
 			target = 605A6CF41FF804EC0047DF03 /* OneWheel */;
 			targetProxy = 602B2016200A775100B4BDC3 /* PBXContainerItemProxy */;
+		};
+		602B2028200A804000B4BDC3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 605A6CF41FF804EC0047DF03 /* OneWheel */;
+			targetProxy = 602B2027200A804000B4BDC3 /* PBXContainerItemProxy */;
 		};
 		605A6D0B1FF804ED0047DF03 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -640,6 +726,38 @@
 				INFOPLIST_FILE = OneWheelBenchmarkMonitorTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = pro.dbro.OneWheelBenchmarkMonitorTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 4.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OneWheel.app/OneWheel";
+			};
+			name = Release;
+		};
+		602B2029200A804000B4BDC3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = U23VFW2NDU;
+				INFOPLIST_FILE = OneWheelAlertQueueTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = pro.dbro.OneWheelAlertQueueTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 4.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OneWheel.app/OneWheel";
+			};
+			name = Debug;
+		};
+		602B202A200A804000B4BDC3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = U23VFW2NDU;
+				INFOPLIST_FILE = OneWheelAlertQueueTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = pro.dbro.OneWheelAlertQueueTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -866,6 +984,15 @@
 			buildConfigurations = (
 				602B2019200A775100B4BDC3 /* Debug */,
 				602B201A200A775100B4BDC3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		602B202B200A804000B4BDC3 /* Build configuration list for PBXNativeTarget "OneWheelAlertQueueTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				602B2029200A804000B4BDC3 /* Debug */,
+				602B202A200A804000B4BDC3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

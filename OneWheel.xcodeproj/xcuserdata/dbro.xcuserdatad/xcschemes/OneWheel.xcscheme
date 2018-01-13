@@ -49,6 +49,16 @@
                ReferencedContainer = "container:OneWheel.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "602B2021200A804000B4BDC3"
+               BuildableName = "OneWheelAlertQueueTests.xctest"
+               BlueprintName = "OneWheelAlertQueueTests"
+               ReferencedContainer = "container:OneWheel.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <MacroExpansion>
          <BuildableReference

@@ -12,6 +12,7 @@ class OneWheelGraphView: UIView {
     
     var dataSource: GraphDataSource?
     var series = [String: Series]()
+    var seriesPaths = [String: CGMutablePath]()
 
     override func draw(_ rect: CGRect) {
         let context = UIGraphicsGetCurrentContext()!
@@ -21,7 +22,8 @@ class OneWheelGraphView: UIView {
             // Start drawing at Lower left
             context.move(to: CGPoint(x: 0.0, y: rect.height))
             let dataCount = dataSource.getCount()
-            let strideCount: Int = CGFloat(dataCount) > rect.width ? dataCount / Int(rect.width) : 1
+            let widthPtsPerData: CGFloat = 2
+            let strideCount: Int = CGFloat(dataCount) > (rect.width / widthPtsPerData) ? dataCount / Int(rect.width / widthPtsPerData) : 1
             let deltaX = rect.width / (CGFloat(dataCount / strideCount))
             var x: CGFloat = deltaX
             NSLog("Drawing graph with deltaX \(deltaX), stride \(strideCount)")
@@ -34,15 +36,19 @@ class OneWheelGraphView: UIView {
                     let normVal = CGFloat(curSeries.getNormalizedVal(state: state))
                     let y = (1.0 - normVal) * rect.height
                     
-                    context.setStrokeColor(curSeries.color)
-
                     if curSeries.type == SeriesType.Value {
-                        context.move(to: CGPoint(x: curSeries.lastX, y: curSeries.lastY))
-                        context.setLineWidth(2.0)
-                        context.addLine(to: CGPoint(x: x, y: y))
+//                        context.move(to: CGPoint(x: curSeries.lastX, y: curSeries.lastY))
+//                        context.setLineWidth(2.0)
+//                        context.addLine(to: CGPoint(x: x, y: y))
+                        var path = seriesPaths[curSeries.name]
+                        if path == nil {
+                            path = CGMutablePath()
+                            path?.move(to: CGPoint(x: 0.0, y: rect.height))
+                        }
+                        path!.addLine(to: CGPoint(x: x, y: y))
 //                        NSLog("Draw line from \(curSeries.lastX), \(curSeries.lastY) to \(x), \(y)")
                         
-                        context.strokePath()
+                        seriesPaths[curSeries.name] = path
                         
                     } else if curSeries.type == SeriesType.Boolean {
                         
@@ -55,17 +61,29 @@ class OneWheelGraphView: UIView {
                     
                     curSeries.lastX = x
                     curSeries.lastY = y
+                    
                 } // end for series
                 x += deltaX
             } // end for x-val
+            
+            // draw value series paths
+            
+            for (seriesName, seriesPath) in seriesPaths {
+                let seriesColor = series[seriesName]!.color
+                context.addPath(seriesPath)
+                context.setLineWidth(2.0)
+                context.setStrokeColor(seriesColor)
+                context.strokePath()
+            }
             
             // clear Series last-values and draw axis labels
             for curSeries in series.values {
                 curSeries.lastX = 0.0
                 curSeries.lastY = 0.0
-                
+
                 curSeries.drawAxisLabels(rect: rect, numLabels: 5)
             }
+            seriesPaths.removeAll()
         }
         NSLog("Drawing graph finished")
     }

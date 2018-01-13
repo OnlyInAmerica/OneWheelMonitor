@@ -28,12 +28,14 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         }
     }
     
+    private let speechManager = SpeechAlertManager()
     private let alertQueue = AlertQueue()
     
     // Used to throttle alert generation
     private let speedMonitor: BenchmarkMonitor = SpeedMonitor()
     private let batteryMonitor: BenchmarkMonitor = BatteryMonitor()
     private let headroomMonitor: BenchmarkMonitor = HeadroomMonitor()
+    private let alertThrottler = CancelableAlertThrottler()
 
     // Persistence
     public var db : OneWheelDatabase?
@@ -272,8 +274,20 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         let newState = OneWheelState(time: Date.init(), riderPresent: s.riderDetected, footPad1: s.riderDetectPad1, footPad2: s.riderDetectPad2, icsuFault: s.icsuFault, icsvFault: s.icsvFault, charging: s.charging, bmsCtrlComms: s.bmsCtrlComms, brokenCapacitor: s.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel)
         try? db?.insertState(state: newState)
         if audioFeedback {
-            // All OneWheelStatus changes are high priority, with the possible exception of charging
-            queueHighAlert(newState.describeDelta(prev: lastState))
+            let delta = newState.describeDelta(prev: lastState)
+            switch delta {
+            case "Heel Off":
+                alertThrottler.scheduleAlert(key: "heel-off", alertQueue: alertQueue, alert: speechManager.createSpeechAlert(priority: .HIGH, message: delta))
+            case "Heel On":
+                alertThrottler.cancelAlert(key: "heel-off")
+            case "Toe Off":
+                alertThrottler.scheduleAlert(key: "toe-off", alertQueue: alertQueue, alert: speechManager.createSpeechAlert(priority: .HIGH, message: delta))
+            case "Toe On":
+                alertThrottler.cancelAlert(key: "toe-off")
+            default:
+                // All OneWheelStatus changes are high priority, with the possible exception of charging
+                queueHighAlert(delta)
+            }
         }
         lastState = newState
     }
@@ -320,11 +334,11 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     }
     
     private func queueLowAlert(_ message: String) {
-        self.alertQueue.queueAlert(AlertQueue.Alert(priority: .LOW, message: message))
+        self.alertQueue.queueAlert(speechManager.createSpeechAlert(priority: .LOW, message: message))
     }
     
     private func queueHighAlert(_ message: String) {
-        self.alertQueue.queueAlert(AlertQueue.Alert(priority: .HIGH, message: message))
+        self.alertQueue.queueAlert(speechManager.createSpeechAlert(priority: .HIGH, message: message))
     }
 }
 
@@ -400,6 +414,26 @@ class OneWheelLocalData {
     }
 }
 
+// Allows scheduling alerts for a short delay to allow short-lived events to be cancelled
+class CancelableAlertThrottler {
+    var scheduledAlerts = [String:Timer]()
+    let thresholdS = 0.200
+    
+    func scheduleAlert(key: String, alertQueue: AlertQueue, alert: Alert) {
+        let timer = Timer.scheduledTimer(withTimeInterval: thresholdS, repeats: false, block: { (timer) in
+            alertQueue.queueAlert(alert)
+        })
+        scheduledAlerts[key] = timer
+    }
+    
+    func cancelAlert(key: String) {
+        if let timer = scheduledAlerts[key] {
+            timer.invalidate()
+        }
+    }
+}
+
+// Processes a changing Double value into discrete benchmark passing events
 class BenchmarkMonitor {
     let benchmarks: [Double]
     let hysteresis: Double

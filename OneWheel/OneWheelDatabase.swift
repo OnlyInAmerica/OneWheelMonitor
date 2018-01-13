@@ -208,5 +208,4 @@ class OneWheelState : Record, CustomStringConvertible {
     func mph() -> Double {
         return 60.0 * (35.0 * Double(rpm)) / 63360.0;
     }
-    
 }
