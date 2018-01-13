@@ -21,10 +21,6 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     public var audioFeedback = false {
         didSet {
             if audioFeedback {
-                speechSynth = AVSpeechSynthesizer()
-                speechSynth?.delegate = self
-                speechVoice = AVSpeechSynthesisVoice(language: "en-US")
-                
                 try? AVAudioSession.sharedInstance().setCategory(
                     AVAudioSessionCategoryPlayback,
                     with:.mixWithOthers)
@@ -32,12 +28,12 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         }
     }
     
-    private var speechSynth : AVSpeechSynthesizer?
-    private var speechVoice : AVSpeechSynthesisVoice?
+    private let alertQueue = AlertQueue()
     
-    // Used to throttle speed audio alerts
+    // Used to throttle alert generation
     private let speedMonitor: BenchmarkMonitor = SpeedMonitor()
     private let batteryMonitor: BenchmarkMonitor = BatteryMonitor()
+    private let headroomMonitor: BenchmarkMonitor = HeadroomMonitor()
 
     // Persistence
     public var db : OneWheelDatabase?
@@ -148,9 +144,9 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             NSLog("Reconnecting disconnected peripheral")
             if audioFeedback {
                 if startRequested {
-                    speak("Reconnecting")
+                    queueHighAlert("Reconnecting")
                 } else {
-                    speak("Disconnected")
+                    queueHighAlert("Disconnected")
                 }
             }
             connListener?.onDisconnected(oneWheel: OneWheel(peripheral))
@@ -268,7 +264,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         // Delegate awaits service discovery
         
         if audioFeedback {
-            speak("Connected")
+            queueHighAlert("Connected")
         }
     }
     
@@ -276,7 +272,8 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         let newState = OneWheelState(time: Date.init(), riderPresent: s.riderDetected, footPad1: s.riderDetectPad1, footPad2: s.riderDetectPad2, icsuFault: s.icsuFault, icsvFault: s.icsvFault, charging: s.charging, bmsCtrlComms: s.bmsCtrlComms, brokenCapacitor: s.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel)
         try? db?.insertState(state: newState)
         if audioFeedback {
-            speak(newState.describeDelta(prev: lastState))
+            // All OneWheelStatus changes are high priority, with the possible exception of charging
+            queueHighAlert(newState.describeDelta(prev: lastState))
         }
         lastState = newState
     }
@@ -288,7 +285,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         let mph = newState.mph()
         if audioFeedback && speedMonitor.passedBenchmark(mph){
             let mphRound = Int(mph)
-            speak("Speed \(mphRound)")
+            queueHighAlert("Speed \(mphRound)")
         }
         lastState = newState
     }
@@ -296,8 +293,8 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     private func handleUpdatedSafetyHeadroom(_ sh: UInt8) {
         let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: sh, batteryLevel: lastState.batteryLevel)
         try? db?.insertState(state: newState)
-        if audioFeedback {
-            speak(newState.describeDelta(prev: lastState))
+        if audioFeedback && headroomMonitor.passedBenchmark(Double(sh)) {
+            queueHighAlert("Headroom \(sh)")
         }
         lastState = newState
     }
@@ -314,21 +311,20 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             let currentBattDiff = abs(currentBattBenchmark - batteryLevel)
             let lastBattDiff = abs(lastBattBenchmark - batteryLevel)
             if (currentBattDiff < lastBattDiff) {
-                speak("Battery \(Int(currentBattBenchmark))")
+                queueLowAlert("Battery \(Int(currentBattBenchmark))")
             } else {
-                speak("Battery \(Int(lastBattBenchmark))")
+                queueLowAlert("Battery \(Int(lastBattBenchmark))")
             }
         }
         lastState = newState
     }
     
-    private func speak(_ text: String) {
-        try? AVAudioSession.sharedInstance().setActive(true)
-        speechSynth?.stopSpeaking(at: .word)
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = speechVoice
-        speechSynth?.speak(utterance)
-        // AVSpeechSynthesizerDelegate will set AVAudioSession inactive on didFinish
+    private func queueLowAlert(_ message: String) {
+        self.alertQueue.queueAlert(AlertQueue.Alert(priority: .LOW, message: message))
+    }
+    
+    private func queueHighAlert(_ message: String) {
+        self.alertQueue.queueAlert(AlertQueue.Alert(priority: .HIGH, message: message))
     }
 }
 
@@ -455,8 +451,18 @@ class SpeedMonitor: BenchmarkMonitor {
 class BatteryMonitor: BenchmarkMonitor {
     
     init() {
-        // 1% increments from [0-10]%, then 10% increments
-        let benchmarks = Array(stride(from: 0.0, to: 10.0, by: 1.0)) + Array(stride(from: 10.0, to: 100.0, by: 10.0))
+        // 1% increments from [0-10]%, then 5% increments
+        let benchmarks = Array(stride(from: 0.0, to: 10.0, by: 1.0)) + Array(stride(from: 10.0, to: 100.0, by: 5.0))
+        let hysteresis = 1.0
+        super.init(benchmarks: benchmarks, hysteresis: hysteresis)
+    }
+}
+
+class HeadroomMonitor: BenchmarkMonitor {
+    
+    init() {
+        // 10% increments, including 100%. So 99% should be first trigger
+        let benchmarks = Array(stride(from: 0.0, to: 110.0, by: 10.0))
         let hysteresis = 1.0
         super.init(benchmarks: benchmarks, hysteresis: hysteresis)
     }
