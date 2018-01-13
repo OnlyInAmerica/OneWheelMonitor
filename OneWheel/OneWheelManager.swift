@@ -433,7 +433,7 @@ class BenchmarkMonitor {
     
     func getBenchmarkVal(_ index: Int) -> Double {
         if index >= benchmarks.count {
-            return 0 // TODO : assumes DESC sort
+            return benchmarks.last! // TODO : assumes DESC sort
         }
         return benchmarks[index]
     }

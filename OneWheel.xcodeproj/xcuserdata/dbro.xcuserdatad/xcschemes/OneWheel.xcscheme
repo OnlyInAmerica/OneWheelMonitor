@@ -33,9 +33,9 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "605A6D081FF804ED0047DF03"
-               BuildableName = "OneWheelTests.xctest"
-               BlueprintName = "OneWheelTests"
+               BlueprintIdentifier = "605A6D131FF804ED0047DF03"
+               BuildableName = "OneWheelUITests.xctest"
+               BlueprintName = "OneWheelUITests"
                ReferencedContainer = "container:OneWheel.xcodeproj">
             </BuildableReference>
          </TestableReference>
@@ -43,9 +43,9 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "605A6D131FF804ED0047DF03"
-               BuildableName = "OneWheelUITests.xctest"
-               BlueprintName = "OneWheelUITests"
+               BlueprintIdentifier = "602B2010200A775100B4BDC3"
+               BuildableName = "OneWheelBenchmarkMonitorTests.xctest"
+               BlueprintName = "OneWheelBenchmarkMonitorTests"
                ReferencedContainer = "container:OneWheel.xcodeproj">
             </BuildableReference>
          </TestableReference>

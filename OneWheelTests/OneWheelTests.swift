@@ -26,17 +26,6 @@ class OneWheelTests: XCTestCase {
         // Use XCTAssert and related functions to verify your tests produce the correct results.
     }
     
-    func testSpeedMonitor() {
-        let sm = SpeedMonitor()
-        
-        assert(sm.passedBenchmark(0.0) == false)
-        assert(sm.passedBenchmark(4.9) == false)
-        assert(sm.passedBenchmark(5.9) == true)  // 5.0 benchmark
-        assert(sm.passedBenchmark(6.1) == false)
-        assert(sm.passedBenchmark(4.1) == false)
-
-    }
-    
     func testPerformanceExample() {
         // This is an example of a performance test case.
         self.measure {
