@@ -13,11 +13,15 @@ let tableState = "state"
 
 class OneWheelDatabase {
     private let dbQueue : DatabaseQueue
+    private let dateFormatter = DateFormatter()
     
     init(_ path: String) throws {
         dbQueue = try DatabaseQueue(path: path)
-        
         try migrator.migrate(dbQueue)
+        
+        //                          2018-01-13 07:11:57.448"
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+        dateFormatter.timeZone = TimeZone(abbreviation: "UTC")
     }
     
     func insertState(state : OneWheelState) throws {
@@ -31,6 +35,24 @@ class OneWheelDatabase {
             dbQueue,
             request: OneWheelState.order(Column("time")))
         return controller
+    }
+    
+    func getRecentStateRecordsController(completion: @escaping((FetchedRecordsController<OneWheelState>) -> ())) throws {
+        let lastDate = (dbQueue.inDatabase { (db) in
+            return try? OneWheelState.order(sql: "time DESC").fetchOne(db)?.time
+        } ?? Date())!
+        let startDate = Calendar.current.date(
+            byAdding: .minute,
+            value: -5,
+            to: lastDate)!
+        let sinceDateStr = dateFormatter.string(from: startDate)
+        NSLog("Fetching state since \(sinceDateStr)")
+        let controller = try FetchedRecordsController(
+            dbQueue,
+            request: OneWheelState.filter(sql: "time > ?", arguments: [sinceDateStr]))
+        DispatchQueue.main.async {
+            completion(controller)
+        }
     }
     
     func clear() throws {

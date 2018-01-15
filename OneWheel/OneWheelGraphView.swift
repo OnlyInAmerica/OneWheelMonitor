@@ -13,11 +13,15 @@ class OneWheelGraphView: UIView {
     var dataSource: GraphDataSource?
     var series = [String: Series]()
     var seriesPaths = [String: CGMutablePath]()
-
+    var bgColor = UIColor(white: 0.0, alpha: 1.0)
+    
     override func draw(_ rect: CGRect) {
         let context = UIGraphicsGetCurrentContext()!
 
         if let dataSource = self.dataSource {
+            
+            context.setFillColor(bgColor.cgColor)
+            context.fill(rect)
             
             // Start drawing at Lower left
             context.move(to: CGPoint(x: 0.0, y: rect.height))
@@ -37,9 +41,6 @@ class OneWheelGraphView: UIView {
                     let y = (1.0 - normVal) * rect.height
                     
                     if curSeries.type == SeriesType.Value {
-//                        context.move(to: CGPoint(x: curSeries.lastX, y: curSeries.lastY))
-//                        context.setLineWidth(2.0)
-//                        context.addLine(to: CGPoint(x: x, y: y))
                         var path = seriesPaths[curSeries.name]
                         if path == nil {
                             path = CGMutablePath()
@@ -71,7 +72,7 @@ class OneWheelGraphView: UIView {
             for (seriesName, seriesPath) in seriesPaths {
                 let seriesColor = series[seriesName]!.color
                 context.addPath(seriesPath)
-                context.setLineWidth(2.0)
+                context.setLineWidth(3.0)
                 context.setStrokeColor(seriesColor)
                 context.strokePath()
             }
@@ -81,11 +82,76 @@ class OneWheelGraphView: UIView {
                 curSeries.lastX = 0.0
                 curSeries.lastY = 0.0
 
-                curSeries.drawAxisLabels(rect: rect, numLabels: 5)
+                curSeries.drawAxisLabels(rect: rect, numLabels: 5, bgColor: bgColor.cgColor)
             }
+            drawTimeLabels(rect: rect)
+            
             seriesPaths.removeAll()
         }
         NSLog("Drawing graph finished")
+    }
+    
+    // MARK: Time formatting
+    
+    func drawTimeLabels(rect: CGRect) {
+        
+        let dataCount = dataSource!.getCount()
+        
+        if dataCount == 0 {
+            return
+        }
+        
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        
+        let context = UIGraphicsGetCurrentContext()!
+        
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = .center
+        
+        let attributes = [NSAttributedStringKey.paragraphStyle  : paragraphStyle,
+                          NSAttributedStringKey.font            : UIFont.systemFont(ofSize: 12.0),
+                          NSAttributedStringKey.foregroundColor : UIColor(cgColor: UIColor.white.cgColor)
+        ]
+        
+        let numLabels = 3
+        let labelSideMargin: CGFloat = 5
+        for axisLabelIdx in 0..<numLabels {
+            if axisLabelIdx == 0 {
+                paragraphStyle.alignment = .left
+            } else if axisLabelIdx == numLabels - 1 {
+                paragraphStyle.alignment = .right
+            } else {
+                paragraphStyle.alignment = .center
+            }
+            
+            let axisLabelFrac: CGFloat = CGFloat(axisLabelIdx) / CGFloat(numLabels-1)
+            let state = dataSource!.getStateForIndex(index: Int(CGFloat(dataCount-1) * axisLabelFrac))
+
+            let x: CGFloat = (rect.width * axisLabelFrac)
+            let axisLabel = formatter.string(from: state.time)
+            let attrString = NSAttributedString(string: axisLabel,
+                                                attributes: attributes)
+            let labelSize = attrString.size()
+            var rectX = x - (labelSize.width / 2)
+            if paragraphStyle.alignment == .left {
+                rectX = labelSideMargin + x
+            } else if paragraphStyle.alignment == .right {
+                rectX = x - labelSideMargin - labelSize.width
+            }
+            
+            let rectY = rect.height - labelSideMargin - labelSize.height
+            
+            let rt =  CGRect(x: rectX, y: rectY, width: labelSize.width, height: labelSize.height)
+            
+            context.setFillColor(bgColor.cgColor)
+            context.fill(rt)
+            
+            NSLog("Drawing time axis label \(axisLabel)")
+
+            attrString.draw(in: rt)
+        }
     }
 
     func addSeries(newSeries: Series) {
@@ -136,7 +202,7 @@ class OneWheelGraphView: UIView {
             return (val / (max - min))
         }
         
-        func drawAxisLabels(rect: CGRect, numLabels: Int) {
+        func drawAxisLabels(rect: CGRect, numLabels: Int, bgColor: CGColor) {
             if labelType == AxisLabelType.None {
                 return
             }
@@ -150,8 +216,6 @@ class OneWheelGraphView: UIView {
                               NSAttributedStringKey.font            : UIFont.systemFont(ofSize: 12.0),
                               NSAttributedStringKey.foregroundColor : UIColor(cgColor: self.color)
                               ]
-            
-            let labelBg = UIColor(white: 1.0, alpha: 0.8)
             
             let numLables = 5
             let labelSideMargin: CGFloat = 5
@@ -167,7 +231,7 @@ class OneWheelGraphView: UIView {
                 
                 let rt =  CGRect(x: rectX, y: y, width: labelSize.width, height: labelSize.height)
                 
-                context.setFillColor(labelBg.cgColor)
+                context.setFillColor(bgColor)
                 context.fill(rt)
                 
                 attrString.draw(in: rt)

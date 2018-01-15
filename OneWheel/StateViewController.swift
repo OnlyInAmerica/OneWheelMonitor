@@ -27,10 +27,9 @@ class StateViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
-        
         self.graphView.dataSource = self
-        self.graphView.addSeries(newSeries: OneWheelGraphView.ErrorSeries(name: "Error", color: UIColor(red: 0.89, green: 0.13, blue: 0.13, alpha: 0.1).cgColor))
-        self.graphView.addSeries(newSeries: OneWheelGraphView.SpeedSeries(name: "Speed", color: UIColor(red: 0.29, green: 0.29, blue: 0.29, alpha: 1.0).cgColor))
+        self.graphView.addSeries(newSeries: OneWheelGraphView.ErrorSeries(name: "Error", color: UIColor(red:0.99, green:0.07, blue:0.55, alpha:0.4).cgColor))
+        self.graphView.addSeries(newSeries: OneWheelGraphView.SpeedSeries(name: "Speed", color: UIColor(red:0.81, green:0.81, blue:0.81, alpha:1.0).cgColor))
         self.graphView.addSeries(newSeries: OneWheelGraphView.BatterySeries(name: "Battery", color: UIColor(red:0.00, green:0.68, blue:0.94, alpha:1.0).cgColor))
         self.graphView.contentMode = .redraw // redraw on bounds change
         
@@ -52,8 +51,7 @@ class StateViewController: UIViewController {
         self.dateFormatter.locale = Locale(identifier: "en_US_POSIX")
         dateFormatter.dateFormat = "HH:mm:ss.SSS"
         
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(sender:)))
-        graphView.addGestureRecognizer(tapGesture)
+        navigationController?.hidesBarsOnTap = true
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -66,7 +64,7 @@ class StateViewController: UIViewController {
     
     func subscribeToState(doSubscribe: Bool) {
         if doSubscribe {
-            setupController()
+            setupController(isLandscape: UIDevice.current.orientation.isLandscape)
         } else {
             self.controller = nil
             NSLog("Dereference controller")
@@ -78,10 +76,10 @@ class StateViewController: UIViewController {
         // Dispose of any resources that can be recreated.
     }
     
-    func setupController() {
-        self.controller = try! owManager.db?.getStateRecordsController()
+    func setupController(isLandscape: Bool) {
         
-        if let controller = self.controller {
+        let completion: (FetchedRecordsController<OneWheelState>) -> () = { (controller) in
+            self.controller = controller
             controller.trackChanges(
                 didChange: { [unowned self] _ in
                     NSLog("Controller didChange")
@@ -94,15 +92,19 @@ class StateViewController: UIViewController {
             self.graphView.setNeedsDisplay()
             NSLog("Setup controller")
         }
-    }
-    
-    @objc func handleTap(sender: UITapGestureRecognizer) {
-        if let hidden = navigationController?.isNavigationBarHidden {
-            navigationController?.setNavigationBarHidden(!hidden, animated: true)
-            navigationController?.setToolbarHidden(!hidden, animated: true)
+        
+        if isLandscape {
+            let newController = try! owManager.db!.getStateRecordsController()
+            completion(newController)
+        } else {
+            try! owManager.db!.getRecentStateRecordsController(completion: completion)
         }
     }
     
+    override func willRotate(to toInterfaceOrientation: UIInterfaceOrientation, duration: TimeInterval) {
+        setupController(isLandscape: toInterfaceOrientation.isLandscape)
+    }
+
     @objc func connActionClick(_ sender: UIButton) {
         let owConnectionDesired = !owManager.startRequested
         if owConnectionDesired {

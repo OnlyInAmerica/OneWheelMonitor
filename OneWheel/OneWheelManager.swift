@@ -18,15 +18,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     var connListener: ConnectionListener?
     
     // Audio feedback
-    public var audioFeedback = false {
-        didSet {
-            if audioFeedback {
-                try? AVAudioSession.sharedInstance().setCategory(
-                    AVAudioSessionCategoryPlayback,
-                    with:.mixWithOthers)
-            }
-        }
-    }
+    public var audioFeedback = false
     
     private let speechManager = SpeechAlertManager()
     private let alertQueue = AlertQueue()
@@ -113,12 +105,6 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             cm.connect(device, options: nil)
             // Delegate awaits connetion update
         }
-    }
-    
-    // MARK: AVSpeechSynthesizerDelegate
-    
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        try? AVAudioSession.sharedInstance().setActive(false)
     }
     
     // MARK: CBManagerDelegate
@@ -276,14 +262,14 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         if audioFeedback {
             let delta = newState.describeDelta(prev: lastState)
             switch delta {
-            case "Heel Off":
+            case "Heel Off. ":
                 alertThrottler.scheduleAlert(key: "heel-off", alertQueue: alertQueue, alert: speechManager.createSpeechAlert(priority: .HIGH, message: delta))
-            case "Heel On":
-                alertThrottler.cancelAlert(key: "heel-off")
-            case "Toe Off":
+            case "Heel On. ":
+                alertThrottler.cancelAlert(key: "heel-off", alertQueue: alertQueue, ifNoOutstandingAlert: speechManager.createSpeechAlert(priority: .HIGH, message: delta))
+            case "Toe Off. ":
                 alertThrottler.scheduleAlert(key: "toe-off", alertQueue: alertQueue, alert: speechManager.createSpeechAlert(priority: .HIGH, message: delta))
-            case "Toe On":
-                alertThrottler.cancelAlert(key: "toe-off")
+            case "Toe On. ":
+                alertThrottler.cancelAlert(key: "toe-off", alertQueue: alertQueue, ifNoOutstandingAlert: speechManager.createSpeechAlert(priority: .HIGH, message: delta))
             default:
                 // All OneWheelStatus changes are high priority, with the possible exception of charging
                 queueHighAlert(delta)
@@ -420,15 +406,25 @@ class CancelableAlertThrottler {
     let thresholdS = 0.200
     
     func scheduleAlert(key: String, alertQueue: AlertQueue, alert: Alert) {
+        if let existingTimer = scheduledAlerts[key] {
+            existingTimer.invalidate()
+            scheduledAlerts.removeValue(forKey: key)
+        }
+        
         let timer = Timer.scheduledTimer(withTimeInterval: thresholdS, repeats: false, block: { (timer) in
+            NSLog("Queueing \(key) alert after \(self.thresholdS)s")
             alertQueue.queueAlert(alert)
+            self.scheduledAlerts.removeValue(forKey: key)
         })
         scheduledAlerts[key] = timer
     }
     
-    func cancelAlert(key: String) {
+    func cancelAlert(key: String, alertQueue: AlertQueue, ifNoOutstandingAlert: Alert) {
         if let timer = scheduledAlerts[key] {
+            NSLog("Cancelling \(key) alert")
             timer.invalidate()
+        } else {
+            alertQueue.queueAlert(ifNoOutstandingAlert)
         }
     }
 }

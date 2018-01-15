@@ -33,6 +33,7 @@ class AlertQueue {
             }
             
             if !self.isAlerting {
+                self.isAlerting = true  // Will be set false if alertNext -> isEmpty
                 NSLog("Playing next on queueAlert")
                 self.alertNext()
             }

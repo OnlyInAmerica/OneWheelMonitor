@@ -12,7 +12,6 @@ import AVFoundation
 class SpeechAlertManager {
     
     // Speech
-    private var isSpeaking = false
     private let speechSynth = AVSpeechSynthesizer()
     private let speechVoice = AVSpeechSynthesisVoice(language: "en-US")
     
@@ -32,6 +31,10 @@ class SpeechAlertManager {
             self.speechAlertManager = speechManager
             self.priority = priority
             self.message = message
+            
+            try? AVAudioSession.sharedInstance().setCategory(
+                AVAudioSessionCategoryPlayback,
+                with:.mixWithOthers)
         }
         
         func trigger(completion: @escaping () -> Void) {
@@ -43,6 +46,7 @@ class SpeechAlertManager {
             self.completion = completion
             speechAlertManager.speechSynth.delegate = self
             let utterance = AVSpeechUtterance(string: message)
+            utterance.rate = AVSpeechUtteranceMaximumSpeechRate
             utterance.voice = speechAlertManager.speechVoice
             speechAlertManager.speechSynth.speak(utterance)
         }
@@ -50,6 +54,7 @@ class SpeechAlertManager {
         // MARK: AVSpeechSynthesizerDelegate
         
         func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+            try? AVAudioSession.sharedInstance().setActive(false)
             NSLog("Playing next on speech complete: '\(utterance.speechString)'")
             if let completion = self.completion {
                 completion()
