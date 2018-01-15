@@ -112,7 +112,7 @@ class OneWheelGraphView: UIView {
         paragraphStyle.alignment = .center
         
         let attributes = [NSAttributedStringKey.paragraphStyle  : paragraphStyle,
-                          NSAttributedStringKey.font            : UIFont.systemFont(ofSize: 12.0),
+                          NSAttributedStringKey.font            : UIFont.systemFont(ofSize: 14.0),
                           NSAttributedStringKey.foregroundColor : UIColor(cgColor: UIColor.white.cgColor)
         ]
         
@@ -214,7 +214,7 @@ class OneWheelGraphView: UIView {
             paragraphStyle.alignment = (labelType == AxisLabelType.Left) ? .left : .right
             
             let attributes = [NSAttributedStringKey.paragraphStyle  : paragraphStyle,
-                              NSAttributedStringKey.font            : UIFont.systemFont(ofSize: 12.0),
+                              NSAttributedStringKey.font            : UIFont.systemFont(ofSize: 14.0),
                               NSAttributedStringKey.foregroundColor : UIColor(cgColor: self.color)
                               ]
             

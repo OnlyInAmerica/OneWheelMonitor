@@ -305,7 +305,6 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     
     private func handleUpdatedRpm(_ rpm: Int16) {
         let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: lastState.lastErrorCode, lastErrorCodeVal: lastState.lastErrorCodeVal)
-        // Lets not create new events for every speed update. Eventually let's create another table or in-memory structure for speed
         try? db?.insertState(state: newState)
         let mph = newState.mph()
         if audioFeedback && speedMonitor.passedBenchmark(mph){
@@ -450,7 +449,7 @@ class OneWheelLocalData {
 // Allows scheduling alerts for a short delay to allow short-lived events to be cancelled
 class CancelableAlertThrottler {
     var scheduledAlerts = [String:Timer]()
-    let thresholdS = 0.200
+    let thresholdS = 0.450
     
     func scheduleAlert(key: String, alertQueue: AlertQueue, alert: Alert) {
         if let existingTimer = scheduledAlerts[key] {
