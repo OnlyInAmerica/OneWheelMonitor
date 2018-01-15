@@ -49,7 +49,12 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     let characteristicBatteryUuid = CBUUID.init(string: "e659f303-ea98-11e3-ac10-0800200c9a66")
     let characteristicTempUuid = CBUUID.init(string: "e659f310-ea98-11e3-ac10-0800200c9a66")
     let characteristicLastErrorUuid = CBUUID.init(string: "e659f31c-ea98-11e3-ac10-0800200c9a66")
-
+    
+    private var characteristicForUUID = [CBUUID: CBCharacteristic]()
+    
+    private let tempPollingInterval: TimeInterval = 10.0
+    private var lastTempPollDate: Date?
+    
     func start() {
         startRequested = true
         cm = CBCentralManager.init(delegate: self, queue: nil, options: nil)
@@ -163,7 +168,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             return service.uuid == serviceUuid
         }).first {
             NSLog("Peripheral target service discovered. Discovering characteristics")
-            peripheral.discoverCharacteristics([characteristicRpmUuid, characteristicErrorUuid, characteristicSafetyHeadroomUuid, characteristicBatteryUuid, characteristicTempUuid, /* Don't seem to be peroperly interpreting these values yet: characteristicLastErrorUuid*/], for: service)
+            peripheral.discoverCharacteristics([characteristicRpmUuid, characteristicErrorUuid, characteristicSafetyHeadroomUuid, characteristicBatteryUuid, characteristicTempUuid, /* Don't seem to be properly interpreting these values yet: characteristicLastErrorUuid*/], for: service)
         }
     }
     
@@ -176,9 +181,17 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         if let characteristics = service.characteristics {
             for characteristic in characteristics {
                 NSLog("Peripheral enabling notification for characteristic \(characteristic)")
-                peripheral.setNotifyValue(true, for: characteristic)
-                if (characteristic.uuid == characteristicBatteryUuid || characteristic.uuid == characteristicSafetyHeadroomUuid || characteristic.uuid == characteristicTempUuid || characteristic.uuid == characteristicLastErrorUuid) {
+                // To minimize bg wakeups, let speed be the only rapidly changing subscription
+                // Upon speed notifications, we can conditionally poll temperature e.g
+                characteristicForUUID[characteristic.uuid] = characteristic
+                if characteristic.uuid != characteristicTempUuid {
+                    peripheral.setNotifyValue(true, for: characteristic)
+                }
+                if (characteristic.uuid == characteristicBatteryUuid || characteristic.uuid == characteristicTempUuid /* Don't seem to be peroperly interpreting these values yet:|| characteristic.uuid == characteristicLastErrorUuid*/) {
                     peripheral.readValue(for: characteristic)
+                    if characteristic.uuid == characteristicTempUuid {
+                        lastTempPollDate = Date()
+                    }
                     //peripheral.discoverDescriptors(for: characteristic)
                 }
             }
@@ -311,7 +324,14 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             let mphRound = Int(mph)
             queueHighAlert("Speed \(mphRound)")
         }
-        lastState = newState
+        
+        let now = Date()
+        if lastTempPollDate != nil && lastTempPollDate!.addingTimeInterval(tempPollingInterval) < now {
+            if let tempCharacteristic = characteristicForUUID[characteristicTempUuid] {
+                connectedDevice?.readValue(for: tempCharacteristic)
+                lastTempPollDate = Date()
+            }
+        }
     }
     
     private func handleUpdatedSafetyHeadroom(_ sh: UInt8) {
