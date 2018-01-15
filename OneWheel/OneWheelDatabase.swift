@@ -38,9 +38,13 @@ class OneWheelDatabase {
     }
     
     func getRecentStateRecordsController(completion: @escaping((FetchedRecordsController<OneWheelState>) -> ())) throws {
-        let lastDate = (dbQueue.inDatabase { (db) in
-            return try? OneWheelState.order(sql: "time DESC").fetchOne(db)?.time
-        } ?? Date())!
+        let lastDate: Date = dbQueue.inDatabase { (db) in
+            if let state = try? OneWheelState.order(sql: "time DESC").fetchOne(db) {
+                return state?.time ?? Date()
+            } else {
+                return Date()
+            }
+        }
         let startDate = Calendar.current.date(
             byAdding: .minute,
             value: -5,
@@ -82,6 +86,16 @@ var migrator: DatabaseMigrator {
             t.column("batteryLevel", .integer).notNull()
         }
     }
+    
+    migrator.registerMigration("addMotorControllerTempAndLastError") { db in
+        try db.alter(table: tableState) { t in
+            t.add(column: "motorTemp", .integer).notNull().defaults(to: 0)
+            t.add(column: "controllerTemp", .integer).notNull().defaults(to: 0)
+            t.add(column: "lastErrorCode", .integer).notNull().defaults(to: 0)
+            t.add(column: "lastErrorCodeVal", .integer).notNull().defaults(to: 0)
+        }
+    }
+
     return migrator
 }
 
@@ -103,6 +117,11 @@ class OneWheelState : Record, CustomStringConvertible {
     let rpm: Int16
     let safetyHeadroom: UInt8
     let batteryLevel : UInt8
+    let motorTemp : UInt8
+    let controllerTemp : UInt8
+    let lastErrorCode : UInt8
+    let lastErrorCodeVal : UInt8
+
     
     override init() {
         self.time = Date()
@@ -117,7 +136,11 @@ class OneWheelState : Record, CustomStringConvertible {
         self.rpm = 0
         self.safetyHeadroom = 100
         self.batteryLevel = 0
-    
+        self.motorTemp = 0
+        self.controllerTemp = 0
+        self.lastErrorCode = 0
+        self.lastErrorCodeVal = 0
+        
         super.init()
     }
     
@@ -133,7 +156,11 @@ class OneWheelState : Record, CustomStringConvertible {
         brokenCapacitor: Bool,
         rpm: Int16,
         safetyHeadroom: UInt8,
-        batteryLevel: UInt8) {
+        batteryLevel: UInt8,
+        motorTemp: UInt8,
+        controllerTemp: UInt8,
+        lastErrorCode: UInt8,
+        lastErrorCodeVal: UInt8) {
         
         self.time = time
         self.riderPresent = riderPresent
@@ -147,6 +174,10 @@ class OneWheelState : Record, CustomStringConvertible {
         self.rpm = rpm
         self.safetyHeadroom = safetyHeadroom
         self.batteryLevel = batteryLevel
+        self.motorTemp = motorTemp
+        self.controllerTemp = controllerTemp
+        self.lastErrorCode = lastErrorCode
+        self.lastErrorCodeVal = lastErrorCodeVal
         
         super.init()
     }
@@ -164,6 +195,10 @@ class OneWheelState : Record, CustomStringConvertible {
         rpm = row["rpm"]
         safetyHeadroom = row["safetyHeadroom"]
         batteryLevel = row["batteryLevel"]
+        motorTemp = row["motorTemp"]
+        controllerTemp = row["controllerTemp"]
+        lastErrorCode = row["lastErrorCode"]
+        lastErrorCodeVal = row["lastErrorCodeVal"]
         
         super.init()
     }
@@ -181,6 +216,10 @@ class OneWheelState : Record, CustomStringConvertible {
         container["rpm"] = rpm
         container["safetyHeadroom"] = safetyHeadroom
         container["batteryLevel"] = batteryLevel
+        container["motorTemp"] = motorTemp
+        container["controllerTemp"] = controllerTemp
+        container["lastErrorCode"] = lastErrorCode
+        container["lastErrorCodeVal"] = lastErrorCodeVal
     }
     
     var description: String {
@@ -224,10 +263,42 @@ class OneWheelState : Record, CustomStringConvertible {
         if prev.batteryLevel != self.batteryLevel {
             description += "Battery \(self.batteryLevel). "
         }
+        if prev.motorTemp != self.motorTemp {
+            description += "Motor Temp \(self.motorTemp). "
+        }
+        if prev.controllerTemp != self.controllerTemp {
+            description += "Controller Temp \(self.controllerTemp). "
+        }
+        if prev.lastErrorCode != self.lastErrorCode {
+            description += "Last Error \(self.lastErrorDescription()). "
+        }
         return description
     }
     
     func mph() -> Double {
         return 60.0 * (35.0 * Double(rpm)) / 63360.0;
     }
+    
+    func lastErrorDescription() -> String {
+        return "\(errorCodeMap[self.lastErrorCode] ?? "Unknown") \(self.lastErrorCodeVal)"
+    }
 }
+
+let errorCodeMap: [UInt8: String] = [
+    0: "None",
+    1: "BmsLowBattery",
+    2: "VoltageLow",
+    3: "VoltageHigh",
+    4: "FallDetected",
+    5: "PickupDetected",
+    6: "OverCurrentDetected",
+    7: "OverTemperature",
+    8: "BadGyro",
+    9: "BadAccelerometer",
+    10: "BadCurrentSensor",
+    11: "BadHallSensors",
+    12: "BadMotor",
+    13: "Overcurrent13",
+    14: "Overcurrent14",
+    15: "BadRiderDetectZone"
+]

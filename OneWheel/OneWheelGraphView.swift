@@ -82,7 +82,8 @@ class OneWheelGraphView: UIView {
                 curSeries.lastX = 0.0
                 curSeries.lastY = 0.0
 
-                curSeries.drawAxisLabels(rect: rect, numLabels: 5, bgColor: bgColor.cgColor)
+                let numLabels = (curSeries is MotorTempSeries) ? 4 : 5
+                curSeries.drawAxisLabels(rect: rect, numLabels: numLabels, bgColor: bgColor.cgColor)
             }
             drawTimeLabels(rect: rect)
             
@@ -217,10 +218,9 @@ class OneWheelGraphView: UIView {
                               NSAttributedStringKey.foregroundColor : UIColor(cgColor: self.color)
                               ]
             
-            let numLables = 5
             let labelSideMargin: CGFloat = 5
             let x: CGFloat = (labelType == AxisLabelType.Left) ? CGFloat(labelSideMargin) : rect.width - labelSideMargin
-            for axisLabelVal in stride(from: min, through: max, by: (max - min) / Double(numLables)) {
+            for axisLabelVal in stride(from: min, through: max, by: (max - min) / Double(numLabels)) {
                 let y = CGFloat(1.0 - ((axisLabelVal - min) / (max - min))) * rect.height
                 let axisLabel = printAxisVal(val: axisLabelVal)
                 let attrString = NSAttributedString(string: axisLabel,
@@ -240,6 +240,38 @@ class OneWheelGraphView: UIView {
         
         func printAxisVal(val: Double) -> String {
             return "\(val)"
+        }
+    }
+    
+    class ControllerTempSeries : Series, SeriesEvaluator {
+        
+        init(name: String, color: CGColor) {
+            super.init(name: name, color: color, type: SeriesType.Value, labelType: AxisLabelType.None, evaluator: self)
+            max = 120 // TODO: Figure out reasonable max temperatures
+        }
+        
+        func getValForState(state: OneWheelState) -> Double {
+            return Double(state.controllerTemp)
+        }
+        
+        override func printAxisVal(val: Double) -> String {
+            return "\(Int(val))°F"
+        }
+    }
+    
+    class MotorTempSeries : Series, SeriesEvaluator {
+        
+        init(name: String, color: CGColor) {
+            super.init(name: name, color: color, type: SeriesType.Value, labelType: AxisLabelType.Right, evaluator: self)
+            max = 120 // TODO: Figure out reasonable max temperatures
+        }
+        
+        func getValForState(state: OneWheelState) -> Double {
+            return Double(state.motorTemp)
+        }
+        
+        override func printAxisVal(val: Double) -> String {
+            return "\(Int(val))°F"
         }
     }
     
@@ -283,7 +315,7 @@ class OneWheelGraphView: UIView {
         }
         
         func getValForState(state: OneWheelState) -> Double {
-            return (!state.footPad1 || !state.footPad2 || !state.riderPresent) ? 1.0 : 0.0
+            return (state.mph() > 0.0) && ((!state.footPad1 && !state.footPad2) || (!state.riderPresent)) ? 1.0 : 0.0
         }
     }
 }

@@ -47,6 +47,8 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     let characteristicSafetyHeadroomUuid = CBUUID.init(string: "e659f317-ea98-11e3-ac10-0800200c9a66")
     let characteristicRpmUuid = CBUUID.init(string: "e659f30b-ea98-11e3-ac10-0800200c9a66")
     let characteristicBatteryUuid = CBUUID.init(string: "e659f303-ea98-11e3-ac10-0800200c9a66")
+    let characteristicTempUuid = CBUUID.init(string: "e659f310-ea98-11e3-ac10-0800200c9a66")
+    let characteristicLastErrorUuid = CBUUID.init(string: "e659f31c-ea98-11e3-ac10-0800200c9a66")
 
     func start() {
         startRequested = true
@@ -161,7 +163,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             return service.uuid == serviceUuid
         }).first {
             NSLog("Peripheral target service discovered. Discovering characteristics")
-            peripheral.discoverCharacteristics([characteristicRpmUuid, characteristicErrorUuid, characteristicSafetyHeadroomUuid, characteristicBatteryUuid], for: service)
+            peripheral.discoverCharacteristics([characteristicRpmUuid, characteristicErrorUuid, characteristicSafetyHeadroomUuid, characteristicBatteryUuid, characteristicTempUuid, /* Don't seem to be peroperly interpreting these values yet: characteristicLastErrorUuid*/], for: service)
         }
     }
     
@@ -175,7 +177,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             for characteristic in characteristics {
                 NSLog("Peripheral enabling notification for characteristic \(characteristic)")
                 peripheral.setNotifyValue(true, for: characteristic)
-                if (characteristic.uuid == characteristicBatteryUuid || characteristic.uuid == characteristicSafetyHeadroomUuid) {
+                if (characteristic.uuid == characteristicBatteryUuid || characteristic.uuid == characteristicSafetyHeadroomUuid || characteristic.uuid == characteristicTempUuid || characteristic.uuid == characteristicLastErrorUuid) {
                     peripheral.readValue(for: characteristic)
                     //peripheral.discoverDescriptors(for: characteristic)
                 }
@@ -235,6 +237,29 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             } else {
                 NSLog("Peripheral battery level charactersitic changed with no value")
             }
+            
+        case characteristicTempUuid:
+            if let value = characteristic.value {
+                let controllerTemp: UInt8 = value.withUnsafeBytes { $0.pointee }
+                let motorTemp: UInt8 = value.withUnsafeBytes { $0.pointee + 1 }
+
+                NSLog("Peripheral temperature characteristic changed motor: \(motorTemp) controller: \(controllerTemp)")
+                handleUpdatedTemperature(motorTempC: motorTemp, controllerTempC: controllerTemp)
+            } else {
+                NSLog("Peripheral temperature charactersitic changed with no value")
+            }
+            
+        case characteristicLastErrorUuid:
+            if let value = characteristic.value {
+                let errorCode1: UInt8 = value.withUnsafeBytes { $0.pointee }
+                let errorCode2: UInt8 = value.withUnsafeBytes { $0.pointee + 1 }
+                
+                NSLog("Peripheral last error characteristic changed \(errorCode1) - \(errorCodeMap[errorCode1]) - \(errorCode2)")
+                handleUpdatedLastErrorCode(errorCode1: errorCode1, errorCode2: errorCode2)
+            } else {
+                NSLog("Peripheral last error charactersitic changed with no value")
+            }
+            
         default:
             NSLog("Peripheral unknown charactersitic (\(characteristic.uuid)) changed")
         }
@@ -257,7 +282,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     }
     
     private func handleUpdatedStatus(_ s: OneWheelStatus) {
-        let newState = OneWheelState(time: Date.init(), riderPresent: s.riderDetected, footPad1: s.riderDetectPad1, footPad2: s.riderDetectPad2, icsuFault: s.icsuFault, icsvFault: s.icsvFault, charging: s.charging, bmsCtrlComms: s.bmsCtrlComms, brokenCapacitor: s.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel)
+        let newState = OneWheelState(time: Date.init(), riderPresent: s.riderDetected, footPad1: s.riderDetectPad1, footPad2: s.riderDetectPad2, icsuFault: s.icsuFault, icsvFault: s.icsvFault, charging: s.charging, bmsCtrlComms: s.bmsCtrlComms, brokenCapacitor: s.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: lastState.lastErrorCode, lastErrorCodeVal: lastState.lastErrorCodeVal)
         try? db?.insertState(state: newState)
         if audioFeedback {
             let delta = newState.describeDelta(prev: lastState)
@@ -279,7 +304,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     }
     
     private func handleUpdatedRpm(_ rpm: Int16) {
-        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel)
+        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: lastState.lastErrorCode, lastErrorCodeVal: lastState.lastErrorCodeVal)
         // Lets not create new events for every speed update. Eventually let's create another table or in-memory structure for speed
         try? db?.insertState(state: newState)
         let mph = newState.mph()
@@ -291,7 +316,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     }
     
     private func handleUpdatedSafetyHeadroom(_ sh: UInt8) {
-        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: sh, batteryLevel: lastState.batteryLevel)
+        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: sh, batteryLevel: lastState.batteryLevel, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: lastState.lastErrorCode, lastErrorCodeVal: lastState.lastErrorCodeVal)
         try? db?.insertState(state: newState)
         if audioFeedback && headroomMonitor.passedBenchmark(Double(sh)) {
             queueHighAlert("Headroom \(sh)")
@@ -300,8 +325,8 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     }
     
     private func handleUpdatedBattery(_ batteryLevelInt: UInt8) {
-        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: batteryLevelInt)
-        try? db?.insertState(state: newState)
+        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: batteryLevelInt, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: lastState.lastErrorCode, lastErrorCodeVal: lastState.lastErrorCodeVal)
+        //try? db?.insertState(state: newState) Rpm can catch these updates to avoid db bloat?
         let batteryLevel = Double(batteryLevelInt)
         if audioFeedback && batteryMonitor.passedBenchmark(batteryLevel){
             // Only speak the benchmark battery val. e.g: 70%, not 69%
@@ -319,12 +344,34 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         lastState = newState
     }
     
+    private func handleUpdatedTemperature(motorTempC: UInt8, controllerTempC: UInt8) {
+        let motorTempF = celsiusToFahrenheit(celsius: Double(motorTempC))
+        let controllerTempF = celsiusToFahrenheit(celsius: Double(controllerTempC))
+        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel, motorTemp: UInt8(motorTempF), controllerTemp: UInt8(controllerTempF), lastErrorCode: lastState.lastErrorCode, lastErrorCodeVal: lastState.lastErrorCodeVal)
+        //try? db?.insertState(state: newState) //  Rpm can catch these updates to avoid db bloat?
+        // TODO : Alert when temperatures hit danger zones
+        lastState = newState
+    }
+    
+    private func handleUpdatedLastErrorCode(errorCode1: UInt8, errorCode2: UInt8) {
+        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: errorCode1, lastErrorCodeVal: errorCode2)
+        try? db?.insertState(state: newState)
+        if audioFeedback {
+            queueHighAlert("Last Error \(newState.lastErrorDescription())")
+        }
+        lastState = newState
+    }
+    
     private func queueLowAlert(_ message: String) {
         self.alertQueue.queueAlert(speechManager.createSpeechAlert(priority: .LOW, message: message))
     }
     
     private func queueHighAlert(_ message: String) {
         self.alertQueue.queueAlert(speechManager.createSpeechAlert(priority: .HIGH, message: message))
+    }
+    
+    private func celsiusToFahrenheit(celsius: Double) -> Double {
+        return ((9.0 / 5.0) * celsius) + 32
     }
 }
 

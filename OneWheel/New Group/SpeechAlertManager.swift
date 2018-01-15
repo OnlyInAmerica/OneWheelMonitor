@@ -46,7 +46,7 @@ class SpeechAlertManager {
             self.completion = completion
             speechAlertManager.speechSynth.delegate = self
             let utterance = AVSpeechUtterance(string: message)
-            utterance.rate = AVSpeechUtteranceMaximumSpeechRate
+            utterance.rate = 0.55
             utterance.voice = speechAlertManager.speechVoice
             speechAlertManager.speechSynth.speak(utterance)
         }
