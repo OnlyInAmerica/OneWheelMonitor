@@ -12,12 +12,12 @@ import GRDB
 let tableState = "state"
 
 class OneWheelDatabase {
-    private let dbQueue : DatabaseQueue
+    private let dbPool : DatabasePool
     private let dateFormatter = DateFormatter()
     
     init(_ path: String) throws {
-        dbQueue = try DatabaseQueue(path: path)
-        try migrator.migrate(dbQueue)
+        dbPool = try DatabasePool(path: path)
+        try migrator.migrate(dbPool)
         
         //                          2018-01-13 07:11:57.448"
         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
@@ -25,20 +25,29 @@ class OneWheelDatabase {
     }
     
     func insertState(state : OneWheelState) throws {
-        try dbQueue.inDatabase { (db) in
+        try dbPool.write { (db) in
             try state.insert(db)
+        }
+    }
+    
+    func insertStates(states: [OneWheelState]) throws {
+        try dbPool.writeInTransaction{ (db) -> Database.TransactionCompletion in
+            for state in states {
+                try state.insert(db)
+            }
+            return .commit
         }
     }
     
     func getStateRecordsController() throws -> FetchedRecordsController<OneWheelState> {
         let controller = try FetchedRecordsController(
-            dbQueue,
+            dbPool,
             request: OneWheelState.order(Column("time")))
         return controller
     }
     
     func getRecentStateRecordsController(completion: @escaping((FetchedRecordsController<OneWheelState>) -> ())) throws {
-        let lastDate: Date = dbQueue.inDatabase { (db) in
+        let lastDate: Date = try dbPool.read { (db) in
             if let state = try? OneWheelState.order(sql: "time DESC").fetchOne(db) {
                 return state?.time ?? Date()
             } else {
@@ -52,7 +61,7 @@ class OneWheelDatabase {
         let sinceDateStr = dateFormatter.string(from: startDate)
         NSLog("Fetching state since \(sinceDateStr)")
         let controller = try FetchedRecordsController(
-            dbQueue,
+            dbPool,
             request: OneWheelState.filter(sql: "time > ?", arguments: [sinceDateStr]))
         DispatchQueue.main.async {
             completion(controller)
@@ -60,7 +69,7 @@ class OneWheelDatabase {
     }
     
     func clear() throws {
-        let _ = try dbQueue.inDatabase { (db) in
+        let _ = try dbPool.write { (db) in
             try OneWheelState.deleteAll(db)
         }
     }
@@ -281,6 +290,12 @@ class OneWheelState : Record, CustomStringConvertible {
     
     func lastErrorDescription() -> String {
         return "\(errorCodeMap[self.lastErrorCode] ?? "Unknown") \(self.lastErrorCodeVal)"
+    }
+    
+    func feetOffDuringMotion() -> Bool {
+        // If we're moving and rider is present but neither footpad sensor is triggered
+        // In this case we seem to have about 500 ms before shutoff (riderPresent going false)
+        return (rpm > 0) && (!footPad1 && !footPad2 && riderPresent)
     }
 }
 

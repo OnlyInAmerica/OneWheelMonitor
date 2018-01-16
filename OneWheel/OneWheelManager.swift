@@ -9,6 +9,7 @@
 import Foundation
 import CoreBluetooth
 import AVFoundation
+import UIKit
 
 class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate, AVSpeechSynthesizerDelegate {
     
@@ -33,6 +34,10 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     public var db : OneWheelDatabase?
     private var lastState = OneWheelState()
     private let data = OneWheelLocalData()
+    
+    private let bgQueue = DispatchQueue(label: "bgQueue")
+    private let bgDbTransactionLength = 20 // When in background, group inserts to conserve CPU
+    private var bgStateQueue = [OneWheelState]()
 
     // Bluetooth
     private var cm : CBCentralManager?
@@ -296,9 +301,13 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     
     private func handleUpdatedStatus(_ s: OneWheelStatus) {
         let newState = OneWheelState(time: Date.init(), riderPresent: s.riderDetected, footPad1: s.riderDetectPad1, footPad2: s.riderDetectPad2, icsuFault: s.icsuFault, icsvFault: s.icsvFault, charging: s.charging, bmsCtrlComms: s.bmsCtrlComms, brokenCapacitor: s.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: lastState.lastErrorCode, lastErrorCodeVal: lastState.lastErrorCodeVal)
-        try? db?.insertState(state: newState)
+        writeState(newState)
         if audioFeedback {
+            
             let delta = newState.describeDelta(prev: lastState)
+            // This is a jank way of adding a time threshold to Toe/Heel off alerts. By checking describeState like this we can
+            // easily tell if the *only* delta in the new state is a toe or heel change. Since these changes are especially spurious, they're generally
+            // more nuisance than help if not throttled
             switch delta {
             case "Heel Off. ":
                 alertThrottler.scheduleAlert(key: "heel-off", alertQueue: alertQueue, alert: speechManager.createSpeechAlert(priority: .HIGH, message: delta))
@@ -309,8 +318,19 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             case "Toe On. ":
                 alertThrottler.cancelAlert(key: "toe-off", alertQueue: alertQueue, ifNoOutstandingAlert: speechManager.createSpeechAlert(priority: .HIGH, message: delta))
             default:
+                
                 // All OneWheelStatus changes are high priority, with the possible exception of charging
-                queueHighAlert(delta)
+                if newState.feetOffDuringMotion() && !lastState.feetOffDuringMotion() {
+                    queueHighAlert("Feet off")
+                    let strippedDelta = delta.replacingOccurrences(of: "Heel Off. ", with: "").replacingOccurrences(of: "Toe Off.", with: "")
+                    queueHighAlert(strippedDelta)
+                } else if lastState.feetOffDuringMotion() && !newState.feetOffDuringMotion() {
+                    queueHighAlert("Feet on")
+                    let strippedDelta = delta.replacingOccurrences(of: "Heel On. ", with: "").replacingOccurrences(of: "Toe On.", with: "")
+                    queueHighAlert(strippedDelta)
+                } else {
+                    queueHighAlert(delta)
+                }
             }
         }
         lastState = newState
@@ -318,7 +338,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     
     private func handleUpdatedRpm(_ rpm: Int16) {
         let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: lastState.lastErrorCode, lastErrorCodeVal: lastState.lastErrorCodeVal)
-        try? db?.insertState(state: newState)
+        writeState(newState)
         let mph = newState.mph()
         if audioFeedback && speedMonitor.passedBenchmark(mph){
             let mphRound = Int(mph)
@@ -336,7 +356,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     
     private func handleUpdatedSafetyHeadroom(_ sh: UInt8) {
         let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: sh, batteryLevel: lastState.batteryLevel, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: lastState.lastErrorCode, lastErrorCodeVal: lastState.lastErrorCodeVal)
-        try? db?.insertState(state: newState)
+        writeState(newState)
         if audioFeedback && headroomMonitor.passedBenchmark(Double(sh)) {
             queueHighAlert("Headroom \(sh)")
         }
@@ -374,7 +394,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     
     private func handleUpdatedLastErrorCode(errorCode1: UInt8, errorCode2: UInt8) {
         let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: errorCode1, lastErrorCodeVal: errorCode2)
-        try? db?.insertState(state: newState)
+        writeState(newState)
         if audioFeedback {
             queueHighAlert("Last Error \(newState.lastErrorDescription())")
         }
@@ -391,6 +411,38 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     
     private func celsiusToFahrenheit(celsius: Double) -> Double {
         return ((9.0 / 5.0) * celsius) + 32
+    }
+    
+    private func writeState(_ state: OneWheelState) {
+        bgQueue.sync {
+            let uiState = UIApplication.shared.applicationState
+            if uiState == .active {
+                if bgStateQueue.count > 0 {
+                    flushBgStateQueueInternal()
+                }
+                try? db?.insertState(state: state)
+            } else {
+                bgStateQueue.append(state)
+                if bgStateQueue.count >= bgDbTransactionLength {
+                    flushBgStateQueueInternal()
+                }
+            }
+        }
+    }
+    
+    func flushBgStateQueue() {
+        bgQueue.sync {
+            flushBgStateQueueInternal()
+        }
+    }
+    
+    // Should be called from bgQueue
+    private func flushBgStateQueueInternal() {
+        if bgStateQueue.count > 0 {
+            NSLog("Flush bg state queue")
+            try? db?.insertStates(states: bgStateQueue)
+            bgStateQueue.removeAll()
+        }
     }
 }
 
@@ -468,8 +520,8 @@ class OneWheelLocalData {
 
 // Allows scheduling alerts for a short delay to allow short-lived events to be cancelled
 class CancelableAlertThrottler {
-    var scheduledAlerts = [String:Timer]()
-    let thresholdS = 0.450
+    private var scheduledAlerts = [String:Timer]()
+    var thresholdS = 1.450
     
     func scheduleAlert(key: String, alertQueue: AlertQueue, alert: Alert) {
         if let existingTimer = scheduledAlerts[key] {

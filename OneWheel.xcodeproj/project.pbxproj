@@ -11,6 +11,7 @@
 		602B2014200A775100B4BDC3 /* OneWheelBenchmarkMonitorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 602B2013200A775100B4BDC3 /* OneWheelBenchmarkMonitorTests.swift */; };
 		602B2025200A804000B4BDC3 /* OneWheelAlertQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 602B2024200A804000B4BDC3 /* OneWheelAlertQueueTests.swift */; };
 		602B202E200A817000B4BDC3 /* SpeechAlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 602B202D200A817000B4BDC3 /* SpeechAlertManager.swift */; };
+		602B2030200D413D00B4BDC3 /* OneWheelThrottlerTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 602B202F200D413D00B4BDC3 /* OneWheelThrottlerTest.swift */; };
 		604313EB1FFFFA9100B21214 /* OneWheelGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 604313EA1FFFFA9100B21214 /* OneWheelGraphView.swift */; };
 		605A6CF91FF804ED0047DF03 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605A6CF81FF804ED0047DF03 /* AppDelegate.swift */; };
 		605A6CFB1FF804ED0047DF03 /* StateViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605A6CFA1FF804ED0047DF03 /* StateViewController.swift */; };
@@ -72,6 +73,7 @@
 		602B2024200A804000B4BDC3 /* OneWheelAlertQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneWheelAlertQueueTests.swift; sourceTree = "<group>"; };
 		602B2026200A804000B4BDC3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		602B202D200A817000B4BDC3 /* SpeechAlertManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechAlertManager.swift; sourceTree = "<group>"; };
+		602B202F200D413D00B4BDC3 /* OneWheelThrottlerTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneWheelThrottlerTest.swift; sourceTree = "<group>"; };
 		604313EA1FFFFA9100B21214 /* OneWheelGraphView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OneWheelGraphView.swift; sourceTree = "<group>"; };
 		605A6CF51FF804ED0047DF03 /* OneWheel.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OneWheel.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		605A6CF81FF804ED0047DF03 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -163,6 +165,7 @@
 		602B2023200A804000B4BDC3 /* OneWheelAlertQueueTests */ = {
 			isa = PBXGroup;
 			children = (
+				602B202F200D413D00B4BDC3 /* OneWheelThrottlerTest.swift */,
 				602B2024200A804000B4BDC3 /* OneWheelAlertQueueTests.swift */,
 				602B2026200A804000B4BDC3 /* Info.plist */,
 			);
@@ -623,6 +626,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				602B2025200A804000B4BDC3 /* OneWheelAlertQueueTests.swift in Sources */,
+				602B2030200D413D00B4BDC3 /* OneWheelThrottlerTest.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

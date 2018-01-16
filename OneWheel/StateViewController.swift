@@ -29,10 +29,10 @@ class StateViewController: UIViewController {
         // Do any additional setup after loading the view, typically from a nib.
         self.graphView.dataSource = self
         self.graphView.addSeries(newSeries: OneWheelGraphView.ErrorSeries(name: "Error", color: UIColor(red:0.99, green:0.07, blue:0.55, alpha:0.4).cgColor))
-        self.graphView.addSeries(newSeries: OneWheelGraphView.SpeedSeries(name: "Speed", color: UIColor(red:0.81, green:0.81, blue:0.81, alpha:1.0).cgColor))
+        self.graphView.addSeries(newSeries: OneWheelGraphView.SpeedSeries(name: "Speed", color: UIColor(red:0.39, green:0.39, blue:0.39, alpha:1.0).cgColor))
         self.graphView.addSeries(newSeries: OneWheelGraphView.BatterySeries(name: "Battery", color: UIColor(red:0.00, green:0.68, blue:0.94, alpha:1.0).cgColor))
         self.graphView.addSeries(newSeries: OneWheelGraphView.MotorTempSeries(name: "MotorTemp", color: UIColor(red:1.00, green:0.52, blue:0.00, alpha:1.0).cgColor))
-        self.graphView.addSeries(newSeries: OneWheelGraphView.ControllerTempSeries(name: "ControllerTemp", color: UIColor(red:0.82, green:0.72, blue:0.47, alpha:1.0).cgColor))
+//        self.graphView.addSeries(newSeries: OneWheelGraphView.ControllerTempSeries(name: "ControllerTemp", color: UIColor(red:0.82, green:0.72, blue:0.47, alpha:1.0).cgColor))
 
         self.graphView.contentMode = .redraw // redraw on bounds change
         
