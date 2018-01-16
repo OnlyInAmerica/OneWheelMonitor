@@ -24,27 +24,43 @@ class OneWheelAlertQueueTests: XCTestCase {
     class TestAlert : Alert {
         var priority: Priority
         var message: String
+        var triggerCallback: (() -> Void)
         
-        init(priority: Priority, message: String) {
+        init(priority: Priority, message: String, callback: @escaping(() -> Void)) {
             self.priority = priority
             self.message = message
+            self.triggerCallback = callback
         }
         
         func trigger(completion: @escaping () -> Void) {
             NSLog("Triggered Test Alert priority \(priority) message \(message)")
+            triggerCallback()
             completion()
         }
     }
     
     func testAlertQueue() {
+        let expectedCallbackOrder = ["H1", "L1", "L2", "L3", "L4"]
+        var callbackOrder = [String]()
         let queue = AlertQueue()
-        queue.queueAlert(TestAlert(priority: .LOW, message: "Low Alert 1"))
-        queue.queueAlert(TestAlert(priority: .LOW, message: "Low Alert 2"))
-        queue.queueAlert(TestAlert(priority: .LOW, message: "Low Alert 3"))
-        queue.queueAlert(TestAlert(priority: .HIGH, message: "High Alert 1"))
-        queue.queueAlert(TestAlert(priority: .LOW, message: "Low Alert 4"))
+        queue.queueAlert(TestAlert(priority: .LOW, message: "Low Alert 1") {
+            callbackOrder.append("L1")
+        })
+        queue.queueAlert(TestAlert(priority: .LOW, message: "Low Alert 2") {
+            callbackOrder.append("L2")
+        })
+        queue.queueAlert(TestAlert(priority: .LOW, message: "Low Alert 3") {
+            callbackOrder.append("L3")
+        })
+        queue.queueAlert(TestAlert(priority: .HIGH, message: "High Alert 1") {
+            callbackOrder.append("H1")
+        })
+        queue.queueAlert(TestAlert(priority: .LOW, message: "Low Alert 4") {
+            callbackOrder.append("L4")
+        })
         
-        sleep(4)
+        sleep(1)
+        assert(expectedCallbackOrder == callbackOrder)
     }
     
     func testPerformanceExample() {
