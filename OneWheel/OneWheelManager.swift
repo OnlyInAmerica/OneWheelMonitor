@@ -340,7 +340,8 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: lastState.lastErrorCode, lastErrorCodeVal: lastState.lastErrorCodeVal)
         writeState(newState)
         let mph = newState.mph()
-        if audioFeedback && speedMonitor.passedBenchmark(mph){
+        let lastSpeedBenchmark = speedMonitor.lastBenchmarkIdx
+        if audioFeedback && speedMonitor.passedBenchmark(mph) && /* Only announce speed increases */ lastSpeedBenchmark < speedMonitor.lastBenchmarkIdx {
             let mphRound = Int(mph)
             queueHighAlert("Speed \(mphRound)", key: "Speed")
         }
