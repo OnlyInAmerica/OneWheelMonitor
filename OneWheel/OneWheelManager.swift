@@ -310,13 +310,26 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             // more nuisance than help if not throttled
             switch delta {
             case "Heel Off. ":
-                alertThrottler.scheduleAlert(key: "heel-off", alertQueue: alertQueue, alert: speechManager.createSpeechAlert(priority: .HIGH, message: delta, key:"Heel"))
+                if newState.riderPresent {
+                    alertThrottler.scheduleAlert(key: "heel-off", alertQueue: alertQueue, alert: speechManager.createSpeechAlert(priority: .HIGH, message: delta, key:"Heel"))
+                }
             case "Heel On. ":
-                alertThrottler.cancelAlert(key: "heel-off", alertQueue: alertQueue, ifNoOutstandingAlert: speechManager.createSpeechAlert(priority: .HIGH, message: delta, key:"Heel"))
+                if newState.riderPresent {
+                    alertThrottler.cancelAlert(key: "heel-off", alertQueue: alertQueue, ifNoOutstandingAlert: speechManager.createSpeechAlert(priority: .HIGH, message: delta, key:"Heel"))
+                }
             case "Toe Off. ":
-                alertThrottler.scheduleAlert(key: "toe-off", alertQueue: alertQueue, alert: speechManager.createSpeechAlert(priority: .HIGH, message: delta, key:"Toe"))
+                if newState.riderPresent {
+                    alertThrottler.scheduleAlert(key: "toe-off", alertQueue: alertQueue, alert: speechManager.createSpeechAlert(priority: .HIGH, message: delta, key:"Toe"))
+                }
             case "Toe On. ":
-                alertThrottler.cancelAlert(key: "toe-off", alertQueue: alertQueue, ifNoOutstandingAlert: speechManager.createSpeechAlert(priority: .HIGH, message: delta, key:"Toe"))
+                if newState.riderPresent {
+                    alertThrottler.cancelAlert(key: "toe-off", alertQueue: alertQueue, ifNoOutstandingAlert: speechManager.createSpeechAlert(priority: .HIGH, message: delta, key:"Toe"))
+                }
+            case "Rider Off. ":
+                alertThrottler.cancelAlert(key: "toe-off", alertQueue: alertQueue, ifNoOutstandingAlert: nil)
+                alertThrottler.cancelAlert(key: "heel-off", alertQueue: alertQueue, ifNoOutstandingAlert: nil)
+                queueHighAlert(delta, key: "Rider")
+                
             default:
                 
                 // All OneWheelStatus changes are high priority, with the possible exception of charging
@@ -341,7 +354,8 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         writeState(newState)
         let mph = newState.mph()
         let lastSpeedBenchmark = speedMonitor.lastBenchmarkIdx
-        if audioFeedback && speedMonitor.passedBenchmark(mph) && /* Only announce speed increases */ lastSpeedBenchmark < speedMonitor.lastBenchmarkIdx {
+        if audioFeedback && speedMonitor.passedBenchmark(mph) && /* Only announce speed increases */ lastSpeedBenchmark > speedMonitor.lastBenchmarkIdx {
+            NSLog("Announcing speed change from \(lastSpeedBenchmark) to \(speedMonitor.lastBenchmarkIdx)")
             let mphRound = Int(mph)
             queueHighAlert("Speed \(mphRound)", key: "Speed")
         }
@@ -538,12 +552,12 @@ class CancelableAlertThrottler {
         scheduledAlerts[key] = timer
     }
     
-    func cancelAlert(key: String, alertQueue: AlertQueue, ifNoOutstandingAlert: Alert) {
+    func cancelAlert(key: String, alertQueue: AlertQueue, ifNoOutstandingAlert: Alert?) {
         if let timer = scheduledAlerts[key] {
             NSLog("Cancelling \(key) alert")
             timer.invalidate()
-        } else {
-            alertQueue.queueAlert(ifNoOutstandingAlert)
+        } else if let newAlert = ifNoOutstandingAlert {
+            alertQueue.queueAlert(newAlert)
         }
     }
 }
