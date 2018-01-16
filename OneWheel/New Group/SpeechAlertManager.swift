@@ -15,7 +15,7 @@ class SpeechAlertManager {
     private let speechSynth = AVSpeechSynthesizer()
     private let speechVoice = AVSpeechSynthesisVoice(language: "en-US")
     
-    func createSpeechAlert(priority: Priority, message: String) -> Alert {
+    func createSpeechAlert(priority: Priority, message: String, key: String? = nil) -> Alert {
         return SpeechAlert(speechManager: self, priority: priority, message: message)
     }
     
@@ -24,6 +24,7 @@ class SpeechAlertManager {
         let speechAlertManager: SpeechAlertManager
         var priority: Priority
         var message: String
+        var key: String?
         
         var completion: (() -> Void)?
         

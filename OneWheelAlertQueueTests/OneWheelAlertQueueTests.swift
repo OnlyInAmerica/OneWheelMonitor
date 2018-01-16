@@ -24,7 +24,15 @@ class OneWheelAlertQueueTests: XCTestCase {
     class TestAlert : Alert {
         var priority: Priority
         var message: String
+        var key: String?
         var triggerCallback: (() -> Void)
+        
+        init(priority: Priority, message: String, key: String, callback: @escaping(() -> Void)) {
+            self.priority = priority
+            self.message = message
+            self.key = key
+            self.triggerCallback = callback
+        }
         
         init(priority: Priority, message: String, callback: @escaping(() -> Void)) {
             self.priority = priority
@@ -39,7 +47,7 @@ class OneWheelAlertQueueTests: XCTestCase {
         }
     }
     
-    func testAlertQueue() {
+    func testAlertQueuePriority() {
         let expectedCallbackOrder = ["H1", "L1", "L2", "L3", "L4"]
         var callbackOrder = [String]()
         let queue = AlertQueue()
@@ -62,6 +70,30 @@ class OneWheelAlertQueueTests: XCTestCase {
         sleep(1)
         assert(expectedCallbackOrder == callbackOrder)
     }
+    
+    func testAlertQueueTag() {
+        let expectedCallbackOrder = ["K1-3", "K2-1", "K3-1"]
+        var callbackOrder = [String]()
+        let queue = AlertQueue()
+        queue.queueAlert(TestAlert(priority: .LOW, message: "Key Alert 1", key: "1") {
+            callbackOrder.append("K1-1")
+        })
+        queue.queueAlert(TestAlert(priority: .LOW, message: "Key Alert 2", key: "1") {
+            callbackOrder.append("K1-2")
+        })
+        queue.queueAlert(TestAlert(priority: .LOW, message: "Key Alert 3", key: "1") {
+            callbackOrder.append("K1-3")
+        })
+        queue.queueAlert(TestAlert(priority: .LOW, message: "Key Alert 2", key: "2") {
+            callbackOrder.append("K2-1")
+        })
+        queue.queueAlert(TestAlert(priority: .LOW, message: "Key Alert 3", key: "3") {
+            callbackOrder.append("K3-1")
+        })
+        sleep(1)
+        assert(expectedCallbackOrder == callbackOrder)
+    }
+
     
     func testPerformanceExample() {
         // This is an example of a performance test case.

@@ -310,22 +310,22 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             // more nuisance than help if not throttled
             switch delta {
             case "Heel Off. ":
-                alertThrottler.scheduleAlert(key: "heel-off", alertQueue: alertQueue, alert: speechManager.createSpeechAlert(priority: .HIGH, message: delta))
+                alertThrottler.scheduleAlert(key: "heel-off", alertQueue: alertQueue, alert: speechManager.createSpeechAlert(priority: .HIGH, message: delta, key:"Heel"))
             case "Heel On. ":
-                alertThrottler.cancelAlert(key: "heel-off", alertQueue: alertQueue, ifNoOutstandingAlert: speechManager.createSpeechAlert(priority: .HIGH, message: delta))
+                alertThrottler.cancelAlert(key: "heel-off", alertQueue: alertQueue, ifNoOutstandingAlert: speechManager.createSpeechAlert(priority: .HIGH, message: delta, key:"Heel"))
             case "Toe Off. ":
-                alertThrottler.scheduleAlert(key: "toe-off", alertQueue: alertQueue, alert: speechManager.createSpeechAlert(priority: .HIGH, message: delta))
+                alertThrottler.scheduleAlert(key: "toe-off", alertQueue: alertQueue, alert: speechManager.createSpeechAlert(priority: .HIGH, message: delta, key:"Toe"))
             case "Toe On. ":
-                alertThrottler.cancelAlert(key: "toe-off", alertQueue: alertQueue, ifNoOutstandingAlert: speechManager.createSpeechAlert(priority: .HIGH, message: delta))
+                alertThrottler.cancelAlert(key: "toe-off", alertQueue: alertQueue, ifNoOutstandingAlert: speechManager.createSpeechAlert(priority: .HIGH, message: delta, key:"Toe"))
             default:
                 
                 // All OneWheelStatus changes are high priority, with the possible exception of charging
                 if newState.feetOffDuringMotion() && !lastState.feetOffDuringMotion() {
-                    queueHighAlert("Feet off")
+                    queueHighAlert("Feet off", key: "Feet")
                     let strippedDelta = delta.replacingOccurrences(of: "Heel Off. ", with: "").replacingOccurrences(of: "Toe Off.", with: "")
                     queueHighAlert(strippedDelta)
                 } else if lastState.feetOffDuringMotion() && !newState.feetOffDuringMotion() {
-                    queueHighAlert("Feet on")
+                    queueHighAlert("Feet on", key: "Feet")
                     let strippedDelta = delta.replacingOccurrences(of: "Heel On. ", with: "").replacingOccurrences(of: "Toe On.", with: "")
                     queueHighAlert(strippedDelta)
                 } else {
@@ -342,7 +342,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         let mph = newState.mph()
         if audioFeedback && speedMonitor.passedBenchmark(mph){
             let mphRound = Int(mph)
-            queueHighAlert("Speed \(mphRound)")
+            queueHighAlert("Speed \(mphRound)", key: "Speed")
         }
         
         let now = Date()
@@ -358,7 +358,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: sh, batteryLevel: lastState.batteryLevel, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: lastState.lastErrorCode, lastErrorCodeVal: lastState.lastErrorCodeVal)
         writeState(newState)
         if audioFeedback && headroomMonitor.passedBenchmark(Double(sh)) {
-            queueHighAlert("Headroom \(sh)")
+            queueHighAlert("Headroom \(sh)", key: "Headroom")
         }
         lastState = newState
     }
@@ -375,9 +375,9 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             let currentBattDiff = abs(currentBattBenchmark - batteryLevel)
             let lastBattDiff = abs(lastBattBenchmark - batteryLevel)
             if (currentBattDiff < lastBattDiff) {
-                queueLowAlert("Battery \(Int(currentBattBenchmark))")
+                queueLowAlert("Battery \(Int(currentBattBenchmark))", key: "Batt")
             } else {
-                queueLowAlert("Battery \(Int(lastBattBenchmark))")
+                queueLowAlert("Battery \(Int(lastBattBenchmark))", key: "Batt")
             }
         }
         lastState = newState
@@ -401,12 +401,12 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         lastState = newState
     }
     
-    private func queueLowAlert(_ message: String) {
-        self.alertQueue.queueAlert(speechManager.createSpeechAlert(priority: .LOW, message: message))
+    private func queueLowAlert(_ message: String, key: String? = nil) {
+        self.alertQueue.queueAlert(speechManager.createSpeechAlert(priority: .LOW, message: message, key: key))
     }
     
-    private func queueHighAlert(_ message: String) {
-        self.alertQueue.queueAlert(speechManager.createSpeechAlert(priority: .HIGH, message: message))
+    private func queueHighAlert(_ message: String, key: String? = nil) {
+        self.alertQueue.queueAlert(speechManager.createSpeechAlert(priority: .HIGH, message: message, key: key))
     }
     
     private func celsiusToFahrenheit(celsius: Double) -> Double {

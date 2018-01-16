@@ -20,6 +20,12 @@ class AlertQueue {
     
     func queueAlert(_ alert: Alert) {
         serialQueue.async {
+            // First remove any other alerts with same key
+            if let key = alert.key {
+                self.alerts = self.alerts.filter({ (existingAlert) -> Bool in
+                    existingAlert.key != key
+                })
+            }
             switch alert.priority {
             case .HIGH:
                 let firstNonHighIdx = self.alerts.index(where: { (alert) -> Bool in
@@ -69,6 +75,8 @@ enum Priority {
 protocol Alert {
     var priority: Priority {get}
     var message: String {get}
+    // Only one alert per key should be present in the queue at once
+    var key: String? {get}
     
     // Block until alert trigger complete
     func trigger(completion: (@escaping () -> ()))

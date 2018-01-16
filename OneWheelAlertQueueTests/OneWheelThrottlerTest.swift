@@ -24,6 +24,7 @@ class OneWheelThrottlerTest: XCTestCase {
     class TestAlert : Alert {
         var priority: Priority
         var message: String
+        var key: String?
         var triggerCallback: (() -> Void)
         
         init(priority: Priority, message: String, callback: @escaping(() -> Void)) {
