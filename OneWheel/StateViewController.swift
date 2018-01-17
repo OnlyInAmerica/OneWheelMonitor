@@ -18,9 +18,12 @@ class StateViewController: UIViewController {
     @IBOutlet var unpairButton: UIBarButtonItem!
     
     var owManager : OneWheelManager!
+    private var isConnected = false
 
     private var controller: FetchedRecordsController<OneWheelState>?
-    
+    private var graphRefreshTimer: Timer?
+    private let graphRefreshTimeInterval: TimeInterval = 1.0
+
     private let dateFormatter = DateFormatter()
     private let data = OneWheelLocalData()
     
@@ -66,8 +69,16 @@ class StateViewController: UIViewController {
     }
     
     func subscribeToState(doSubscribe: Bool) {
+        graphRefreshTimer?.invalidate()
         if doSubscribe {
             setupController(isLandscape: UIDevice.current.orientation.isLandscape)
+            graphRefreshTimer = Timer.scheduledTimer(withTimeInterval: graphRefreshTimeInterval, repeats: true, block: { (timer) in
+                if self.isConnected {
+                    NSLog("Updating graph data")
+                    try! self.controller?.performFetch()
+                    self.graphView.setNeedsDisplay()
+                }
+            })
         } else {
             self.controller = nil
             NSLog("Dereference controller")
@@ -83,14 +94,6 @@ class StateViewController: UIViewController {
         
         let completion: (FetchedRecordsController<OneWheelState>) -> () = { (controller) in
             self.controller = controller
-            controller.trackChanges(
-                didChange: { [unowned self] _ in
-                    NSLog("Controller didChange")
-                    let state = UIApplication.shared.applicationState
-                    if state == .active {
-                        self.graphView.setNeedsDisplay()
-                    }
-            })
             try! controller.performFetch()
             self.graphView.setNeedsDisplay()
             NSLog("Setup controller")
@@ -172,10 +175,12 @@ class StateViewController: UIViewController {
 // MARK: ConnectionListener
 extension StateViewController: ConnectionListener {
     func onConnected(oneWheel: OneWheel) {
+        isConnected = true
         updateUi(isConnected: true, onewheel: oneWheel)
     }
     
     func onDisconnected(oneWheel: OneWheel) {
+        isConnected = false
         updateUi(isConnected: false, onewheel: oneWheel)
     }
 }
