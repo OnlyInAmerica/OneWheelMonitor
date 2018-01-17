@@ -13,69 +13,19 @@ class OneWheelGraphView: UIView {
     var dataSource: GraphDataSource?
     var series = [String: Series]()
     var seriesPaths = [String: CGMutablePath]()
-    var bgColor = UIColor(white: 0.0, alpha: 1.0)
+    var bgColor: CGColor = UIColor(white: 0.0, alpha: 1.0).cgColor
+    
+    var portraitMode  = false
     
     override func draw(_ rect: CGRect) {
         let context = UIGraphicsGetCurrentContext()!
 
         if let dataSource = self.dataSource {
             
-            context.setFillColor(bgColor.cgColor)
+            context.setFillColor(bgColor)
             context.fill(rect)
             
-            // Start drawing at Lower left
-            context.move(to: CGPoint(x: 0.0, y: rect.height))
-            let dataCount = dataSource.getCount()
-            let widthPtsPerData: CGFloat = 2
-            let strideCount: Int = CGFloat(dataCount) > (rect.width / widthPtsPerData) ? dataCount / Int(rect.width / widthPtsPerData) : 1
-            let deltaX = rect.width / (CGFloat(dataCount / strideCount))
-            var x: CGFloat = deltaX
-            NSLog("Drawing graph with deltaX \(deltaX), stride \(strideCount)")
-            for valIdx in stride(from: 0, to: dataCount, by: strideCount)  { // 0..<dataCount {
-
-                let state = dataSource.getStateForIndex(index: valIdx)
-
-                for curSeries in series.values {
-                    
-                    let normVal = CGFloat(curSeries.getNormalizedVal(state: state))
-                    let y = (1.0 - normVal) * rect.height
-                    
-                    if curSeries.type == SeriesType.Value {
-                        var path = seriesPaths[curSeries.name]
-                        if path == nil {
-                            path = CGMutablePath()
-                            path?.move(to: CGPoint(x: 0.0, y: rect.height))
-                        }
-                        path!.addLine(to: CGPoint(x: x, y: y))
-//                        NSLog("Draw line from \(curSeries.lastX), \(curSeries.lastY) to \(x), \(y)")
-                        
-                        seriesPaths[curSeries.name] = path
-                        
-                    } else if curSeries.type == SeriesType.Boolean {
-                        
-                        if normVal == 1.0 {
-                            let errorRect = CGRect(x: curSeries.lastX, y: y, width: (x-curSeries.lastX), height: rect.height)
-                            context.setFillColor(curSeries.color)
-                            context.fill(errorRect)
-                        }
-                    }
-                    
-                    curSeries.lastX = x
-                    curSeries.lastY = y
-                    
-                } // end for series
-                x += deltaX
-            } // end for x-val
-            
-            // draw value series paths
-            
-            for (seriesName, seriesPath) in seriesPaths {
-                let seriesColor = series[seriesName]!.color
-                context.addPath(seriesPath)
-                context.setLineWidth(3.0)
-                context.setStrokeColor(seriesColor)
-                context.strokePath()
-            }
+            drawSeries(dataSource: dataSource, rect: rect, context: context)
             
             // clear Series last-values and draw axis labels
             for curSeries in series.values {
@@ -83,18 +33,72 @@ class OneWheelGraphView: UIView {
                 curSeries.lastY = 0.0
 
                 let numLabels = (curSeries is MotorTempSeries) ? 4 : 5
-                curSeries.drawAxisLabels(rect: rect, numLabels: numLabels, bgColor: bgColor.cgColor)
+                curSeries.drawAxisLabels(rect: rect, numLabels: numLabels, bgColor: bgColor)
             }
-            drawTimeLabels(rect: rect)
+            drawTimeLabels(rect: rect, context: context)
             
             seriesPaths.removeAll()
         }
         NSLog("Drawing graph finished")
     }
     
-    // MARK: Time formatting
+    func drawSeries(dataSource: GraphDataSource, rect: CGRect, context: CGContext) {
+        // Start drawing at Lower left
+        context.move(to: CGPoint(x: 0.0, y: rect.height))
+        let dataCount = dataSource.getCount()
+        let widthPtsPerData: CGFloat = 2
+        let strideCount: Int = CGFloat(dataCount) > (rect.width / widthPtsPerData) ? dataCount / Int(rect.width / widthPtsPerData) : 1
+        let deltaX = rect.width / (CGFloat(dataCount / strideCount))
+        var x: CGFloat = deltaX
+        NSLog("Drawing graph with deltaX \(deltaX), stride \(strideCount)")
+        for valIdx in stride(from: 0, to: dataCount, by: strideCount)  { // 0..<dataCount {
+            
+            let state = dataSource.getStateForIndex(index: valIdx)
+            
+            for curSeries in series.values {
+                
+                let normVal = CGFloat(curSeries.getNormalizedVal(state: state))
+                let y = (1.0 - normVal) * rect.height
+                
+                if curSeries.type == SeriesType.Value {
+                    var path = seriesPaths[curSeries.name]
+                    if path == nil {
+                        path = CGMutablePath()
+                        path?.move(to: CGPoint(x: 0.0, y: rect.height))
+                    }
+                    path!.addLine(to: CGPoint(x: x, y: y))
+                    //                        NSLog("Draw line from \(curSeries.lastX), \(curSeries.lastY) to \(x), \(y)")
+                    
+                    seriesPaths[curSeries.name] = path
+                    
+                } else if curSeries.type == SeriesType.Boolean {
+                    
+                    if normVal == 1.0 {
+                        let errorRect = CGRect(x: curSeries.lastX, y: y, width: (x-curSeries.lastX), height: rect.height)
+                        context.setFillColor(curSeries.color)
+                        context.fill(errorRect)
+                    }
+                }
+                
+                curSeries.lastX = x
+                curSeries.lastY = y
+                
+            } // end for series
+            x += deltaX
+        } // end for x-val
+        
+        // draw value series paths
+        
+        for (seriesName, seriesPath) in seriesPaths {
+            let seriesColor = series[seriesName]!.color
+            context.addPath(seriesPath)
+            context.setLineWidth(3.0)
+            context.setStrokeColor(seriesColor)
+            context.strokePath()
+        }
+    }
     
-    func drawTimeLabels(rect: CGRect) {
+    func drawTimeLabels(rect: CGRect, context: CGContext) {
         
         let dataCount = dataSource!.getCount()
         
@@ -105,8 +109,6 @@ class OneWheelGraphView: UIView {
         let formatter = DateFormatter()
         formatter.dateStyle = .none
         formatter.timeStyle = .short
-        
-        let context = UIGraphicsGetCurrentContext()!
         
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = .center
@@ -146,7 +148,7 @@ class OneWheelGraphView: UIView {
             
             let rt =  CGRect(x: rectX, y: rectY, width: labelSize.width, height: labelSize.height)
             
-            context.setFillColor(bgColor.cgColor)
+            context.setFillColor(bgColor)
             context.fill(rt)
             
             NSLog("Drawing time axis label \(axisLabel)")
