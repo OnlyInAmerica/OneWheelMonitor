@@ -33,7 +33,7 @@ class StateViewController: UIViewController {
         self.graphView.dataSource = self
         self.graphView.bgColor = UIColor(red: 0.1, green: 0.1, blue: 0.1, alpha: 1.0).cgColor
         self.graphView.addSeries(newSeries: OneWheelGraphView.ErrorSeries(name: "Error", color: UIColor(red:0.99, green:0.07, blue:0.55, alpha:0.4).cgColor))
-        self.graphView.addSeries(newSeries: OneWheelGraphView.SpeedSeries(name: "Speed", color: UIColor(red:0.39, green:0.39, blue:0.39, alpha:1.0).cgColor))
+        self.graphView.addSeries(newSeries: OneWheelGraphView.SpeedSeries(name: "Speed", color: UIColor(red:0.89, green:0.89, blue:0.89, alpha:1.0).cgColor))
         self.graphView.addSeries(newSeries: OneWheelGraphView.BatterySeries(name: "Battery", color: UIColor(red:0.00, green:0.68, blue:0.94, alpha:1.0).cgColor))
 //        self.graphView.addSeries(newSeries: OneWheelGraphView.MotorTempSeries(name: "MotorTemp", color: UIColor(red:1.00, green:0.52, blue:0.00, alpha:1.0).cgColor))
 //        self.graphView.addSeries(newSeries: OneWheelGraphView.ControllerTempSeries(name: "ControllerTemp", color: UIColor(red:0.82, green:0.72, blue:0.47, alpha:1.0).cgColor))
@@ -72,7 +72,9 @@ class StateViewController: UIViewController {
     func subscribeToState(doSubscribe: Bool) {
         graphRefreshTimer?.invalidate()
         if doSubscribe {
-            setupController(isLandscape: UIDevice.current.orientation.isLandscape)
+            let isLandscape = self.view.bounds.width > self.view.bounds.height
+            self.graphView.portraitMode = !isLandscape
+            setupController(isLandscape: isLandscape)
             graphRefreshTimer = Timer.scheduledTimer(withTimeInterval: graphRefreshTimeInterval, repeats: true, block: { (timer) in
                 if self.isConnected {
                     NSLog("Updating graph data")
@@ -109,6 +111,8 @@ class StateViewController: UIViewController {
     }
     
     override func willRotate(to toInterfaceOrientation: UIInterfaceOrientation, duration: TimeInterval) {
+        NSLog("willRotate to \(toInterfaceOrientation)")
+        self.graphView.portraitMode = toInterfaceOrientation.isPortrait
         setupController(isLandscape: toInterfaceOrientation.isLandscape)
     }
 

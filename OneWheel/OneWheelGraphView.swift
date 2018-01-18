@@ -25,7 +25,40 @@ class OneWheelGraphView: UIView {
             context.setFillColor(bgColor)
             context.fill(rect)
             
-            drawSeries(dataSource: dataSource, rect: rect, context: context)
+            let seriesAxisRect = rect.insetBy(dx: 0.0, dy: 11.0).applying(CGAffineTransform(translationX: 0.0, y: -11.0))
+            let timeLabelsRect = portraitMode ? rect.insetBy(dx: 20.0, dy: 0.0) : rect.insetBy(dx: 40.0, dy: 0.0).applying(CGAffineTransform(translationX: 7.0, y: 0.0)) // last affineT is a janky compensation for the MPH / Battery label width differences :/
+            let seriesRect = portraitMode ? seriesAxisRect.insetBy(dx: 20.0, dy: 0.0).applying(CGAffineTransform(translationX: -20.0, y: 0.0)) : seriesAxisRect.insetBy(dx: 40.0, dy: 0.0).applying(CGAffineTransform(translationX: 7.0, y: 0.0))
+
+            context.addRect(seriesRect)
+            context.clip()
+            drawSeries(dataSource: dataSource, rect: seriesRect, context: context)
+            context.resetClip()
+
+            if portraitMode {
+                context.saveGState()
+                
+                var bgTransparent = bgColor.copy(alpha: 0.0)
+                let gradientColors = [bgColor, bgTransparent]
+                let colorSpace = CGColorSpaceCreateDeviceRGB()
+                let colorLocations: [CGFloat] = [0.1, 1.0]
+                let gradient = CGGradient(colorsSpace: colorSpace,
+                                          colors: gradientColors as CFArray,
+                                          locations: colorLocations)!
+                let startPoint = CGPoint(x: 0, y: rect.midY)
+                let endPoint = CGPoint(x: 50, y: rect.midY)
+                let gradientWidth = 100
+//                let leftGradientPath = UIBezierPath(rect: CGRect(x: 0, y: 0, width: gradientWidth, height: Int(rect.height)))
+//                leftGradientPath.addClip()
+                
+                let gradientRect = CGRect(x: 0, y: 0, width: gradientWidth, height: Int(rect.height))
+                context.addRect(gradientRect)
+                context.clip()
+                context.drawLinearGradient(gradient,
+                                           start: startPoint,
+                                           end: endPoint,
+                                           options: [])
+                context.restoreGState()
+            }
             
             // clear Series last-values and draw axis labels
             for curSeries in series.values {
@@ -33,9 +66,9 @@ class OneWheelGraphView: UIView {
                 curSeries.lastY = 0.0
 
                 let numLabels = (curSeries is MotorTempSeries) ? 4 : 5
-                curSeries.drawAxisLabels(rect: rect, numLabels: numLabels, bgColor: bgColor)
+                curSeries.drawAxisLabels(rect: seriesAxisRect, numLabels: numLabels, bgColor: bgColor)
             }
-            drawTimeLabels(rect: rect, context: context)
+            drawTimeLabels(rect: timeLabelsRect, context: context, numLabels: portraitMode ? 2 : 3)
             
             seriesPaths.removeAll()
         }
@@ -44,12 +77,12 @@ class OneWheelGraphView: UIView {
     
     func drawSeries(dataSource: GraphDataSource, rect: CGRect, context: CGContext) {
         // Start drawing at Lower left
-        context.move(to: CGPoint(x: 0.0, y: rect.height))
+        context.move(to: CGPoint(x: rect.origin.x, y: rect.height))
         let dataCount = dataSource.getCount()
         let widthPtsPerData: CGFloat = 2
         let strideCount: Int = CGFloat(dataCount) > (rect.width / widthPtsPerData) ? dataCount / Int(rect.width / widthPtsPerData) : 1
         let deltaX = rect.width / (CGFloat(dataCount / strideCount))
-        var x: CGFloat = deltaX
+        var x: CGFloat = rect.origin.x + deltaX
         NSLog("Drawing graph with deltaX \(deltaX), stride \(strideCount)")
         for valIdx in stride(from: 0, to: dataCount, by: strideCount)  { // 0..<dataCount {
             
@@ -58,13 +91,13 @@ class OneWheelGraphView: UIView {
             for curSeries in series.values {
                 
                 let normVal = CGFloat(curSeries.getNormalizedVal(state: state))
-                let y = (1.0 - normVal) * rect.height
+                let y = ((1.0 - normVal) * rect.height) + rect.origin.y
                 
                 if curSeries.type == SeriesType.Value {
                     var path = seriesPaths[curSeries.name]
                     if path == nil {
                         path = CGMutablePath()
-                        path?.move(to: CGPoint(x: 0.0, y: rect.height))
+                        path?.move(to: CGPoint(x: x, y: y))
                     }
                     path!.addLine(to: CGPoint(x: x, y: y))
                     //                        NSLog("Draw line from \(curSeries.lastX), \(curSeries.lastY) to \(x), \(y)")
@@ -98,7 +131,7 @@ class OneWheelGraphView: UIView {
         }
     }
     
-    func drawTimeLabels(rect: CGRect, context: CGContext) {
+    func drawTimeLabels(rect: CGRect, context: CGContext, numLabels: Int) {
         
         let dataCount = dataSource!.getCount()
         
@@ -118,7 +151,6 @@ class OneWheelGraphView: UIView {
                           NSAttributedStringKey.foregroundColor : UIColor(cgColor: UIColor.white.cgColor)
         ]
         
-        let numLabels = 3
         let labelSideMargin: CGFloat = 5
         for axisLabelIdx in 0..<numLabels {
             if axisLabelIdx == 0 {
@@ -132,7 +164,7 @@ class OneWheelGraphView: UIView {
             let axisLabelFrac: CGFloat = CGFloat(axisLabelIdx) / CGFloat(numLabels-1)
             let state = dataSource!.getStateForIndex(index: Int(CGFloat(dataCount-1) * axisLabelFrac))
 
-            let x: CGFloat = (rect.width * axisLabelFrac)
+            let x: CGFloat = (rect.width * axisLabelFrac) + rect.origin.x
             let axisLabel = formatter.string(from: state.time)
             let attrString = NSAttributedString(string: axisLabel,
                                                 attributes: attributes)
@@ -223,6 +255,10 @@ class OneWheelGraphView: UIView {
             let labelSideMargin: CGFloat = 5
             let x: CGFloat = (labelType == AxisLabelType.Left) ? CGFloat(labelSideMargin) : rect.width - labelSideMargin
             for axisLabelVal in stride(from: min, through: max, by: (max - min) / Double(numLabels)) {
+                // TODO : Re-evaluate, but for now don't draw 0-val label
+                if axisLabelVal == min {
+                    continue
+                }
                 let y = CGFloat(1.0 - ((axisLabelVal - min) / (max - min))) * rect.height
                 let axisLabel = printAxisVal(val: axisLabelVal)
                 let attrString = NSAttributedString(string: axisLabel,
