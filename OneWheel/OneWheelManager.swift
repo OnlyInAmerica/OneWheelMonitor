@@ -380,7 +380,10 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     
     private func handleUpdatedBattery(_ batteryLevelInt: UInt8) {
         let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: batteryLevelInt, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: lastState.lastErrorCode, lastErrorCodeVal: lastState.lastErrorCodeVal)
-        //try? db?.insertState(state: newState) Rpm can catch these updates to avoid db bloat?
+        // If we're moving, let rpm be the driver of db updates
+        if newState.rpm == 0 {
+            try? db?.insertState(state: newState)
+        }
         let batteryLevel = Double(batteryLevelInt)
         if audioFeedback && batteryMonitor.passedBenchmark(batteryLevel){
             // Only speak the benchmark battery val. e.g: 70%, not 69%
