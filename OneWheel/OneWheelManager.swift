@@ -372,6 +372,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
                 lastTempPollDate = Date()
             }
         }
+        lastState = newState
     }
     
     private func handleUpdatedSafetyHeadroom(_ sh: UInt8) {
