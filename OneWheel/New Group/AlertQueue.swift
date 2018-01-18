@@ -92,6 +92,8 @@ enum Priority {
 protocol Alert {
     var priority: Priority {get}
     var message: String {get}
+    // If the previous alert was of same key, this will be used. Default implementation returns message
+    var shortMessage: String {get}
     // Only one alert per key should be present in the queue at once
     var key: String? {get}
     
@@ -102,5 +104,13 @@ protocol Alert {
 extension Alert {
     func hashValue() -> Int {
         return self.priority.hashValue ^ (self.key?.hashValue ?? "?".hashValue) ^ self.message.hashValue &* 16777619
+    }
+}
+
+extension Alert {
+    var shortMessage: String {
+        get {
+            return message
+        }
     }
 }

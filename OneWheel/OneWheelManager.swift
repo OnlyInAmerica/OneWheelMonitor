@@ -362,7 +362,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         if audioFeedback && speedMonitor.passedBenchmark(mph) && /* Only announce speed increases */ lastSpeedBenchmark > speedMonitor.lastBenchmarkIdx {
             NSLog("Announcing speed change from \(lastSpeedBenchmark) to \(speedMonitor.lastBenchmarkIdx)")
             let mphRound = Int(mph)
-            queueHighAlert("Speed \(mphRound)", key: "Speed")
+            queueHighAlert("Speed \(mphRound)", key: "Speed", shortMessage: "\(mphRound)")
         }
         
         let now = Date()
@@ -424,12 +424,12 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         lastState = newState
     }
     
-    private func queueLowAlert(_ message: String, key: String? = nil) {
-        self.alertQueue.queueAlert(speechManager.createSpeechAlert(priority: .LOW, message: message, key: key))
+    private func queueLowAlert(_ message: String, key: String? = nil, shortMessage: String? = nil) {
+        self.alertQueue.queueAlert(speechManager.createSpeechAlert(priority: .LOW, message: message, key: key, shortMessage: shortMessage))
     }
     
-    private func queueHighAlert(_ message: String, key: String? = nil) {
-        self.alertQueue.queueAlert(speechManager.createSpeechAlert(priority: .HIGH, message: message, key: key))
+    private func queueHighAlert(_ message: String, key: String? = nil, shortMessage: String? = nil) {
+        self.alertQueue.queueAlert(speechManager.createSpeechAlert(priority: .HIGH, message: message, key: key, shortMessage: shortMessage))
     }
     
     private func celsiusToFahrenheit(celsius: Double) -> Double {
@@ -613,7 +613,7 @@ class BenchmarkMonitor {
 class SpeedMonitor: BenchmarkMonitor {
     
     init() {
-        let benchmarks = [10.0, 12.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0]
+        let benchmarks = [5.0, 10.0, 12.0, 14.0] + Array(stride(from: 15.0, through: 30.0, by: 1.0))
         let hysteresis = 1.5
         super.init(benchmarks: benchmarks, hysteresis: hysteresis)
     }

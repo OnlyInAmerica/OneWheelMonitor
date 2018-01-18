@@ -15,23 +15,24 @@ class SpeechAlertManager {
     private let speechSynth = AVSpeechSynthesizer()
     private let speechVoice = AVSpeechSynthesisVoice(language: "en-US")
     
-    func createSpeechAlert(priority: Priority, message: String, key: String? = nil) -> Alert {
-        return SpeechAlert(speechManager: self, priority: priority, message: message)
+    func createSpeechAlert(priority: Priority, message: String, key: String? = nil, shortMessage: String? = nil) -> Alert {
+        return SpeechAlert(speechManager: self, priority: priority, message: message, shortMessage: shortMessage)
     }
     
     class SpeechAlert: NSObject, Alert, AVSpeechSynthesizerDelegate {
-        
         let speechAlertManager: SpeechAlertManager
         var priority: Priority
         var message: String
+        var shortMessage: String
         var key: String?
         
         var completion: (() -> Void)?
         
-        init(speechManager: SpeechAlertManager, priority: Priority, message: String) {
+        init(speechManager: SpeechAlertManager, priority: Priority, message: String, shortMessage: String? = nil) {
             self.speechAlertManager = speechManager
             self.priority = priority
             self.message = message
+            self.shortMessage = (shortMessage != nil) ? shortMessage! : message
             
             try? AVAudioSession.sharedInstance().setCategory(
                 AVAudioSessionCategoryPlayback,
@@ -43,7 +44,7 @@ class SpeechAlertManager {
             if speechAlertManager.speechSynth.isSpeaking {
                 NSLog("Warning: Speech synthesizer was speaking when alert '\(message)' triggered")
             }
-            NSLog("Speaking '\(message)'. Tag \(tag) Priority \(priority)")
+            NSLog("Speaking '\(message)'. key \(key ?? "None") Priority \(priority)")
             speechAlertManager.speechSynth.stopSpeaking(at: .word)
             self.completion = completion
             speechAlertManager.speechSynth.delegate = self
