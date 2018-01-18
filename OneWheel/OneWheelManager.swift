@@ -302,9 +302,19 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     private func handleUpdatedStatus(_ s: OneWheelStatus) {
         let newState = OneWheelState(time: Date.init(), riderPresent: s.riderDetected, footPad1: s.riderDetectPad1, footPad2: s.riderDetectPad2, icsuFault: s.icsuFault, icsvFault: s.icsvFault, charging: s.charging, bmsCtrlComms: s.bmsCtrlComms, brokenCapacitor: s.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: lastState.lastErrorCode, lastErrorCodeVal: lastState.lastErrorCodeVal)
         writeState(newState)
+        
         if audioFeedback {
             
-            let delta = newState.describeDelta(prev: lastState)
+            let feetOffInMotion = newState.feetOffDuringMotion() && !lastState.feetOffDuringMotion()
+            
+            var delta = newState.describeDelta(prev: lastState)
+            
+            // If feet off in motion, we'll send a special high priority alert as the last item (to supercede any other announcements). The
+            // feet off announcement can also replace the Heel/Toe Off announcement.
+            if feetOffInMotion {
+                delta = delta.replacingOccurrences(of: "Heel Off. ", with: "").replacingOccurrences(of: "Toe Off.", with: "")
+            }
+            
             // This is a jank way of adding a time threshold to Toe/Heel off alerts. By checking describeState like this we can
             // easily tell if the *only* delta in the new state is a toe or heel change. Since these changes are especially spurious, they're generally
             // more nuisance than help if not throttled
@@ -333,17 +343,12 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             default:
                 
                 // All OneWheelStatus changes are high priority, with the possible exception of charging
-                if newState.feetOffDuringMotion() && !lastState.feetOffDuringMotion() {
-                    queueHighAlert("Feet off", key: "Feet")
-                    let strippedDelta = delta.replacingOccurrences(of: "Heel Off. ", with: "").replacingOccurrences(of: "Toe Off.", with: "")
-                    queueHighAlert(strippedDelta)
-                } else if lastState.feetOffDuringMotion() && !newState.feetOffDuringMotion() {
-                    queueHighAlert("Feet on", key: "Feet")
-                    let strippedDelta = delta.replacingOccurrences(of: "Heel On. ", with: "").replacingOccurrences(of: "Toe On.", with: "")
-                    queueHighAlert(strippedDelta)
-                } else {
-                    queueHighAlert(delta)
-                }
+                queueHighAlert(delta)
+            }
+            
+            // Queue this last so it's at the head of the queue (High priority alerts skip to front)
+            if feetOffInMotion {
+                queueHighAlert("Feet off", key: "Feet")
             }
         }
         lastState = newState
