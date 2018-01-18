@@ -22,8 +22,10 @@ class OneWheelThrottlerTest: XCTestCase {
     }
     
     class TestAlert : Alert {
+        
         var priority: Priority
         var message: String
+        var shortMessage: String? = nil
         var key: String?
         var triggerCallback: (() -> Void)
         
@@ -33,7 +35,7 @@ class OneWheelThrottlerTest: XCTestCase {
             self.triggerCallback = callback
         }
         
-        func trigger(completion: @escaping () -> Void) {
+        func trigger(useShortMessage: Bool, completion: @escaping () -> Void) {
             NSLog("Triggered Test Alert priority \(priority) message \(message)")
             triggerCallback()
             completion()

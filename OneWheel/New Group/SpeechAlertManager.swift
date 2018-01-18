@@ -39,16 +39,17 @@ class SpeechAlertManager {
                 with:.mixWithOthers)
         }
         
-        func trigger(completion: @escaping () -> Void) {
+        func trigger(useShortMessage: Bool, completion: @escaping () -> Void) {
             try? AVAudioSession.sharedInstance().setActive(true)
+            let toSpeak = (useShortMessage) ? shortMessage : message
             if speechAlertManager.speechSynth.isSpeaking {
-                NSLog("Warning: Speech synthesizer was speaking when alert '\(message)' triggered")
+                NSLog("Warning: Speech synthesizer was speaking when alert '\(toSpeak)' triggered")
             }
-            NSLog("Speaking '\(message)'. key \(key ?? "None") Priority \(priority)")
+            NSLog("Speaking '\(toSpeak)'. key \(key ?? "None") Priority \(priority)")
             speechAlertManager.speechSynth.stopSpeaking(at: .word)
             self.completion = completion
             speechAlertManager.speechSynth.delegate = self
-            let utterance = AVSpeechUtterance(string: message)
+            let utterance = AVSpeechUtterance(string: toSpeak)
             utterance.rate = 0.55
             utterance.voice = speechAlertManager.speechVoice
             speechAlertManager.speechSynth.speak(utterance)

@@ -69,14 +69,15 @@ class AlertQueue {
                     }
                 }
                 self.lastAlert = nextAlert
-                self.play(nextAlert)
+                let useShortMessage = nextAlert.key != nil && nextAlert.key == self.lastAlert?.key
+                self.play(nextAlert, useShortMessage: useShortMessage)
             }
         }
     }
     
     // Call from serialQueue
-    private func play(_ alert: Alert) {
-        alert.trigger {
+    private func play(_ alert: Alert, useShortMessage: Bool) {
+        alert.trigger(useShortMessage: useShortMessage) {
             self.alertNext()
         }
     }
@@ -98,7 +99,7 @@ protocol Alert {
     var key: String? {get}
     
     // Block until alert trigger complete
-    func trigger(completion: (@escaping () -> ()))
+    func trigger(useShortMessage: Bool, completion: (@escaping () -> ()))
 }
 
 extension Alert {
