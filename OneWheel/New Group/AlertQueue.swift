@@ -15,8 +15,8 @@ class AlertQueue {
     
     private var alerts = [Alert]()
     
-    // Speech
     private var isAlerting = false
+    private var lastAlert: Alert?
     
     func queueAlert(_ alert: Alert) {
         serialQueue.async {
@@ -48,16 +48,33 @@ class AlertQueue {
     
     private func alertNext() {
         serialQueue.async {
-            if self.alerts.isEmpty {
+            
+            let onQueueEmpty = {
                 NSLog("Alert queue empty")
                 self.isAlerting = false
+            }
+            
+            if self.alerts.isEmpty {
+                onQueueEmpty()
             } else {
-                let nextAlert = self.alerts.removeFirst()
+                // Skip duplicates of last alert
+                let lastHash = (self.lastAlert?.hashValue() ?? -1)
+                var nextAlert: Alert = self.alerts.removeFirst()
+                while nextAlert.hashValue() == lastHash {
+                    if !self.alerts.isEmpty {
+                        nextAlert = self.alerts.removeFirst()
+                    } else {
+                        onQueueEmpty()
+                        return
+                    }
+                }
+                
                 self.play(nextAlert)
             }
         }
     }
     
+    // Call from serialQueue
     private func play(_ alert: Alert) {
         alert.trigger {
             self.alertNext()
@@ -80,4 +97,10 @@ protocol Alert {
     
     // Block until alert trigger complete
     func trigger(completion: (@escaping () -> ()))
+}
+
+extension Alert {
+    func hashValue() -> Int {
+        return self.priority.hashValue ^ (self.key?.hashValue ?? "?".hashValue) ^ self.message.hashValue &* 16777619
+    }
 }
