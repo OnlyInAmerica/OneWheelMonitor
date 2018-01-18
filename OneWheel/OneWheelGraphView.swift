@@ -183,7 +183,7 @@ class OneWheelGraphView: UIView {
             context.setFillColor(bgColor)
             context.fill(rt)
             
-            NSLog("Drawing time axis label \(axisLabel)")
+//            NSLog("Drawing time axis label \(axisLabel)")
 
             attrString.draw(in: rt)
         }

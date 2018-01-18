@@ -43,6 +43,7 @@ class SpeechAlertManager {
             if speechAlertManager.speechSynth.isSpeaking {
                 NSLog("Warning: Speech synthesizer was speaking when alert '\(message)' triggered")
             }
+            NSLog("Speaking '\(message)'. Tag \(tag) Priority \(priority)")
             speechAlertManager.speechSynth.stopSpeaking(at: .word)
             self.completion = completion
             speechAlertManager.speechSynth.delegate = self
@@ -56,7 +57,6 @@ class SpeechAlertManager {
         
         func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
             try? AVAudioSession.sharedInstance().setActive(false)
-            NSLog("Playing next on speech complete: '\(utterance.speechString)'")
             if let completion = self.completion {
                 completion()
             } else {
