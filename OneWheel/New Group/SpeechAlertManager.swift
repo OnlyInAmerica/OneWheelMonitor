@@ -16,7 +16,7 @@ class SpeechAlertManager {
     private let speechVoice = AVSpeechSynthesisVoice(language: "en-US")
     
     func createSpeechAlert(priority: Priority, message: String, key: String? = nil, shortMessage: String? = nil) -> Alert {
-        return SpeechAlert(speechManager: self, priority: priority, message: message, shortMessage: shortMessage)
+        return SpeechAlert(speechManager: self, priority: priority, message: message, key: key, shortMessage: shortMessage)
     }
     
     class SpeechAlert: NSObject, Alert, AVSpeechSynthesizerDelegate {
@@ -28,10 +28,11 @@ class SpeechAlertManager {
         
         var completion: (() -> Void)?
         
-        init(speechManager: SpeechAlertManager, priority: Priority, message: String, shortMessage: String? = nil) {
+        init(speechManager: SpeechAlertManager, priority: Priority, message: String, key: String? = nil, shortMessage: String? = nil) {
             self.speechAlertManager = speechManager
             self.priority = priority
             self.message = message
+            self.key = key
             self.shortMessage = (shortMessage != nil) ? shortMessage! : message
             
             try? AVAudioSession.sharedInstance().setCategory(
