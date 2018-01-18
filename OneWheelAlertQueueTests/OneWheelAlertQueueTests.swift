@@ -76,19 +76,19 @@ class OneWheelAlertQueueTests: XCTestCase {
         let expectedCallbackOrder = ["K1-3", "K2-1", "K3-1"]
         var callbackOrder = [String]()
         let queue = AlertQueue()
-        queue.queueAlert(TestAlert(priority: .LOW, message: "Key Alert 1", key: "1") { (useShortMessage: Bool) in
+        queue.queueAlert(TestAlert(priority: .LOW, message: "Key1 Alert 1", key: "1") { (useShortMessage: Bool) in
             callbackOrder.append("K1-1")
         })
-        queue.queueAlert(TestAlert(priority: .LOW, message: "Key Alert 2", key: "1") { (useShortMessage: Bool) in
+        queue.queueAlert(TestAlert(priority: .LOW, message: "Key1 Alert 2", key: "1") { (useShortMessage: Bool) in
             callbackOrder.append("K1-2")
         })
-        queue.queueAlert(TestAlert(priority: .LOW, message: "Key Alert 3", key: "1") { (useShortMessage: Bool) in
+        queue.queueAlert(TestAlert(priority: .LOW, message: "Key1 Alert 3", key: "1") { (useShortMessage: Bool) in
             callbackOrder.append("K1-3")
         })
-        queue.queueAlert(TestAlert(priority: .LOW, message: "Key Alert 2", key: "2") { (useShortMessage: Bool) in
+        queue.queueAlert(TestAlert(priority: .LOW, message: "Key2 Alert 1", key: "2") { (useShortMessage: Bool) in
             callbackOrder.append("K2-1")
         })
-        queue.queueAlert(TestAlert(priority: .LOW, message: "Key Alert 3", key: "3") { (useShortMessage: Bool) in
+        queue.queueAlert(TestAlert(priority: .LOW, message: "Key3 Alert 1", key: "3") { (useShortMessage: Bool) in
             callbackOrder.append("K3-1")
         })
         sleep(1)
@@ -99,17 +99,20 @@ class OneWheelAlertQueueTests: XCTestCase {
         let expectedShortMessage = [false, true, false, false]
         var shortMessage = [Bool]()
         let queue = AlertQueue()
-        queue.queueAlert(TestAlert(priority: .LOW, message: "Key Alert 1", key: "1") { (useShortMessage: Bool) in
+        queue.queueAlert(TestAlert(priority: .LOW, message: "Key1 Alert 1", key: "1") { (useShortMessage: Bool) in
             shortMessage.append(useShortMessage)
-        })
-        queue.queueAlert(TestAlert(priority: .LOW, message: "Key Alert 2", key: "1") { (useShortMessage: Bool) in
-            shortMessage.append(useShortMessage)
-        })
-        queue.queueAlert(TestAlert(priority: .LOW, message: "Key Alert 3", key: "2") { (useShortMessage: Bool) in
-            shortMessage.append(useShortMessage)
-        })
-        queue.queueAlert(TestAlert(priority: .LOW, message: "Key Alert 2", key: "1") { (useShortMessage: Bool) in
-            shortMessage.append(useShortMessage)
+            
+            queue.queueAlert(TestAlert(priority: .LOW, message: "Key1 Alert 2", key: "1") { (useShortMessage: Bool) in
+                shortMessage.append(useShortMessage)
+                
+                queue.queueAlert(TestAlert(priority: .LOW, message: "Key2 Alert 1", key: "2") { (useShortMessage: Bool) in
+                    shortMessage.append(useShortMessage)
+
+                    queue.queueAlert(TestAlert(priority: .LOW, message: "Key1 Alert 3", key: "1") { (useShortMessage: Bool) in
+                        shortMessage.append(useShortMessage)
+                    })
+                })
+            })
         })
         sleep(1)
         assert(expectedShortMessage == shortMessage)

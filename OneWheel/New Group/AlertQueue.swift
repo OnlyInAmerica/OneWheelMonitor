@@ -68,8 +68,9 @@ class AlertQueue {
                         return
                     }
                 }
-                self.lastAlert = nextAlert
                 let useShortMessage = nextAlert.key != nil && nextAlert.key == self.lastAlert?.key
+                self.lastAlert = nextAlert
+                NSLog("Next alert key \(nextAlert.key), last alert key \(self.lastAlert?.key)")
                 self.play(nextAlert, useShortMessage: useShortMessage)
             }
         }
