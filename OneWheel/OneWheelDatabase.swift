@@ -56,7 +56,7 @@ class OneWheelDatabase {
         }
         let startDate = Calendar.current.date(
             byAdding: .minute,
-            value: -5,
+            value: -1,
             to: lastDate)!
         let sinceDateStr = dateFormatter.string(from: startDate)
         NSLog("Fetching state since \(sinceDateStr)")
