@@ -68,7 +68,7 @@ class AlertQueue {
                         return
                     }
                 }
-                
+                self.lastAlert = nextAlert
                 self.play(nextAlert)
             }
         }
