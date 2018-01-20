@@ -33,7 +33,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     // Persistence
     public var db : OneWheelDatabase?
     private var lastState = OneWheelState()
-    private let data = OneWheelLocalData()
+    private let userPrefs = OneWheelLocalData()
     
     private let bgQueue = DispatchQueue(label: "bgQueue")
     private let bgDbTransactionLength = 20 // When in background, group inserts to conserve CPU
@@ -80,7 +80,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     
     private func findDevice() {
         let cm = self.cm!
-        if let primaryDeviceUuid = data.getPrimaryDeviceUUID() {
+        if let primaryDeviceUuid = userPrefs.getPrimaryDeviceUUID() {
             // Connect known device
             let knownDevices = cm.retrievePeripherals(withIdentifiers: [primaryDeviceUuid])
             if knownDevices.count == 0 {
@@ -112,7 +112,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     
     private func connectDevice(_ device: CBPeripheral) {
         if let cm = self.cm {
-            data.setPrimaryDeviceUUID(device.identifier)
+            userPrefs.setPrimaryDeviceUUID(device.identifier)
             connectingDevice = device
             cm.connect(device, options: nil)
             // Delegate awaits connetion update
