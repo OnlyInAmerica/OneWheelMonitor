@@ -141,7 +141,7 @@ class OneWheelGraphView: UIView {
                 clippingPath.addClip()
                 
                 // create and add the gradient
-                let colors = [seriesColor, seriesColor.copy(alpha: 0.0)]
+                let colors = [seriesColor.copy(alpha: 0.9), seriesColor.copy(alpha: 0.0)]
                 let colorSpace = CGColorSpaceCreateDeviceRGB()
                 let colorLocations:[CGFloat] = [0.0, 1.0]
                 let gradient = CGGradient(colorsSpace: colorSpace,
