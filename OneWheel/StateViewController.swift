@@ -138,6 +138,7 @@ class StateViewController: UIViewController {
         alert.addAction(UIAlertAction(title: "Ok", style: .default, handler: { action in
             if action.style == .default {
                 try? self.owManager.db?.clear()
+                self.graphView.setNeedsDisplay()
             }
             }))
         self.present(alert, animated: true, completion: nil)
