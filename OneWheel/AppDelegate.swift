@@ -22,7 +22,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             .url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
             .appendingPathComponent("ow.sqlite")
         owManager.db = try! OneWheelDatabase(databaseURL.path)
-        owManager.audioFeedbackRequested = true
         owManager.start()
         
         self.stateVc = ((self.window?.rootViewController as! UINavigationController).topViewController as! StateViewController)

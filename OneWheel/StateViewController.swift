@@ -18,14 +18,19 @@ class StateViewController: UIViewController {
     @IBOutlet var unpairButton: UIBarButtonItem!
     
     var owManager : OneWheelManager!
-    private var isConnected = false
+    private var connectedOneWheel: OneWheel? = nil
+    private var isConnected: Bool {
+        get {
+            return connectedOneWheel != nil
+        }
+    }
 
     private var controller: FetchedRecordsController<OneWheelState>?
     private var graphRefreshTimer: Timer?
     private let graphRefreshTimeInterval: TimeInterval = 1.0
 
     private let dateFormatter = DateFormatter()
-    private let data = OneWheelLocalData()
+    private let userPrefs = OneWheelLocalData()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -139,14 +144,10 @@ class StateViewController: UIViewController {
     }
     
     @objc func muteAudioClick(_ sender: UIButton) {
-        let audioFeedbackDesired = !owManager.audioFeedbackRequested
-        if audioFeedbackDesired {
-            owManager.audioFeedbackRequested = true
-            muteAudioButton.title = "Mute Audio"
-        } else {
-            owManager.audioFeedbackRequested = false
-            muteAudioButton.title = "Unmute Audio"
-        }
+        let audioEnabled = !userPrefs.getAudioAlertsEnabled()
+        userPrefs.setAudioAlertsEnabled(audioEnabled)
+        
+        updateUi(isConnected: isConnected, onewheel: connectedOneWheel)
     }
     
     @objc func unpairClick(_ sender: UIButton) {
@@ -155,7 +156,7 @@ class StateViewController: UIViewController {
         alert.addAction(UIAlertAction(title: "Ok", style: .default, handler: { action in
             if action.style == .default {
                 // Clear primary device selection and disconnect
-                self.data.clearPrimaryDeviceUUID()
+                self.userPrefs.clearPrimaryDeviceUUID()
                 self.owManager?.stop()
                 self.updateUi(isConnected: false, onewheel: nil)
             }
@@ -174,18 +175,25 @@ class StateViewController: UIViewController {
             self.navigationItem.title = ""
             self.connActionButton.title = "Connect"
         }
+        
+        let audioEnabled = userPrefs.getAudioAlertsEnabled()
+        if audioEnabled {
+            muteAudioButton.title = "Mute Audio"
+        } else {
+            muteAudioButton.title = "Unmute Audio"
+        }
     }
 }
 
 // MARK: ConnectionListener
 extension StateViewController: ConnectionListener {
     func onConnected(oneWheel: OneWheel) {
-        isConnected = true
+        connectedOneWheel = oneWheel
         updateUi(isConnected: true, onewheel: oneWheel)
     }
     
     func onDisconnected(oneWheel: OneWheel) {
-        isConnected = false
+        connectedOneWheel = nil
         updateUi(isConnected: false, onewheel: oneWheel)
     }
 }

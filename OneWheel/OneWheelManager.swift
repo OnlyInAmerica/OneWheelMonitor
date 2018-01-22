@@ -19,11 +19,10 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     var connListener: ConnectionListener?
     
     // Audio feedback
-    public var audioFeedbackRequested = false
     private var headphonesPresent = false
     private var shouldSoundAlerts: Bool {
         get {
-            return audioFeedbackRequested && headphonesPresent
+            return userPrefs.getAudioAlertsEnabled() && headphonesPresent
         }
     }
     
@@ -567,8 +566,13 @@ class OneWheel {
 
 class OneWheelLocalData {
     private let keyUuid = "ow_uuid"
+    private let keyAudioAlerts = "ow_audio_alerts"
 
     private let data = UserDefaults.standard
+    
+    init() {
+        data.register(defaults: [keyAudioAlerts : true])
+    }
     
     func clearPrimaryDeviceUUID() {
         data.removeObject(forKey: keyUuid)
@@ -584,6 +588,14 @@ class OneWheelLocalData {
         } else {
             return nil
         }
+    }
+    
+    func setAudioAlertsEnabled(_ enabled: Bool) {
+        data.setValue(enabled, forKeyPath: keyAudioAlerts)
+    }
+    
+    func getAudioAlertsEnabled() -> Bool {
+        return data.bool(forKey: keyAudioAlerts)
     }
 }
 
