@@ -19,7 +19,13 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     var connListener: ConnectionListener?
     
     // Audio feedback
-    public var audioFeedback = false
+    public var audioFeedbackRequested = false
+    private var headphonesPresent = false
+    private var shouldSoundAlerts: Bool {
+        get {
+            return audioFeedbackRequested && headphonesPresent
+        }
+    }
     
     private let speechManager = SpeechAlertManager()
     private let alertQueue = AlertQueue()
@@ -64,6 +70,9 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         startRequested = true
         cm = CBCentralManager.init(delegate: self, queue: nil, options: nil)
         // delegate awaits poweredOn state
+        
+        headphonesPresent = checkHeadphonesPresent()
+        NotificationCenter.default.addObserver(self, selector: #selector(handleAudioRouteChange(_:)), name: NSNotification.Name.AVAudioSessionRouteChange, object: nil)
     }
     
     func discoveredDevices() -> [OneWheel] {
@@ -142,7 +151,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         NSLog("Peripheral disconnected: \(peripheral.identifier) - \(peripheral.name ?? "No Name")")
         if peripheral.identifier == connectedDevice?.identifier {
             NSLog("Reconnecting disconnected peripheral")
-            if audioFeedback {
+            if shouldSoundAlerts {
                 if startRequested {
                     queueHighAlert("Reconnecting")
                 } else {
@@ -294,7 +303,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         device.discoverServices([serviceUuid])
         // Delegate awaits service discovery
         
-        if audioFeedback {
+        if shouldSoundAlerts {
             queueHighAlert("Connected")
         }
     }
@@ -303,7 +312,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         let newState = OneWheelState(time: Date.init(), riderPresent: s.riderDetected, footPad1: s.riderDetectPad1, footPad2: s.riderDetectPad2, icsuFault: s.icsuFault, icsvFault: s.icsvFault, charging: s.charging, bmsCtrlComms: s.bmsCtrlComms, brokenCapacitor: s.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: lastState.lastErrorCode, lastErrorCodeVal: lastState.lastErrorCodeVal)
         writeState(newState)
         
-        if audioFeedback {
+        if shouldSoundAlerts {
             
             let feetOffInMotion = newState.feetOffDuringMotion() && !lastState.feetOffDuringMotion()
             
@@ -359,7 +368,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         writeState(newState)
         let mph = newState.mph()
         let lastSpeedBenchmark = speedMonitor.lastBenchmarkIdx
-        if audioFeedback && speedMonitor.passedBenchmark(mph) && /* Only announce speed increases */ lastSpeedBenchmark > speedMonitor.lastBenchmarkIdx {
+        if shouldSoundAlerts && speedMonitor.passedBenchmark(mph) && /* Only announce speed increases */ lastSpeedBenchmark > speedMonitor.lastBenchmarkIdx {
             NSLog("Announcing speed change from \(lastSpeedBenchmark) to \(speedMonitor.lastBenchmarkIdx)")
             let mphRound = Int(mph)
             queueHighAlert("Speed \(mphRound)", key: "Speed", shortMessage: "\(mphRound)")
@@ -378,7 +387,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     private func handleUpdatedSafetyHeadroom(_ sh: UInt8) {
         let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: sh, batteryLevel: lastState.batteryLevel, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: lastState.lastErrorCode, lastErrorCodeVal: lastState.lastErrorCodeVal)
         writeState(newState)
-        if audioFeedback && headroomMonitor.passedBenchmark(Double(sh)) {
+        if shouldSoundAlerts && headroomMonitor.passedBenchmark(Double(sh)) {
             queueHighAlert("Headroom \(sh)", key: "Headroom")
         }
         lastState = newState
@@ -391,7 +400,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             try? db?.insertState(state: newState)
         }
         let batteryLevel = Double(batteryLevelInt)
-        if audioFeedback && batteryMonitor.passedBenchmark(batteryLevel){
+        if shouldSoundAlerts && batteryMonitor.passedBenchmark(batteryLevel){
             // Only speak the benchmark battery val. e.g: 70%, not 69%
             let currentBattBenchmark = batteryMonitor.getBenchmarkVal(batteryMonitor.lastBenchmarkIdx) // "last"BenchmarkIdx relative to last call to #passedBenchmark
             let lastBattBenchmark = batteryMonitor.getBenchmarkVal(batteryMonitor.lastLastBenchmarkIdx)
@@ -419,7 +428,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     private func handleUpdatedLastErrorCode(errorCode1: UInt8, errorCode2: UInt8) {
         let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: errorCode1, lastErrorCodeVal: errorCode2)
         writeState(newState)
-        if audioFeedback {
+        if shouldSoundAlerts {
             queueHighAlert("Last Error \(newState.lastErrorDescription())")
         }
         lastState = newState
@@ -467,6 +476,42 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             try? db?.insertStates(states: bgStateQueue)
             bgStateQueue.removeAll()
         }
+    }
+    
+    // MARK : Audio route handling
+    @objc func handleAudioRouteChange(_ notification: Notification) {
+        guard
+            let userInfo = notification.userInfo,
+            let reasonRaw = userInfo[AVAudioSessionRouteChangeReasonKey] as? NSNumber,
+            let reason = AVAudioSessionRouteChangeReason(rawValue: reasonRaw.uintValue)
+        else {
+            NSLog("handleAudioRouteChange Error: Failed to get routeChange")
+            return
+        }
+        
+        switch reason {
+        case .oldDeviceUnavailable:
+            fallthrough
+        case .newDeviceAvailable:
+            self.headphonesPresent = checkHeadphonesPresent()
+        default:
+            NSLog("handleAudioRouteChange Error: Unknown reason: \(reason)")
+        }
+    }
+    
+    private func checkHeadphonesPresent() -> Bool {
+        let outputs = AVAudioSession.sharedInstance().currentRoute.outputs
+        for output in outputs {
+            switch output.portType {
+            case AVAudioSessionPortBluetoothA2DP:
+                fallthrough
+            case AVAudioSessionPortHeadphones:
+                return true
+            default:
+                continue
+            }
+        }
+        return false
     }
 }
 

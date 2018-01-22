@@ -139,12 +139,12 @@ class StateViewController: UIViewController {
     }
     
     @objc func muteAudioClick(_ sender: UIButton) {
-        let audioFeedbackDesired = !owManager.audioFeedback
+        let audioFeedbackDesired = !owManager.audioFeedbackRequested
         if audioFeedbackDesired {
-            owManager.audioFeedback = true
+            owManager.audioFeedbackRequested = true
             muteAudioButton.title = "Mute Audio"
         } else {
-            owManager.audioFeedback = false
+            owManager.audioFeedbackRequested = false
             muteAudioButton.title = "Unmute Audio"
         }
     }
