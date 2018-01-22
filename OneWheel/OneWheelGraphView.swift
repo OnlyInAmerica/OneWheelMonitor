@@ -14,6 +14,11 @@ class OneWheelGraphView: UIView {
     var series = [String: Series]()
     var seriesPaths = [String: CGMutablePath]()
     var bgColor: CGColor = UIColor(white: 0.0, alpha: 1.0).cgColor
+    var bgTransparentColor: CGColor {
+        get {
+            return bgColor.copy(alpha: 0.0)!
+        }
+    }
     
     var portraitMode  = false
     
@@ -37,8 +42,7 @@ class OneWheelGraphView: UIView {
             if portraitMode {
                 context.saveGState()
                 
-                var bgTransparent = bgColor.copy(alpha: 0.0)
-                let gradientColors = [bgColor, bgTransparent]
+                let gradientColors = [bgColor, bgTransparentColor]
                 let colorSpace = CGColorSpaceCreateDeviceRGB()
                 let colorLocations: [CGFloat] = [0.1, 1.0]
                 let gradient = CGGradient(colorsSpace: colorSpace,
@@ -121,13 +125,37 @@ class OneWheelGraphView: UIView {
         } // end for x-val
         
         // draw value series paths
-        
         for (seriesName, seriesPath) in seriesPaths {
-            let seriesColor = series[seriesName]!.color
+            let curSeries = series[seriesName]!
+            let seriesColor = curSeries.color
             context.addPath(seriesPath)
             context.setLineWidth(3.0)
             context.setStrokeColor(seriesColor)
             context.strokePath()
+            
+            if curSeries.gradientUnderPath {
+                let clippingPath = UIBezierPath(cgPath: seriesPath.copy() as! CGMutablePath)
+                clippingPath.addLine(to: CGPoint(x: curSeries.lastX, y: rect.height))
+                clippingPath.addLine(to: CGPoint(x: rect.origin.x, y: rect.height))
+                clippingPath.close()
+                clippingPath.addClip()
+                
+                // create and add the gradient
+                let colors = [seriesColor, seriesColor.copy(alpha: 0.0)]
+                let colorSpace = CGColorSpaceCreateDeviceRGB()
+                let colorLocations:[CGFloat] = [0.0, 1.0]
+                let gradient = CGGradient(colorsSpace: colorSpace,
+                                          colors: colors as CFArray,
+                                          locations: colorLocations)!
+                
+                let startPoint = rect.origin
+                let endPoint = CGPoint(x: rect.origin.x, y: rect.maxY)
+                
+                context.drawLinearGradient(gradient,
+                                           start: startPoint,
+                                           end: endPoint,
+                                           options: [])
+            }
         }
     }
     
@@ -215,6 +243,7 @@ class OneWheelGraphView: UIView {
         let evaluator: SeriesEvaluator
         let type: SeriesType
         let labelType: AxisLabelType
+        let gradientUnderPath: Bool
 
         var min = 0.0
         var max = 0.0
@@ -222,12 +251,13 @@ class OneWheelGraphView: UIView {
         var lastX: CGFloat = 0.0
         var lastY: CGFloat = 0.0
         
-        init(name: String, color: CGColor, type: SeriesType, labelType: AxisLabelType, evaluator: SeriesEvaluator) {
+        init(name: String, color: CGColor, type: SeriesType, labelType: AxisLabelType, gradientUnderPath: Bool, evaluator: SeriesEvaluator) {
             self.name = name
             self.color = color
-            self.evaluator = evaluator
             self.type = type
             self.labelType = labelType
+            self.gradientUnderPath = gradientUnderPath
+            self.evaluator = evaluator
         }
         
         // Return the normalized value at the given index.
@@ -284,7 +314,7 @@ class OneWheelGraphView: UIView {
     class ControllerTempSeries : Series, SeriesEvaluator {
         
         init(name: String, color: CGColor) {
-            super.init(name: name, color: color, type: SeriesType.Value, labelType: AxisLabelType.None, evaluator: self)
+            super.init(name: name, color: color, type: SeriesType.Value, labelType: AxisLabelType.None, gradientUnderPath: false, evaluator: self)
             max = 120 // TODO: Figure out reasonable max temperatures
         }
         
@@ -300,7 +330,7 @@ class OneWheelGraphView: UIView {
     class MotorTempSeries : Series, SeriesEvaluator {
         
         init(name: String, color: CGColor) {
-            super.init(name: name, color: color, type: SeriesType.Value, labelType: AxisLabelType.Right, evaluator: self)
+            super.init(name: name, color: color, type: SeriesType.Value, labelType: AxisLabelType.Right, gradientUnderPath: false, evaluator: self)
             max = 120 // TODO: Figure out reasonable max temperatures
         }
         
@@ -316,7 +346,7 @@ class OneWheelGraphView: UIView {
     class SpeedSeries : Series, SeriesEvaluator {
 
         init(name: String, color: CGColor) {
-            super.init(name: name, color: color, type: SeriesType.Value, labelType: AxisLabelType.Left, evaluator: self)
+            super.init(name: name, color: color, type: SeriesType.Value, labelType: AxisLabelType.Left, gradientUnderPath: true, evaluator: self)
             max = 20.0 // Current world record is ~ 27 MPH
         }
         
@@ -332,7 +362,7 @@ class OneWheelGraphView: UIView {
     class BatterySeries : Series, SeriesEvaluator {
         
         init(name: String, color: CGColor) {
-            super.init(name: name, color: color, type: SeriesType.Value, labelType: AxisLabelType.Right, evaluator: self)
+            super.init(name: name, color: color, type: SeriesType.Value, labelType: AxisLabelType.Right, gradientUnderPath: false, evaluator: self)
             max = 100.0
         }
         
@@ -348,7 +378,7 @@ class OneWheelGraphView: UIView {
     class ErrorSeries : Series, SeriesEvaluator {
         
         init(name: String, color: CGColor) {
-            super.init(name: name, color: color, type: SeriesType.Boolean, labelType: AxisLabelType.None, evaluator: self)
+            super.init(name: name, color: color, type: SeriesType.Boolean, labelType: AxisLabelType.None, gradientUnderPath: false, evaluator: self)
             max = 1.0
         }
         
