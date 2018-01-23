@@ -13,6 +13,7 @@
 		602B202E200A817000B4BDC3 /* SpeechAlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 602B202D200A817000B4BDC3 /* SpeechAlertManager.swift */; };
 		602B2030200D413D00B4BDC3 /* OneWheelThrottlerTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 602B202F200D413D00B4BDC3 /* OneWheelThrottlerTest.swift */; };
 		604313EB1FFFFA9100B21214 /* OneWheelGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 604313EA1FFFFA9100B21214 /* OneWheelGraphView.swift */; };
+		60434009201709830034CE8A /* Settings.bundle in Resources */ = {isa = PBXBuildFile; fileRef = 60434008201709830034CE8A /* Settings.bundle */; };
 		605A6CF91FF804ED0047DF03 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605A6CF81FF804ED0047DF03 /* AppDelegate.swift */; };
 		605A6CFB1FF804ED0047DF03 /* StateViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605A6CFA1FF804ED0047DF03 /* StateViewController.swift */; };
 		605A6CFE1FF804ED0047DF03 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 605A6CFC1FF804ED0047DF03 /* Main.storyboard */; };
@@ -75,6 +76,7 @@
 		602B202D200A817000B4BDC3 /* SpeechAlertManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechAlertManager.swift; sourceTree = "<group>"; };
 		602B202F200D413D00B4BDC3 /* OneWheelThrottlerTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneWheelThrottlerTest.swift; sourceTree = "<group>"; };
 		604313EA1FFFFA9100B21214 /* OneWheelGraphView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OneWheelGraphView.swift; sourceTree = "<group>"; };
+		60434008201709830034CE8A /* Settings.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; path = Settings.bundle; sourceTree = "<group>"; };
 		605A6CF51FF804ED0047DF03 /* OneWheel.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OneWheel.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		605A6CF81FF804ED0047DF03 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		605A6CFA1FF804ED0047DF03 /* StateViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateViewController.swift; sourceTree = "<group>"; };
@@ -215,6 +217,7 @@
 				604313EA1FFFFA9100B21214 /* OneWheelGraphView.swift */,
 				605A6CF81FF804ED0047DF03 /* AppDelegate.swift */,
 				605A6CFA1FF804ED0047DF03 /* StateViewController.swift */,
+				60434008201709830034CE8A /* Settings.bundle */,
 				605A6CFC1FF804ED0047DF03 /* Main.storyboard */,
 				605A6CFF1FF804ED0047DF03 /* Assets.xcassets */,
 				605A6D011FF804ED0047DF03 /* LaunchScreen.storyboard */,
@@ -440,6 +443,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				60434009201709830034CE8A /* Settings.bundle in Resources */,
 				605A6D031FF804ED0047DF03 /* LaunchScreen.storyboard in Resources */,
 				605A6D001FF804ED0047DF03 /* Assets.xcassets in Resources */,
 				605A6CFE1FF804ED0047DF03 /* Main.storyboard in Resources */,

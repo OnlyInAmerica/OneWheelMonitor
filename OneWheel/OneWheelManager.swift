@@ -239,7 +239,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
                         lastTempPollDate = now
                     }
                     //peripheral.discoverDescriptors(for: characteristic)
-                } else if (uuid == characteristicLightsUuid) {
+                } else if (uuid == characteristicLightsUuid && userPrefs.getAutoLightsEnabled()) {
                     let hour = Calendar.current.component(.hour, from: now)
                     let isProbablyDark = (hour > 17 || hour < 8)
                     NSLog("Current hour is \(hour). Is probably dark: \(isProbablyDark)")
@@ -607,6 +607,9 @@ class OneWheel {
 class OneWheelLocalData {
     private let keyUuid = "ow_uuid"
     private let keyAudioAlerts = "ow_audio_alerts"
+    
+    // Surfaced in Settings.bundle
+    private let keyAutoLights = "ow_auto_lights"
 
     private let data = UserDefaults.standard
     
@@ -636,6 +639,10 @@ class OneWheelLocalData {
     
     func getAudioAlertsEnabled() -> Bool {
         return data.bool(forKey: keyAudioAlerts)
+    }
+    
+    func getAutoLightsEnabled() -> Bool {
+        return data.bool(forKey: keyAutoLights)
     }
 }
 
