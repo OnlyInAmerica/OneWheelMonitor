@@ -383,7 +383,7 @@ class OneWheelGraphView: UIView {
         }
         
         func getValForState(state: OneWheelState) -> Double {
-            return (state.mph() > 0.0) && ((!state.footPad1 && !state.footPad2) || (!state.riderPresent)) ? 1.0 : 0.0
+            return (state.mph() > 1.0) && ((!state.footPad1 && !state.footPad2) || (!state.riderPresent)) ? 1.0 : 0.0
         }
     }
 }
