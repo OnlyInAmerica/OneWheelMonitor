@@ -81,7 +81,8 @@ class StateViewController: UIViewController {
             self.graphView.portraitMode = !isLandscape
             setupController(isLandscape: isLandscape)
             graphRefreshTimer = Timer.scheduledTimer(withTimeInterval: graphRefreshTimeInterval, repeats: true, block: { (timer) in
-                if self.isConnected {
+                let state = UIApplication.shared.applicationState
+                if self.isConnected && state == .active {
                     self.refreshGraph()
                 }
             })
@@ -92,12 +93,9 @@ class StateViewController: UIViewController {
     }
     
     private func refreshGraph() {
-        let state = UIApplication.shared.applicationState
-        if state == .active {
-            NSLog("Refresh graph")
-            try! self.controller?.performFetch()
-            self.graphView.setNeedsDisplay()
-        }
+        NSLog("Refresh graph")
+        try! self.controller?.performFetch()
+        self.graphView.setNeedsDisplay()
     }
 
     override func didReceiveMemoryWarning() {
