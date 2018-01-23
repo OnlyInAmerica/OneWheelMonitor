@@ -82,15 +82,19 @@ class StateViewController: UIViewController {
             setupController(isLandscape: isLandscape)
             graphRefreshTimer = Timer.scheduledTimer(withTimeInterval: graphRefreshTimeInterval, repeats: true, block: { (timer) in
                 if self.isConnected {
-                    NSLog("Updating graph data")
-                    try! self.controller?.performFetch()
-                    self.graphView.setNeedsDisplay()
+                    self.refreshGraph()
                 }
             })
         } else {
             self.controller = nil
             NSLog("Dereference controller")
         }
+    }
+    
+    private func refreshGraph() {
+        NSLog("Refresh graph")
+        try! self.controller?.performFetch()
+        self.graphView.setNeedsDisplay()
     }
 
     override func didReceiveMemoryWarning() {
@@ -102,9 +106,8 @@ class StateViewController: UIViewController {
         
         let completion: (FetchedRecordsController<OneWheelState>) -> () = { (controller) in
             self.controller = controller
-            try! controller.performFetch()
-            self.graphView.setNeedsDisplay()
             NSLog("Setup controller")
+            self.refreshGraph()
         }
         
         if isLandscape {
@@ -138,7 +141,7 @@ class StateViewController: UIViewController {
         alert.addAction(UIAlertAction(title: "Ok", style: .default, handler: { action in
             if action.style == .default {
                 try? self.owManager.db?.clear()
-                self.graphView.setNeedsDisplay()
+                self.refreshGraph()
             }
             }))
         self.present(alert, animated: true, completion: nil)

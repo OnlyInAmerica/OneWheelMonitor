@@ -72,6 +72,11 @@ class OneWheelDatabase {
         let _ = try dbPool.write { (db) in
             try OneWheelState.deleteAll(db)
         }
+        try dbPool.checkpoint()
+    }
+    
+    func checkpoint() throws {
+        try dbPool.checkpoint()
     }
 }
 
