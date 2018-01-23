@@ -19,7 +19,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     var connListener: ConnectionListener?
     
     // Audio feedback
-    private var headphonesPresent = false
+    private var headphonesPresent = checkHeadphonesPresent()
     private var shouldSoundAlerts: Bool {
         get {
             return userPrefs.getAudioAlertsEnabled() && headphonesPresent
@@ -74,7 +74,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         // delegate awaits poweredOn state
         
         headphonesPresent = checkHeadphonesPresent()
-        NotificationCenter.default.addObserver(self, selector: #selector(handleAudioRouteChange(_:)), name: NSNotification.Name.AVAudioSessionRouteChange, object: nil)
+        setHeadphoneNotificationsEnabled(true)
     }
     
     func discoveredDevices() -> [OneWheel] {
@@ -87,6 +87,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         if let device = connectedDevice {
             cm?.cancelPeripheralConnection(device)
         }
+        setHeadphoneNotificationsEnabled(false)
     }
     
     func toggleLights(onewheel: OneWheel, on: Bool) {
@@ -95,7 +96,14 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     
     // MARK : Private APIs
     
-    func toggleLights(peripheral: CBPeripheral, on: Bool) {
+    private func setHeadphoneNotificationsEnabled(_ enabled: Bool) {
+        NotificationCenter.default.removeObserver(self, name: NSNotification.Name.AVAudioSessionRouteChange, object: nil)
+        if enabled {
+            NotificationCenter.default.addObserver(self, selector: #selector(handleAudioRouteChange(_:)), name: NSNotification.Name.AVAudioSessionRouteChange, object: nil)
+        }
+    }
+    
+    private func toggleLights(peripheral: CBPeripheral, on: Bool) {
         if let lightChar = self.characteristicForUUID[characteristicLightsUuid] {
             let lightsOn = UInt16(on ? 1 : 0)
             var value = CFSwapInt16HostToBig(lightsOn)
@@ -527,21 +535,23 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             NSLog("handleAudioRouteChange Error: Unknown reason: \(reason)")
         }
     }
-    
-    private func checkHeadphonesPresent() -> Bool {
-        let outputs = AVAudioSession.sharedInstance().currentRoute.outputs
-        for output in outputs {
-            switch output.portType {
-            case AVAudioSessionPortBluetoothA2DP:
-                fallthrough
-            case AVAudioSessionPortHeadphones:
-                return true
-            default:
-                continue
-            }
+}
+
+private func checkHeadphonesPresent() -> Bool {
+    let outputs = AVAudioSession.sharedInstance().currentRoute.outputs
+    for output in outputs {
+        switch output.portType {
+        case AVAudioSessionPortBluetoothA2DP:
+            fallthrough
+        case AVAudioSessionPortHeadphones:
+            NSLog("checkHeadphonesPresent -> true")
+            return true
+        default:
+            continue
         }
-        return false
     }
+    NSLog("checkHeadphonesPresent -> false")
+    return false
 }
 
 extension UInt8 {
