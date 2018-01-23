@@ -59,11 +59,14 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     let characteristicBatteryUuid = CBUUID.init(string: "e659f303-ea98-11e3-ac10-0800200c9a66")
     let characteristicTempUuid = CBUUID.init(string: "e659f310-ea98-11e3-ac10-0800200c9a66")
     let characteristicLastErrorUuid = CBUUID.init(string: "e659f31c-ea98-11e3-ac10-0800200c9a66")
+    let characteristicLightsUuid = CBUUID.init(string: "e659f30c-ea98-11e3-ac10-0800200c9a66")
     
     private var characteristicForUUID = [CBUUID: CBCharacteristic]()
     
     private let tempPollingInterval: TimeInterval = 10.0
     private var lastTempPollDate: Date?
+    
+    // MARK : Public API
     
     func start() {
         startRequested = true
@@ -83,6 +86,26 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         cm?.stopScan()
         if let device = connectedDevice {
             cm?.cancelPeripheralConnection(device)
+        }
+    }
+    
+    func toggleLights(onewheel: OneWheel, on: Bool) {
+        toggleLights(peripheral: onewheel.peripheral, on: on)
+    }
+    
+    // MARK : Private APIs
+    
+    func toggleLights(peripheral: CBPeripheral, on: Bool) {
+        if let lightChar = self.characteristicForUUID[characteristicLightsUuid] {
+            let lightsOn = UInt16(on ? 1 : 0)
+            var value = CFSwapInt16HostToBig(lightsOn)
+            let data = withUnsafePointer(to: &value) {
+                Data(bytes: UnsafePointer($0), count: MemoryLayout.size(ofValue: lightsOn))
+            }
+            NSLog("Writing lights \(on ? "on" : "off")")
+            peripheral.writeValue(data, for: lightChar, type: CBCharacteristicWriteType.withResponse)
+        } else {
+            NSLog("Cannot toggle lights, lighting characteristic not yet discovered")
         }
     }
     
@@ -181,7 +204,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             return service.uuid == serviceUuid
         }).first {
             NSLog("Peripheral target service discovered. Discovering characteristics")
-            peripheral.discoverCharacteristics([characteristicRpmUuid, characteristicErrorUuid, characteristicSafetyHeadroomUuid, characteristicBatteryUuid, characteristicTempUuid, /* Don't seem to be properly interpreting these values yet: characteristicLastErrorUuid*/], for: service)
+            peripheral.discoverCharacteristics([characteristicRpmUuid, characteristicErrorUuid, characteristicSafetyHeadroomUuid, characteristicBatteryUuid, characteristicTempUuid, characteristicLightsUuid /* Don't seem to be properly interpreting these values yet: characteristicLastErrorUuid*/], for: service)
         }
     }
     
@@ -190,22 +213,29 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
                     didDiscoverCharacteristicsFor service: CBService,
                     error: Error?) {
         NSLog("Peripheral service characteristics discovered with error \(error)")
-
+        let now = Date()
+        
         if let characteristics = service.characteristics {
             for characteristic in characteristics {
                 NSLog("Peripheral enabling notification for characteristic \(characteristic)")
                 // To minimize bg wakeups, let speed be the only rapidly changing subscription
                 // Upon speed notifications, we can conditionally poll temperature e.g
-                characteristicForUUID[characteristic.uuid] = characteristic
-                if characteristic.uuid != characteristicTempUuid {
+                let uuid = characteristic.uuid
+                characteristicForUUID[uuid] = characteristic
+                if (uuid != characteristicTempUuid && uuid != characteristicLightsUuid) {
                     peripheral.setNotifyValue(true, for: characteristic)
                 }
-                if (characteristic.uuid == characteristicBatteryUuid || characteristic.uuid == characteristicTempUuid /* Don't seem to be peroperly interpreting these values yet:|| characteristic.uuid == characteristicLastErrorUuid*/) {
+                if (uuid == characteristicBatteryUuid || uuid == characteristicTempUuid /* Don't seem to be peroperly interpreting these values yet:|| characteristic.uuid == characteristicLastErrorUuid*/) {
                     peripheral.readValue(for: characteristic)
-                    if characteristic.uuid == characteristicTempUuid {
-                        lastTempPollDate = Date()
+                    if uuid == characteristicTempUuid {
+                        lastTempPollDate = now
                     }
                     //peripheral.discoverDescriptors(for: characteristic)
+                } else if (uuid == characteristicLightsUuid) {
+                    let hour = Calendar.current.component(.hour, from: now)
+                    let isProbablyDark = (hour > 17 || hour < 8)
+                    NSLog("Current hour is \(hour). Is probably dark: \(isProbablyDark)")
+                    toggleLights(peripheral: peripheral, on: isProbablyDark)
                 }
             }
         }
@@ -557,7 +587,7 @@ class OneWheel {
         }
     }
     
-    private let peripheral: CBPeripheral
+    let peripheral: CBPeripheral
     
     init(_ peripheral: CBPeripheral) {
         self.peripheral = peripheral
