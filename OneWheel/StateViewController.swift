@@ -92,9 +92,12 @@ class StateViewController: UIViewController {
     }
     
     private func refreshGraph() {
-        NSLog("Refresh graph")
-        try! self.controller?.performFetch()
-        self.graphView.setNeedsDisplay()
+        let state = UIApplication.shared.applicationState
+        if state == .active {
+            NSLog("Refresh graph")
+            try! self.controller?.performFetch()
+            self.graphView.setNeedsDisplay()
+        }
     }
 
     override func didReceiveMemoryWarning() {
