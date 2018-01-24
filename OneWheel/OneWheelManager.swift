@@ -233,7 +233,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
                 if (uuid != characteristicTempUuid && uuid != characteristicLightsUuid) {
                     peripheral.setNotifyValue(true, for: characteristic)
                 }
-                if (uuid == characteristicBatteryUuid || uuid == characteristicTempUuid /* Don't seem to be peroperly interpreting these values yet:|| characteristic.uuid == characteristicLastErrorUuid*/) {
+                if (uuid == characteristicBatteryUuid || uuid == characteristicTempUuid || uuid == characteristicErrorUuid/* Don't seem to be peroperly interpreting these values yet:|| characteristic.uuid == characteristicLastErrorUuid*/) {
                     peripheral.readValue(for: characteristic)
                     if uuid == characteristicTempUuid {
                         lastTempPollDate = now
