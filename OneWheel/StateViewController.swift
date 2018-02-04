@@ -28,6 +28,7 @@ class StateViewController: UIViewController {
     private var controller: FetchedRecordsController<OneWheelState>?
     private var graphRefreshTimer: Timer?
     private let graphRefreshTimeInterval: TimeInterval = 1.0
+    private var dbChanged = true
 
     private let dateFormatter = DateFormatter()
     private let userPrefs = OneWheelLocalData()
@@ -46,6 +47,7 @@ class StateViewController: UIViewController {
         self.graphView.contentMode = .redraw // redraw on bounds change
         
         self.owManager.connListener = self
+        self.owManager.db?.updateListener = self
         updateUi(isConnected: false, onewheel: nil)
         
         connActionButton.target = self
@@ -82,8 +84,9 @@ class StateViewController: UIViewController {
             setupController(isLandscape: isLandscape)
             graphRefreshTimer = Timer.scheduledTimer(withTimeInterval: graphRefreshTimeInterval, repeats: true, block: { (timer) in
                 let state = UIApplication.shared.applicationState
-                if self.isConnected && state == .active {
+                if self.isConnected && state == .active && self.dbChanged {
                     self.refreshGraph()
+                    self.dbChanged = false
                 }
             })
         } else {
@@ -216,3 +219,11 @@ extension StateViewController: GraphDataSource {
         return state
     }
 }
+
+// MARK: Database UpdateListener
+extension StateViewController: UpdateListener {
+    func onChange() {
+        dbChanged = true
+    }
+}
+

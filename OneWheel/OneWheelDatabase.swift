@@ -12,6 +12,8 @@ import GRDB
 let tableState = "state"
 
 class OneWheelDatabase {
+    var updateListener: UpdateListener? = nil
+    
     private let dbPool : DatabasePool
     private let dateFormatter = DateFormatter()
     
@@ -28,6 +30,7 @@ class OneWheelDatabase {
         try dbPool.write { (db) in
             try state.insert(db)
         }
+        updateListener?.onChange()
     }
     
     func insertStates(states: [OneWheelState]) throws {
@@ -37,6 +40,7 @@ class OneWheelDatabase {
             }
             return .commit
         }
+        updateListener?.onChange()
     }
     
     func getStateRecordsController() throws -> FetchedRecordsController<OneWheelState> {
@@ -302,6 +306,10 @@ class OneWheelState : Record, CustomStringConvertible {
         // In this case we seem to have about 500 ms before shutoff (riderPresent going false)
         return (rpm > 0) && (!footPad1 && !footPad2 && riderPresent)
     }
+}
+
+protocol UpdateListener {
+    func onChange()
 }
 
 let errorCodeMap: [UInt8: String] = [
