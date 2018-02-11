@@ -34,6 +34,10 @@ class StateViewController: UIViewController {
     private let userPrefs = OneWheelLocalData()
     
     override func viewDidLoad() {
+        // Make sure we set graphView's initial portrait / landscape setting before its first sublayer layout
+        let isLandscape = self.view.bounds.width > self.view.bounds.height
+        self.graphView.portraitMode = !isLandscape
+        
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         self.graphView.dataSource = self

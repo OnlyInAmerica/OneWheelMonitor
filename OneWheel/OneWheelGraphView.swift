@@ -22,6 +22,7 @@ class OneWheelGraphView: UIView {
     
     var portraitMode: Bool = false {
         didSet {
+            NSLog("Set portrait mode \(portraitMode)")
             if portraitMode {
                 resetDataRange()
             }
@@ -375,19 +376,22 @@ class OneWheelGraphView: UIView {
         
         override func setupLayers(root: CALayer, frame: CGRect, graphView: OneWheelGraphView) {
             let scale = UIScreen.main.scale
+            let position = CGPoint(x: frame.midX, y: frame.midY)
             
             if gradientUnderPath {
                 let bgM = CAShapeLayer()
                 bgM.needsDisplayOnBoundsChange = true
                 bgM.contentsScale = scale
-                bgM.frame = frame
+                bgM.bounds = frame
+                bgM.position = position
                 bgM.fillColor = color
                 self.bgMaskLayer = bgM
                 
                 let bg = CAGradientLayer()
                 bg.needsDisplayOnBoundsChange = true
                 bg.contentsScale = scale
-                bg.frame = frame
+                bg.bounds = frame
+                bg.position = position
                 bg.colors = [color.copy(alpha: 0.9)!, color.copy(alpha: 0.0)!]
                 bg.startPoint = CGPoint(x: 0.0, y: 0.0)
                 bg.endPoint = CGPoint(x: 0.0, y: 1.0)
@@ -401,7 +405,8 @@ class OneWheelGraphView: UIView {
             let sl = CAShapeLayer()
             sl.needsDisplayOnBoundsChange = true
             sl.contentsScale = scale
-            sl.frame = frame
+            sl.bounds = frame
+            sl.position = position
             sl.fillColor = UIColor.clear.cgColor
             sl.lineWidth = 3.0
             sl.strokeColor = color
@@ -426,7 +431,7 @@ class OneWheelGraphView: UIView {
                 let newPath = createPath(rect: frame, graphView: graphView)
                 animateShapeLayerPath(shapeLayer: shapeLayer, newPath: newPath)
              
-                if gradientUnderPath, let bgMaskLayer = self.bgMaskLayer {
+                if gradientUnderPath, let bgMaskLayer = self.bgMaskLayer, let bgLayer = self.bgLayer {
                     let newMaskPath = closePath(path: newPath, rect: frame)
                     animateShapeLayerPath(shapeLayer: bgMaskLayer, newPath: newMaskPath)
                 }
@@ -556,6 +561,7 @@ class OneWheelGraphView: UIView {
             let animation = CABasicAnimation(keyPath: "path")
             animation.fromValue = shapeLayer.path
             animation.toValue = newPath
+            animation.duration = 0.100
             
             shapeLayer.add(animation, forKey: "path")
             shapeLayer.path = newPath
