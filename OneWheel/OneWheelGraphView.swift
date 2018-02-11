@@ -60,7 +60,7 @@ class OneWheelGraphView: UIView {
         self.seriesRect = seriesRect
         self.seriesAxisRect = seriesAxisRect
         self.timeLabelsRect = timeLabelsRect
-                
+        
         super.layoutSublayers(of: layer)
     }
     
@@ -93,12 +93,15 @@ class OneWheelGraphView: UIView {
             
         } else if (sender.state == .ended) {
             
+            let dataScale = dataRange.y - dataRange.x
+            let xScale = 1 / dataScale
+            
             // TODO: This logic results in a zoom-out always returning to full zoom-out, but that's actually sorta neat...
             let seriesRectFromZoomLayer = self.layer.convert(self.seriesRect!, from: self.zoomLayer!)
-            let zlVisibleFrac = min(1.0, self.seriesRect!.width / seriesRectFromZoomLayer.width)
-            let zlStartFrac = max(0.0, (self.seriesRect!.origin.x - seriesRectFromZoomLayer.origin.x) / seriesRectFromZoomLayer.width)
+            let zlVisibleFrac = min(1.0, (self.seriesRect!.width / seriesRectFromZoomLayer.width))
+            let zlStartFrac = max(0.0, ((self.seriesRect!.origin.x - seriesRectFromZoomLayer.origin.x) / seriesRectFromZoomLayer.width))
             
-            let newDataRange = CGPoint(x: zlStartFrac, y: zlStartFrac + zlVisibleFrac)
+            let newDataRange = CGPoint(x: dataRange.x + (zlStartFrac / xScale), y: dataRange.x + ((zlStartFrac + zlVisibleFrac) / xScale))
             NSLog("Pinch to [\(newDataRange.x):\(newDataRange.y)]")
             if newDataRange != self.dataRange {
                 self.dataRange = newDataRange
