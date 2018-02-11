@@ -406,12 +406,14 @@ class OneWheelGraphView: UIView {
     
     class ValueSeries : Series {
         
-        // If drawApexOverlay is true and rideLocalData is set, will draw overlay over maximum value
+        // If drawApexOverlay is true is set, will draw overlay over maximum value. Subclass should override getMaximumValueInfo
         var drawApexOverlay = false
-        var rideLocalData: RideLocalData? = nil
         
         private var shapeLayer: CAShapeLayer? = nil
         private var apexOverlayLayer: CAShapeLayer? = nil
+        private let newApexOverlayCenterNoOverlay = CGPoint.init(x: -1.0, y: -1.0) // Special point indicating no max overlay
+        private var newApexOverlayCenter: CGPoint? = nil // Set during createPath if necessary
+        private let apexOverlayColor = UIColor(red: 1.0, green: 0.063, blue: 0.11, alpha: 1.0)
         private var bgLayer: CAGradientLayer? = nil
         private var bgMaskLayer: CAShapeLayer? = nil
         
@@ -457,8 +459,13 @@ class OneWheelGraphView: UIView {
             
             if drawApexOverlay {
                 let overlay = CAShapeLayer()
-                overlay.frame = CGRect(x: 0, y: 0, width: 30.0, height: 30.0)
-                root.addSublayer(overlay)
+                overlay.frame = CGRect(x: 0, y: 0, width: 10.0, height: 10.0)
+                sl.addSublayer(overlay)
+                overlay.zPosition = 1
+                let circlePath = UIBezierPath(arcCenter: CGPoint(x: overlay.bounds.width / 2, y: overlay.bounds.height / 2), radius: CGFloat(overlay.bounds.width / 2), startAngle: CGFloat(0), endAngle:CGFloat(Double.pi * 2), clockwise: true)
+                overlay.path = circlePath.cgPath
+                overlay.fillColor = color
+                overlay.strokeColor = color
                 self.apexOverlayLayer = overlay
             }
         }
@@ -484,6 +491,10 @@ class OneWheelGraphView: UIView {
                     let newMaskPath = closePath(path: newPath, rect: frame)
                     animateShapeLayerPath(shapeLayer: bgMaskLayer, newPath: newMaskPath)
                 }
+                
+                if drawApexOverlay, let newOverlayCenter = newApexOverlayCenter {
+                    handleNewApexMaxOverlayPos(newOverlayCenter, animate: true)
+                }
             }
         }
         
@@ -492,12 +503,37 @@ class OneWheelGraphView: UIView {
                 let path = createPath(rect: rect, graphView: graphView)
                 shapeLayer.path = path
                 
-                
                 if gradientUnderPath {
                     bgMaskLayer?.path = closePath(path: path, rect: rect)
                     bgLayer?.mask = bgMaskLayer
                 }
+                
+                if drawApexOverlay, let newOverlayCenter = newApexOverlayCenter  {
+                    handleNewApexMaxOverlayPos(newOverlayCenter)
+                }
             }
+        }
+        
+        // Subclass overrides
+        func getMaximumValueInfo() -> (Date, Float) {
+            return (Date.distantFuture, 0.0)
+        }
+        
+        private func handleNewApexMaxOverlayPos(_ newPos: CGPoint, animate: Bool = false) {
+            if newPos == newApexOverlayCenterNoOverlay {
+                self.apexOverlayLayer?.isHidden = true
+            } else {
+                self.apexOverlayLayer?.isHidden = false
+                if animate, let layer = self.apexOverlayLayer {
+                    animateLayerPosition(layer: layer, newPos: newPos)
+                } else {
+                    CATransaction.begin()
+                    CATransaction.setDisableActions(true)
+                    self.apexOverlayLayer?.position = newPos
+                    CATransaction.commit()
+                }
+            }
+            self.newApexOverlayCenter = nil
         }
         
         private func closePath(path: CGPath, rect: CGRect) -> CGPath {
@@ -516,8 +552,7 @@ class OneWheelGraphView: UIView {
             var didInitPath = false
             
             var didPlaceApexOverlay = false
-            let maxRpm = self.rideLocalData?.getMaxRpm() ?? 0
-            let maxRpmDate = self.rideLocalData?.getMaxRpmDate() ?? Date.distantFuture
+            let maxValInfo = getMaximumValueInfo() //self.rideLocalData?.getMaxRpmDate() ?? Date.distantFuture
             
             forEachData(rect: rect, graphView: graphView) { (x, state) -> CGFloat in
                 let normVal = CGFloat(getNormalizedVal(state: state))
@@ -531,18 +566,16 @@ class OneWheelGraphView: UIView {
                 }
                 
                 // Draw apex overlay allowing some fudge room (2s) to account for data point sampling
-                if drawApexOverlay && !didPlaceApexOverlay && (state.time >= maxRpmDate && maxRpmDate.addingTimeInterval(TimeInterval(2)) > state.time), let overlayLayer = self.apexOverlayLayer {
+                if drawApexOverlay && !didPlaceApexOverlay && (state.time >= maxValInfo.0 && maxValInfo.0.addingTimeInterval(TimeInterval(2)) > state.time) {
                     didPlaceApexOverlay = true
-                    let overlayCenter = CGPoint(x: x, y: y)
-                    overlayLayer.position = overlayCenter // TODO : Minus layer width / height or anchor at center
-                    let circlePath = UIBezierPath(arcCenter: overlayCenter, radius: CGFloat(20), startAngle: CGFloat(0), endAngle:CGFloat(Double.pi * 2), clockwise: true)
-                    overlayLayer.path = circlePath.cgPath
-                    overlayLayer.fillColor = UIColor.clear.cgColor
-                    overlayLayer.strokeColor = UIColor.red.cgColor
-                    overlayLayer.lineWidth = 3.0
+                    newApexOverlayCenter = CGPoint(x: x, y: y)
                 }
                 
                 return y
+            }
+            
+            if !didPlaceApexOverlay {
+                newApexOverlayCenter = newApexOverlayCenterNoOverlay
             }
             
             return path
@@ -568,6 +601,8 @@ class OneWheelGraphView: UIView {
         
         var lastX: CGFloat = 0.0
         var lastY: CGFloat = 0.0
+        
+        private let shapeAnimateDurationS = 0.100
         
         // Drawing
         internal var didSetupLayers = false // private set
@@ -627,10 +662,23 @@ class OneWheelGraphView: UIView {
             let animation = CABasicAnimation(keyPath: "path")
             animation.fromValue = shapeLayer.path
             animation.toValue = newPath
-            animation.duration = 0.100
-            
+            animation.duration = shapeAnimateDurationS
+            animation.timingFunction =  CAMediaTimingFunction(name: kCAMediaTimingFunctionLinear)
             shapeLayer.add(animation, forKey: "path")
             shapeLayer.path = newPath
+        }
+        
+        internal func animateLayerPosition(layer: CALayer, newPos: CGPoint) {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            let animation = CABasicAnimation(keyPath: "position")
+            animation.fromValue = layer.position
+            animation.toValue = newPos
+            animation.duration = shapeAnimateDurationS
+            animation.timingFunction =  CAMediaTimingFunction(name: kCAMediaTimingFunctionLinear)
+            layer.add(animation, forKey: "position")
+            layer.position = newPos
+            CATransaction.commit()
         }
         
         func drawAxisLabels(rect: CGRect, numLabels: Int, bgColor: CGColor, context: CGContext) {
@@ -708,14 +756,21 @@ class OneWheelGraphView: UIView {
     }
     
     class SpeedSeries : ValueSeries, SeriesEvaluator {
+        
+        let rideLocalData: RideLocalData
 
         init(name: String, color: CGColor, rideData: RideLocalData) {
+            self.rideLocalData = rideData
+            
             super.init(name: name, color: color, labelType: AxisLabelType.Left, gradientUnderPath: true, evaluator: self)
             max = 20.0 // Current world record is ~ 27 MPH
             
             // Draw max speed overlay
-            self.rideLocalData = rideLocalData
             self.drawApexOverlay = true
+        }
+        
+        override func getMaximumValueInfo() -> (Date, Float) {
+            return (rideLocalData.getMaxRpmDate() ?? Date.distantFuture, Float(rpmToMph(Double(rideLocalData.getMaxRpm())) / max))
         }
         
         func getValForState(state: OneWheelState) -> Double {

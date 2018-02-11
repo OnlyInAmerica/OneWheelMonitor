@@ -294,7 +294,7 @@ class OneWheelState : Record, CustomStringConvertible {
     }
     
     func mph() -> Double {
-        return 60.0 * (35.0 * Double(rpm)) / 63360.0;
+        return rpmToMph(Double(self.rpm))
     }
     
     func lastErrorDescription() -> String {
@@ -306,6 +306,10 @@ class OneWheelState : Record, CustomStringConvertible {
         // In this case we seem to have about 500 ms before shutoff (riderPresent going false)
         return (rpm > 0) && (!footPad1 && !footPad2 && riderPresent)
     }
+}
+
+func rpmToMph(_ rpm: Double) -> Double {
+     return 60.0 * (35.0 * rpm) / 63360.0;
 }
 
 protocol UpdateListener {

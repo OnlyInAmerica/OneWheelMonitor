@@ -422,9 +422,11 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         }
         
         if rideData.getMaxRpm() < rpm {
+            NSLog("Setting new max rpm \(rpm)")
             rideData.setMaxRpm(Int(rpm), date: date)
+        } else {
+            NSLog("Max rpm still \(rideData.getMaxRpm())")
         }
-        
         lastState = newState
     }
     
