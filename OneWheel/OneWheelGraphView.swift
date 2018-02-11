@@ -280,7 +280,8 @@ class OneWheelGraphView: UIView {
             }
             
             let axisLabelFrac: CGFloat = CGFloat(axisLabelIdx) / CGFloat(numLabels-1)
-            let state = dataSource!.getStateForIndex(index: Int(CGFloat(dataCount-1) * axisLabelFrac))
+            let startIdx = Int(dataRange.x * CGFloat((dataCount - 1)))
+            let state = dataSource!.getStateForIndex(index: min(dataCount - 1, Int(CGFloat(dataCount-1) * ((dataRange.y - dataRange.x) * axisLabelFrac)) + startIdx))
 
             let x: CGFloat = (rect.width * axisLabelFrac) + rect.origin.x
             let axisLabel = formatter.string(from: state.time)
@@ -296,7 +297,9 @@ class OneWheelGraphView: UIView {
             
             let rectY = rect.height - labelSideMargin - labelSize.height
             
-            let rt =  CGRect(x: rectX, y: rectY, width: labelSize.width, height: labelSize.height)
+            let bgPad: CGFloat = 2.0
+            let bgPad2: CGFloat = bgPad * 2.0
+            let rt =  CGRect(x: rectX - bgPad2, y: rectY - bgPad2, width: labelSize.width + bgPad2, height: labelSize.height + bgPad2)
             
             context.setFillColor(bgColor)
             context.fill(rt)
