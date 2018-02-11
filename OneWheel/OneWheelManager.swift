@@ -39,6 +39,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     public var db : OneWheelDatabase?
     private var lastState = OneWheelState()
     private let userPrefs = OneWheelLocalData()
+    private let rideData = RideLocalData()
     
     private let bgQueue = DispatchQueue(label: "bgQueue")
     private let bgDbTransactionLength = 20 // When in background, group inserts to conserve CPU
@@ -401,7 +402,8 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     }
     
     private func handleUpdatedRpm(_ rpm: Int16) {
-        let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: lastState.lastErrorCode, lastErrorCodeVal: lastState.lastErrorCodeVal)
+        let date = Date.init()
+        let newState = OneWheelState(time: date, riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: lastState.lastErrorCode, lastErrorCodeVal: lastState.lastErrorCodeVal)
         writeState(newState)
         let mph = newState.mph()
         let lastSpeedBenchmark = speedMonitor.lastBenchmarkIdx
@@ -418,6 +420,11 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
                 lastTempPollDate = Date()
             }
         }
+        
+        if rideData.getMaxRpm() < rpm {
+            rideData.setMaxRpm(Int(rpm), date: date)
+        }
+        
         lastState = newState
     }
     
@@ -643,6 +650,34 @@ class OneWheelLocalData {
     
     func getAutoLightsEnabled() -> Bool {
         return data.bool(forKey: keyAutoLights)
+    }
+}
+
+class RideLocalData {
+    private let keyMaxRpm = "r_max_rpm"
+    private let keyMaxRpmDate = "r_max_rpm_date"
+
+    private let data = UserDefaults.standard
+    
+    init() {
+        data.register(defaults: [keyMaxRpm : 0])
+    }
+    
+    func clear() {
+        data.removeObject(forKey: keyMaxRpm)
+    }
+    
+    func setMaxRpm(_ max: Int, date: Date) {
+        data.setValue(max, forKeyPath: keyMaxRpm)
+        data.setValue(date, forKeyPath: keyMaxRpmDate)
+    }
+    
+    func getMaxRpm() -> Int {
+        return data.integer(forKey: keyMaxRpm)
+    }
+    
+    func getMaxRpmDate() -> Date? {
+        return data.object(forKey: keyMaxRpmDate) as? Date
     }
 }
 

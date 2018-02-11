@@ -32,6 +32,7 @@ class StateViewController: UIViewController {
 
     private let dateFormatter = DateFormatter()
     private let userPrefs = OneWheelLocalData()
+    private let rideData = RideLocalData()
     
     override func viewDidLoad() {
         // Make sure we set graphView's initial portrait / landscape setting before its first sublayer layout
@@ -43,7 +44,7 @@ class StateViewController: UIViewController {
         self.graphView.dataSource = self
         self.graphView.bgColor = UIColor(red: 0.05, green: 0.05, blue: 0.05, alpha: 1.0)
         self.graphView.addSeries(newSeries: OneWheelGraphView.ErrorSeries(name: "Error", color: UIColor(red:0.99, green:0.07, blue:0.55, alpha:0.6).cgColor))
-        self.graphView.addSeries(newSeries: OneWheelGraphView.SpeedSeries(name: "Speed", color: UIColor(red:0.89, green:0.89, blue:0.89, alpha:1.0).cgColor))
+        self.graphView.addSeries(newSeries: OneWheelGraphView.SpeedSeries(name: "Speed", color: UIColor(red:0.89, green:0.89, blue:0.89, alpha:1.0).cgColor, rideData: rideData))
         self.graphView.addSeries(newSeries: OneWheelGraphView.BatterySeries(name: "Battery", color: UIColor(red:0.00, green:0.68, blue:0.94, alpha:1.0).cgColor))
 //        self.graphView.addSeries(newSeries: OneWheelGraphView.MotorTempSeries(name: "MotorTemp", color: UIColor(red:1.00, green:0.52, blue:0.00, alpha:1.0).cgColor))
 //        self.graphView.addSeries(newSeries: OneWheelGraphView.ControllerTempSeries(name: "ControllerTemp", color: UIColor(red:0.82, green:0.72, blue:0.47, alpha:1.0).cgColor))
@@ -84,6 +85,12 @@ class StateViewController: UIViewController {
     
     override func viewDidDisappear(_ animated: Bool) {
         subscribeToState(doSubscribe: false)
+    }
+    
+    func startNewRide() {
+        rideData.clear()
+        try? self.owManager.db?.clear()
+        self.refreshGraph()
     }
     
     func subscribeToState(doSubscribe: Bool) {
@@ -154,10 +161,9 @@ class StateViewController: UIViewController {
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
         alert.addAction(UIAlertAction(title: "Ok", style: .default, handler: { action in
             if action.style == .default {
-                try? self.owManager.db?.clear()
-                self.refreshGraph()
+                self.startNewRide()
             }
-            }))
+        }))
         self.present(alert, animated: true, completion: nil)
     }
     
