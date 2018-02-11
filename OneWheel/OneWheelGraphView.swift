@@ -60,19 +60,13 @@ class OneWheelGraphView: UIView {
         self.seriesRect = seriesRect
         self.seriesAxisRect = seriesAxisRect
         self.timeLabelsRect = timeLabelsRect
-        
-        logZoomLayerState()
-        
+                
         super.layoutSublayers(of: layer)
     }
     
     func onPinch(_ sender: UIPinchGestureRecognizer) {
         if portraitMode {
             return
-        }
-        
-        if sender.state == .began {
-            //sender.scale = lastScale
         }
         
         if sender.state == .changed {
@@ -99,14 +93,15 @@ class OneWheelGraphView: UIView {
             
         } else if (sender.state == .ended) {
             
+            // TODO: This logic results in a zoom-out always returning to full zoom-out, but that's actually sorta neat...
             let seriesRectFromZoomLayer = self.layer.convert(self.seriesRect!, from: self.zoomLayer!)
             let zlVisibleFrac = min(1.0, self.seriesRect!.width / seriesRectFromZoomLayer.width)
             let zlStartFrac = max(0.0, (self.seriesRect!.origin.x - seriesRectFromZoomLayer.origin.x) / seriesRectFromZoomLayer.width)
             
-            NSLog("Pinch to [\(zlStartFrac):\(zlStartFrac + zlVisibleFrac)]")
             let newDataRange = CGPoint(x: zlStartFrac, y: zlStartFrac + zlVisibleFrac)
+            NSLog("Pinch to [\(newDataRange.x):\(newDataRange.y)]")
             if newDataRange != self.dataRange {
-                self.dataRange = CGPoint(x: zlStartFrac, y: zlStartFrac + zlVisibleFrac)
+                self.dataRange = newDataRange
                 clearStateCache()
                 self.setNeedsDisplay()
             } else {
@@ -121,87 +116,45 @@ class OneWheelGraphView: UIView {
             return
         }
         
-        if sender.state == .began || sender.state == .changed {
+        let dataScale = dataRange.y - dataRange.x
+        let xScale = 1 / dataScale
+        let translation = sender.translation(in: self)
+        let xTransNormalized = translation.x // / xScale
+        
+        let seriesRectFromZoomLayer = self.layer.convert(self.seriesRect!, from: self.zoomLayer!)
+        let xTransRaw = self.seriesRect!.origin.x - seriesRectFromZoomLayer.origin.x
+        let xTrans = (xTransRaw / self.seriesRect!.width) / xScale
+        let dataRangeLeeway = (xTrans > 0) ? /* left */ 1.0 - dataRange.y : /* right */ dataRange.x
+        let xTransNormal = min(dataRangeLeeway, xTrans)
+
+        NSLog("Pan \(dataRange) by \(xTransNormal)")
+        if sender.state == .changed {
             
-            let translation = sender.translation(in: self)
-            // Only allow pan in x-direction. Wrap in CATransaction to disable implicit animation
-            let dataScale = dataRange.y - dataRange.x
-            let xScale = 1 / dataScale
-            if xScale <= 1.0 {
-                // Cannot pan if not zoomed in
+            // Limit pan
+            if xScale <= 1.0 ||                                                             // Not zoomed in
+                (xTransNormalized > 0.0 && self.dataRange.x + xTransNormal <= 0.0) ||       // Panning beyond left bounds
+                (xTransNormalized < 0.0 && self.dataRange.y + xTransNormal >= 1.0) {        // Panning beyond right bounds
                 return
             }
             
             CATransaction.begin()
             CATransaction.setDisableActions(true)
-            let xTransNormalized = translation.x / xScale
-            //let xTransClipped = max(-0.5, min(xTransNormalized, 0.5))
             zoomLayer?.transform = CATransform3DTranslate(zoomLayer!.transform, xTransNormalized, 0.0, 0.0)
-//            zoomLayer?.position = CGPoint(x: zoomLayer!.position.x + translation.x, y: zoomLayer!.position.y)
-            let originConvert = self.layer.convert(CGPoint(x: 0.0, y: 0.0), to: zoomLayer)
-            NSLog("Origin of root is \(originConvert) in zoomLayer at scale \(xScale)")
-            // origin of zoom might be -462, 0 at scale, 0, 0 at no scale
-            let xTrans = (zoomLayer!.value(forKeyPath: "transform.translation.x") as! CGFloat) * xScale
-            let xMid = zoomLayer!.bounds.width * xScale
-//            let xCap = xMid / 2.0
-//            if xTrans < -xCap {
-//                zoomLayer!.setValue(-xCap, forKeyPath: "transform.translation.x")
-//            } else if xTrans > xCap {
-//                zoomLayer!.setValue(xCap, forKeyPath: "transform.translation.x")
-//            }
             CATransaction.commit()
             sender.setTranslation(CGPoint.zero, in: self)
-        
-//            let xTrans = zoomLayer!.value(forKeyPath: "transform.translation.x") as! CGFloat
-//            let xTrans = zoomLayer!.position.x - (zoomLayer!.bounds.midX * xScale)
-            // Centered when xTrans is half of xSize, since position is anchored to center
-//            NSLog("Pan x trans \(xTrans), mid \(xMid), scale \(xScale)")
+            
         } else if (sender.state == .ended) {
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
             
-            zoomLayer!.transform = CATransform3DIdentity
+            let newDataRange = CGPoint(x: max(0, self.dataRange.x + xTransNormal), y: min(1.0, self.dataRange.y + xTransNormal))
             
-            CATransaction.commit()
-        }
-        // TODO : on .end re-draw
-    }
-    
-    private func logZoomLayerState() {
-        // Parent bounds in zoomLayer coords (What part of ZoomLayer is visible?)
-//        let parentStart = self.seriesRect!.origin
-//        let parentEnd = CGPoint(x: self.seriesRect!.maxX, y: 0.0)
-//        let parentStartInZoom = self.layer.convert(parentStart, to: zoomLayer)
-//        let parentEndInZoom = self.layer.convert(parentEnd, to: zoomLayer)
-        
-        // Zoomlayer bounds in parent coords (What's the total size of ZoomLayer relative to parent?)
-//        let zoomLayerStart = zoomLayer!.bounds.origin
-//        let zoomLayerEnd = CGPoint(x: zoomLayer!.bounds.maxX, y: 0.0)
-//        let zoomStartInParent = zoomLayer!.convert(zoomLayerStart, to: self.layer)
-//        let zoomEndInParent = zoomLayer!.convert(zoomLayerEnd, to: self.layer)
-    
-//        let xScale = (zoomLayer!.value(forKeyPath: "transform.scale.x") as! CGFloat)
-        
-        let seriesRectFromZoomLayer = self.layer.convert(self.seriesRect!, from: self.zoomLayer!)
-        let zlVisibleFrac = self.seriesRect!.width / seriesRectFromZoomLayer.width
-        let zlStartFrac = (self.seriesRect!.origin.x - seriesRectFromZoomLayer.origin.x) / seriesRectFromZoomLayer.width
-        NSLog("VisibleFrac \(zlVisibleFrac), startFrac \(zlStartFrac)")
-        // Wrong. Sad!
-        //let zlVisibleFrac = parentWidthInZoom / zoomWidth
-        //let zlVisibleStartFrac = parentStartInZoom.x / zoomWidth
-//        NSLog("ZoomWidthInParent \(zoomWidthInParent) visibleFrac \(zlVisibleFrac) visibleStartFrac \(zlVisibleStartFrac)")
+            NSLog("Pan [\(dataRange) -> \(newDataRange)")
 
-        //            NSLog("Zoom to \(zlVisibleFrac) starting at \(zlStart.x) -> \(zlVisibleStartFrac)")
-//        NSLog("Parent origin is \(parentStartInZoom.x) in zoom layer. End is \(parentEndInZoom.x). width \(parentWidthInZoom). zoom width \(zlScaledWidth) . frac \(zlVisibleFrac)")
-        // parentWidthInZoom gets smaller as zoom increases
-    
-        
-//        let zlVisibleStartFrac2 = (parentStartInZoom.x - zoomStartInParent.x) / zoomWidthInParent
-//        let zlVisibleFrac2 = parentWidthInZoom / zoomWidthInParent
-//        NSLog("Width ratio \(zoomWidthInParent / parentWidthInZoom)")
-        //            NSLog("Visible frac \(zlVisibleFrac2) starting at \(zlVisibleStartFrac2)")
-        //            NSLog("ZoomLayer width is \(zoomWidthInParent) in parent view. Zoom start \(zoomStartInParent.x)")
-        //            NSLog("Zoom origin is \(zoomStartInParent.x) in parent layer. End is \(zoomEndInParent.x). width \(zoomWidthInParent)")
+            if newDataRange != self.dataRange {
+                self.dataRange = newDataRange
+                clearStateCache()
+                self.setNeedsDisplay()
+            }
+        }
     }
     
     override func draw(_ rect: CGRect) {
