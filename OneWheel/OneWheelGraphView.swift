@@ -103,19 +103,16 @@ class OneWheelGraphView: UIView {
             let zlVisibleFrac = min(1.0, self.seriesRect!.width / seriesRectFromZoomLayer.width)
             let zlStartFrac = max(0.0, (self.seriesRect!.origin.x - seriesRectFromZoomLayer.origin.x) / seriesRectFromZoomLayer.width)
             
-            // During a no-op zoom out, removing these results in a pleasing implicit animation
-            // but we might want to do path animations or something more general
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
-            
             NSLog("Pinch to [\(zlStartFrac):\(zlStartFrac + zlVisibleFrac)]")
-            
-            self.dataRange = CGPoint(x: zlStartFrac, y: zlStartFrac + zlVisibleFrac)
-            clearStateCache()
-            self.setNeedsDisplay()
-            zoomLayer!.transform = CATransform3DIdentity
-            
-            CATransaction.commit()
+            let newDataRange = CGPoint(x: zlStartFrac, y: zlStartFrac + zlVisibleFrac)
+            if newDataRange != self.dataRange {
+                self.dataRange = CGPoint(x: zlStartFrac, y: zlStartFrac + zlVisibleFrac)
+                clearStateCache()
+                self.setNeedsDisplay()
+            } else {
+                // Animate transform back to identity. No meaningful zoom happened (e.g: Just zoomed out 1x scale)
+                zoomLayer?.transform = CATransform3DIdentity
+            }
         }
     }
     
@@ -210,6 +207,13 @@ class OneWheelGraphView: UIView {
     override func draw(_ rect: CGRect) {
         NSLog("CALayer - draw with bounds \(self.bounds) frame \(self.frame)")
 
+        // Always make sure we start drawing with identity transform
+        // Transforms are mutated during pinch zooming / panning
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        zoomLayer?.transform = CATransform3DIdentity
+        CATransaction.commit()
+        
         if let dataSource = self.dataSource, let seriesRect = self.seriesRect, let seriesAxisRect = self.seriesAxisRect, let timeLabelsRect = self.timeLabelsRect, let cgContext = UIGraphicsGetCurrentContext() {
             let dataCount = dataSource.getCount()
             if stateCacheDataCount != dataCount {
