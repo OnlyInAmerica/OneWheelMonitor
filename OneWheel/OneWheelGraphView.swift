@@ -10,13 +10,19 @@ import UIKit
 
 class OneWheelGraphView: UIView {
     
+    let zoomHintColor = UIColor(red: 0.8, green: 0.8, blue: 0.8, alpha: 1.0).cgColor
+    
     var dataSource: GraphDataSource?
     var dataRange = CGPoint(x: 0.0, y: 1.0) //x - min, y - max
     var series = [String: Series]()
-    var bgColor: CGColor = UIColor(white: 0.0, alpha: 1.0).cgColor
+    var bgColor: UIColor = UIColor(white: 0.0, alpha: 1.0) {
+        didSet {
+            self.backgroundColor = bgColor
+        }
+    }
     var bgTransparentColor: CGColor {
         get {
-            return bgColor.copy(alpha: 0.0)!
+            return bgColor.cgColor.copy(alpha: 0.0)!
         }
     }
     
@@ -50,7 +56,7 @@ class OneWheelGraphView: UIView {
         
         let seriesAxisRect = self.bounds.insetBy(dx: 0.0, dy: 11.0).applying(CGAffineTransform(translationX: 0.0, y: -11.0))
         let timeLabelsRect = portraitMode ? self.bounds.insetBy(dx: 20.0, dy: 0.0) : self.bounds.insetBy(dx: 40.0, dy: 0.0).applying(CGAffineTransform(translationX: 7.0, y: 0.0)) // last affineT is a janky compensation for the MPH / Battery label width differences :/
-        let seriesRect = portraitMode ? seriesAxisRect.insetBy(dx: 20.0, dy: 0.0).applying(CGAffineTransform(translationX: -20.0, y: 0.0)) : seriesAxisRect.insetBy(dx: 40.0, dy: 0.0).applying(CGAffineTransform(translationX: 7.0, y: 0.0))
+        let seriesRect = portraitMode ? seriesAxisRect.insetBy(dx: 20.0, dy: 0.0).applying(CGAffineTransform(translationX: -20.0, y: 0.0)) : seriesAxisRect.insetBy(dx: 45.0, dy: 0.0).applying(CGAffineTransform(translationX: 7.0, y: 0.0))
 
         for (_, series) in self.series {
             if !series.didSetupLayers {
@@ -193,10 +199,11 @@ class OneWheelGraphView: UIView {
                 }
             }
             for (_, series) in self.series {
-                series.drawAxisLabels(rect: seriesAxisRect, numLabels: 5, bgColor: bgColor, context: cgContext)
+                series.drawAxisLabels(rect: seriesAxisRect, numLabels: 5, bgColor: bgColor.cgColor, context: cgContext)
             }
             
             drawTimeLabels(rect: timeLabelsRect, context: cgContext, numLabels: portraitMode ? 2: 3)
+            drawZoomHint(rect: seriesRect, context: cgContext)
             // Forget background color for now
 //            cgContext.setFillColor(bgColor)
 //            cgContext.fill(rect)
@@ -301,13 +308,36 @@ class OneWheelGraphView: UIView {
             let bgPad2: CGFloat = bgPad * 2.0
             let rt =  CGRect(x: rectX - bgPad2, y: rectY - bgPad2, width: labelSize.width + bgPad2, height: labelSize.height + bgPad2)
             
-            context.setFillColor(bgColor)
+            context.setFillColor(bgColor.cgColor)
             context.fill(rt)
             
 //            NSLog("Drawing time axis label \(axisLabel)")
 
             attrString.draw(in: rt)
         }
+    }
+    
+    func drawZoomHint(rect: CGRect, context: CGContext) {
+        
+        if dataRange.y - dataRange.x == 1.0 {
+            // Don't draw zoom hint when zoomed all the way out
+            return
+        }
+        
+        let yPad: CGFloat = 0.0
+        let yHeight: CGFloat = 3.0
+        
+        let zoomStart = rect.origin.x + (dataRange.x * rect.width)
+        let zoomEnd = zoomStart + ((dataRange.y - dataRange.x) * rect.width)
+        
+        let rt = CGRect(x: zoomStart, y: yPad, width: zoomEnd - zoomStart, height: yHeight)
+        
+        context.setFillColor(zoomHintColor)
+        context.fill(rt)
+    }
+    
+    func drawMaxSpeed(rect: CGRect, context: CGContext) {
+        
     }
 
     func addSeries(newSeries: Series) {
@@ -406,6 +436,7 @@ class OneWheelGraphView: UIView {
             }
             
             let sl = CAShapeLayer()
+            sl.miterLimit = 0
             sl.needsDisplayOnBoundsChange = true
             sl.contentsScale = scale
             sl.bounds = frame
@@ -429,7 +460,7 @@ class OneWheelGraphView: UIView {
             bgLayer?.bounds = frame
             bgLayer?.position = position
             
-            if let shapeLayer = self.shapeLayer{
+            if let shapeLayer = self.shapeLayer {
 
                 let newPath = createPath(rect: frame, graphView: graphView)
                 animateShapeLayerPath(shapeLayer: shapeLayer, newPath: newPath)
