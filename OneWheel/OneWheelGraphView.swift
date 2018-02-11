@@ -20,7 +20,13 @@ class OneWheelGraphView: UIView {
         }
     }
     
-    var portraitMode  = false
+    var portraitMode: Bool = false {
+        didSet {
+            if portraitMode {
+                resetDataRange()
+            }
+        }
+    }
     
     // Parallel cache arrays of state and x placement
     var stateCacheDataCount: Int = 0
@@ -96,16 +102,20 @@ class OneWheelGraphView: UIView {
             let dataScale = dataRange.y - dataRange.x
             let xScale = 1 / dataScale
             
-            // TODO: This logic results in a zoom-out always returning to full zoom-out, but that's actually sorta neat...
             let seriesRectFromZoomLayer = self.layer.convert(self.seriesRect!, from: self.zoomLayer!)
-            let zlVisibleFrac = min(1.0, (self.seriesRect!.width / seriesRectFromZoomLayer.width))
-            let zlStartFrac = max(0.0, ((self.seriesRect!.origin.x - seriesRectFromZoomLayer.origin.x) / seriesRectFromZoomLayer.width))
+            let zlVisibleFrac = (self.seriesRect!.width / seriesRectFromZoomLayer.width)
+            let zlStartFrac = (self.seriesRect!.origin.x - seriesRectFromZoomLayer.origin.x) / seriesRectFromZoomLayer.width
             
-            let newDataRange = CGPoint(x: dataRange.x + (zlStartFrac / xScale), y: dataRange.x + ((zlStartFrac + zlVisibleFrac) / xScale))
-            NSLog("Pinch to [\(newDataRange.x):\(newDataRange.y)]")
-            if newDataRange != self.dataRange {
+            let newDataRange = CGPoint(x: max(0.0, dataRange.x + (zlStartFrac / xScale)), y: min(1.0, dataRange.x + ((zlStartFrac + zlVisibleFrac) / xScale)))
+            
+            //NSLog("Pinch to [\(newDataRange.x):\(newDataRange.y)]")
+            if newDataRange != self.dataRange && (newDataRange.y - newDataRange.x < 1.0) {
+                NSLog("Pinch to [\(newDataRange.x):\(newDataRange.y)]")
                 self.dataRange = newDataRange
                 clearStateCache()
+                self.setNeedsDisplay()
+            } else if newDataRange != self.dataRange {
+                resetDataRange()
                 self.setNeedsDisplay()
             } else {
                 // Animate transform back to identity. No meaningful zoom happened (e.g: Just zoomed out 1x scale)
@@ -191,6 +201,11 @@ class OneWheelGraphView: UIView {
 //            cgContext.fill(rect)
             super.draw(rect)
         }
+    }
+    
+    private func resetDataRange() {
+        self.dataRange = CGPoint(x: 0.0, y: 1.0)
+        clearStateCache()
     }
     
     private func clearStateCache() {
