@@ -11,6 +11,7 @@ import UIKit
 class OneWheelGraphView: UIView {
     
     var dataSource: GraphDataSource?
+    var dataRange = CGPoint(x: 0.0, y: 1.0) //x - min, y - max
     var series = [String: Series]()
     var bgColor: CGColor = UIColor(white: 0.0, alpha: 1.0).cgColor
     var bgTransparentColor: CGColor {
@@ -31,6 +32,12 @@ class OneWheelGraphView: UIView {
     var seriesAxisRect: CGRect? = nil
     var timeLabelsRect: CGRect? = nil
     
+    var zoomLayer: CALayer? = nil
+    
+    // Gestures
+    var lastScale: CGFloat = 1.0
+    var lastScalePoint: CGPoint? = nil
+    
     public override func layoutSublayers(of layer: CALayer) {
         NSLog("CALayer - layoutSublayers with bounds \(self.bounds) frame \(self.frame)")
         
@@ -40,7 +47,12 @@ class OneWheelGraphView: UIView {
 
         for (_, series) in self.series {
             if !series.didSetupLayers {
-                series.requestLayerSetup(root: self.layer, frame: seriesRect, graphView: self)
+                if zoomLayer == nil {
+                    zoomLayer = CALayer()
+                    zoomLayer?.frame = seriesAxisRect
+                    self.layer.addSublayer(zoomLayer!)
+                }
+                series.requestLayerSetup(root: self.zoomLayer!, frame: seriesRect, graphView: self)
             } else {
                 series.resizeLayers(frame: seriesRect, graphView: self)
             }
@@ -48,7 +60,151 @@ class OneWheelGraphView: UIView {
         self.seriesRect = seriesRect
         self.seriesAxisRect = seriesAxisRect
         self.timeLabelsRect = timeLabelsRect
+        
+        logZoomLayerState()
+        
         super.layoutSublayers(of: layer)
+    }
+    
+    func onPinch(_ sender: UIPinchGestureRecognizer) {
+        if portraitMode {
+            return
+        }
+        
+        if sender.state == .began {
+            //sender.scale = lastScale
+        }
+        
+        if sender.state == .changed {
+            
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            // Only scale x axis
+            let scale = sender.scale
+            sender.scale = 1.0
+            lastScale = scale
+            
+            var point = sender.location(in: self)
+            point = self.layer.convert(point, to: zoomLayer)
+            point.x -= zoomLayer!.bounds.midX
+            var transform = CATransform3DTranslate(zoomLayer!.transform, point.x, 0.0, 0.0)
+            transform = CATransform3DScale(transform, scale, 1.0, 1.0)
+            transform = CATransform3DTranslate(transform, -point.x, 0.0, 0.0)
+            zoomLayer!.transform = transform
+            let xTrans = zoomLayer!.value(forKeyPath: "transform.translation.x")
+            let xScale = zoomLayer!.value(forKeyPath: "transform.scale.x") as! CGFloat
+            NSLog("PinchScale scale \(xScale) trans \(xTrans)")
+
+            CATransaction.commit()
+            
+        } else if (sender.state == .ended) {
+            
+            let seriesRectFromZoomLayer = self.layer.convert(self.seriesRect!, from: self.zoomLayer!)
+            let zlVisibleFrac = min(1.0, self.seriesRect!.width / seriesRectFromZoomLayer.width)
+            let zlStartFrac = max(0.0, (self.seriesRect!.origin.x - seriesRectFromZoomLayer.origin.x) / seriesRectFromZoomLayer.width)
+            
+            // During a no-op zoom out, removing these results in a pleasing implicit animation
+            // but we might want to do path animations or something more general
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            
+            NSLog("Pinch to [\(zlStartFrac):\(zlStartFrac + zlVisibleFrac)]")
+            
+            self.dataRange = CGPoint(x: zlStartFrac, y: zlStartFrac + zlVisibleFrac)
+            clearStateCache()
+            self.setNeedsDisplay()
+            zoomLayer!.transform = CATransform3DIdentity
+            
+            CATransaction.commit()
+        }
+    }
+    
+    func onPan(_ sender: UIPanGestureRecognizer) {
+        if portraitMode {
+            return
+        }
+        
+        if sender.state == .began || sender.state == .changed {
+            
+            let translation = sender.translation(in: self)
+            // Only allow pan in x-direction. Wrap in CATransaction to disable implicit animation
+            let dataScale = dataRange.y - dataRange.x
+            let xScale = 1 / dataScale
+            if xScale <= 1.0 {
+                // Cannot pan if not zoomed in
+                return
+            }
+            
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            let xTransNormalized = translation.x / xScale
+            //let xTransClipped = max(-0.5, min(xTransNormalized, 0.5))
+            zoomLayer?.transform = CATransform3DTranslate(zoomLayer!.transform, xTransNormalized, 0.0, 0.0)
+//            zoomLayer?.position = CGPoint(x: zoomLayer!.position.x + translation.x, y: zoomLayer!.position.y)
+            let originConvert = self.layer.convert(CGPoint(x: 0.0, y: 0.0), to: zoomLayer)
+            NSLog("Origin of root is \(originConvert) in zoomLayer at scale \(xScale)")
+            // origin of zoom might be -462, 0 at scale, 0, 0 at no scale
+            let xTrans = (zoomLayer!.value(forKeyPath: "transform.translation.x") as! CGFloat) * xScale
+            let xMid = zoomLayer!.bounds.width * xScale
+//            let xCap = xMid / 2.0
+//            if xTrans < -xCap {
+//                zoomLayer!.setValue(-xCap, forKeyPath: "transform.translation.x")
+//            } else if xTrans > xCap {
+//                zoomLayer!.setValue(xCap, forKeyPath: "transform.translation.x")
+//            }
+            CATransaction.commit()
+            sender.setTranslation(CGPoint.zero, in: self)
+        
+//            let xTrans = zoomLayer!.value(forKeyPath: "transform.translation.x") as! CGFloat
+//            let xTrans = zoomLayer!.position.x - (zoomLayer!.bounds.midX * xScale)
+            // Centered when xTrans is half of xSize, since position is anchored to center
+//            NSLog("Pan x trans \(xTrans), mid \(xMid), scale \(xScale)")
+        } else if (sender.state == .ended) {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            
+            zoomLayer!.transform = CATransform3DIdentity
+            
+            CATransaction.commit()
+        }
+        // TODO : on .end re-draw
+    }
+    
+    private func logZoomLayerState() {
+        // Parent bounds in zoomLayer coords (What part of ZoomLayer is visible?)
+//        let parentStart = self.seriesRect!.origin
+//        let parentEnd = CGPoint(x: self.seriesRect!.maxX, y: 0.0)
+//        let parentStartInZoom = self.layer.convert(parentStart, to: zoomLayer)
+//        let parentEndInZoom = self.layer.convert(parentEnd, to: zoomLayer)
+        
+        // Zoomlayer bounds in parent coords (What's the total size of ZoomLayer relative to parent?)
+//        let zoomLayerStart = zoomLayer!.bounds.origin
+//        let zoomLayerEnd = CGPoint(x: zoomLayer!.bounds.maxX, y: 0.0)
+//        let zoomStartInParent = zoomLayer!.convert(zoomLayerStart, to: self.layer)
+//        let zoomEndInParent = zoomLayer!.convert(zoomLayerEnd, to: self.layer)
+    
+//        let xScale = (zoomLayer!.value(forKeyPath: "transform.scale.x") as! CGFloat)
+        
+        let seriesRectFromZoomLayer = self.layer.convert(self.seriesRect!, from: self.zoomLayer!)
+        let zlVisibleFrac = self.seriesRect!.width / seriesRectFromZoomLayer.width
+        let zlStartFrac = (self.seriesRect!.origin.x - seriesRectFromZoomLayer.origin.x) / seriesRectFromZoomLayer.width
+        NSLog("VisibleFrac \(zlVisibleFrac), startFrac \(zlStartFrac)")
+        // Wrong. Sad!
+        //let zlVisibleFrac = parentWidthInZoom / zoomWidth
+        //let zlVisibleStartFrac = parentStartInZoom.x / zoomWidth
+//        NSLog("ZoomWidthInParent \(zoomWidthInParent) visibleFrac \(zlVisibleFrac) visibleStartFrac \(zlVisibleStartFrac)")
+
+        //            NSLog("Zoom to \(zlVisibleFrac) starting at \(zlStart.x) -> \(zlVisibleStartFrac)")
+//        NSLog("Parent origin is \(parentStartInZoom.x) in zoom layer. End is \(parentEndInZoom.x). width \(parentWidthInZoom). zoom width \(zlScaledWidth) . frac \(zlVisibleFrac)")
+        // parentWidthInZoom gets smaller as zoom increases
+    
+        
+//        let zlVisibleStartFrac2 = (parentStartInZoom.x - zoomStartInParent.x) / zoomWidthInParent
+//        let zlVisibleFrac2 = parentWidthInZoom / zoomWidthInParent
+//        NSLog("Width ratio \(zoomWidthInParent / parentWidthInZoom)")
+        //            NSLog("Visible frac \(zlVisibleFrac2) starting at \(zlVisibleStartFrac2)")
+        //            NSLog("ZoomLayer width is \(zoomWidthInParent) in parent view. Zoom start \(zoomStartInParent.x)")
+        //            NSLog("Zoom origin is \(zoomStartInParent.x) in parent layer. End is \(zoomEndInParent.x). width \(zoomWidthInParent)")
     }
     
     override func draw(_ rect: CGRect) {
@@ -77,20 +233,33 @@ class OneWheelGraphView: UIView {
         }
     }
     
+    private func clearStateCache() {
+        stateCacheDataCount = 0
+        stateCache.removeAll()
+        stateXPosCache.removeAll()
+    }
+    
     private func cacheState(dataSource: GraphDataSource, rect: CGRect) {
-        let dataCount = dataSource.getCount()
+        let dataSourceCount = dataSource.getCount()
+        let dataCount = Int(CGFloat(dataSourceCount) * (dataRange.y - dataRange.x))
         let widthPtsPerData: CGFloat = 2
         let maxPoints = Int(rect.width / widthPtsPerData)
         let numPoints = min(dataCount, maxPoints)
         stateCache = [OneWheelState](repeating: OneWheelState(), count: numPoints)
         stateXPosCache = [CGFloat](repeating: 0.0, count: numPoints)
-        let deltaDataIdx = dataCount / numPoints
         let deltaX = rect.width / (CGFloat(numPoints))
         var x: CGFloat = rect.origin.x + deltaX
-        NSLog("CALayer - Caching graph data")
         var cacheIdx = 0
-        var dataIdx = 0
-        for valIdx in 0..<numPoints  {
+        let dataIdxstart = CGFloat(dataSourceCount) * dataRange.x
+        var dataIdx: Int = Int(dataIdxstart)
+        NSLog("CALayer - Caching \(numPoints)/\(dataCount) graph data by deltX \(deltaX)")
+        for idx in 0..<numPoints  {
+            
+            let frac = CGFloat(idx) / CGFloat(numPoints)
+            dataIdx = Int(dataIdxstart + (frac * CGFloat(dataCount)))
+            if dataIdx >= dataSourceCount {
+                break
+            }
             
             let state = dataSource.getStateForIndex(index: dataIdx)
             
@@ -98,11 +267,10 @@ class OneWheelGraphView: UIView {
             stateXPosCache[cacheIdx] = x
             
             x += deltaX
-            dataIdx += deltaDataIdx
             cacheIdx += 1
         }
         stateCacheDataCount = dataCount
-        NSLog("CALayer - Cached \(stateCache.count) graph data ")
+        NSLog("CALayer - Cached \(stateCache.count)/\(dataSourceCount) graph data [\(dataRange.x)-\(dataRange.y)] [\(dataIdxstart)-\(dataIdx)] [\(CGFloat(dataIdxstart)/CGFloat(dataSourceCount))-\(CGFloat(dataIdx)/CGFloat(dataSourceCount))]")
     }
     
     func drawTimeLabels(rect: CGRect, context: CGContext, numLabels: Int) {

@@ -46,6 +46,12 @@ class StateViewController: UIViewController {
 
         self.graphView.contentMode = .redraw // redraw on bounds change
         
+        let panGesture = UIPanGestureRecognizer(target: self, action: #selector(onPan(_:)))
+        let pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(onPinch(_:)))
+        graphView.addGestureRecognizer(panGesture)
+        graphView.addGestureRecognizer(pinchGesture)
+        graphView.isUserInteractionEnabled = true
+        
         self.owManager.connListener = self
         self.owManager.db?.updateListener = self
         updateUi(isConnected: false, onewheel: nil)
@@ -170,6 +176,14 @@ class StateViewController: UIViewController {
             }
         }))
         self.present(alert, animated: true, completion: nil)
+    }
+    
+    @objc func onPinch(_ sender: UIPinchGestureRecognizer) {
+        graphView?.onPinch(sender)
+    }
+    
+    @objc func onPan(_ sender: UIPanGestureRecognizer) {
+        graphView.onPan(sender)
     }
     
     func updateUi(isConnected: Bool, onewheel: OneWheel?) {
