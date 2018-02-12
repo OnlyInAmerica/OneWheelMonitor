@@ -313,7 +313,7 @@ func rpmToMph(_ rpm: Double) -> Double {
 }
 
 func revolutionstoMiles(_ revolutions: Double) -> Double {
-    return revolutions * 35.0 / 63360.0;
+    return (revolutions * 35.0) / 63360.0
 }
 
 protocol UpdateListener {

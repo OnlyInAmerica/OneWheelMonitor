@@ -61,12 +61,14 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     let characteristicTempUuid = CBUUID.init(string: "e659f310-ea98-11e3-ac10-0800200c9a66")
     let characteristicLastErrorUuid = CBUUID.init(string: "e659f31c-ea98-11e3-ac10-0800200c9a66")
     let characteristicLightsUuid = CBUUID.init(string: "e659f30c-ea98-11e3-ac10-0800200c9a66")
-    let characteristicOdometerUuid = CBUUID.init(string: "e659f319-ea98-11e3-ac10-0800200c9a66")
+    let characteristicOdometerUuid = CBUUID.init(string: "e659f30a-ea98-11e3-ac10-0800200c9a66")
     
     private var characteristicForUUID = [CBUUID: CBCharacteristic]()
     
     private let pollingInterval: TimeInterval = 10.0
     private var lastPolledDate: Date?
+    
+    private let tripMileageAnnounceInterval = 0.5
     
     // MARK : Public API
     
@@ -513,11 +515,11 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         
         let deltaMileage = nowMileage - lastMileage
         
-        queueLowAlert("Last mileage \(Int(lastMileage)) now mileage \(nowMileage)", key: "Mileage")
+        NSLog("Last mileage \(lastMileage) now mileage \(nowMileage)")
         
-        if startOdometer > 0 && deltaMileage >= 1 {
+        if startOdometer > 0 && deltaMileage >= tripMileageAnnounceInterval {
             if shouldSoundAlerts {
-                queueLowAlert("\(Int(lastMileage - startMileage)) trip miles", key: "Mileage")
+                queueLowAlert("\(String(format: "%.1f", nowMileage - startMileage)) trip miles", key: "Mileage")
             }
             rideData.setOdometerLast(revs: Int(odometer))
         }
