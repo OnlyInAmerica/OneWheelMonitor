@@ -203,6 +203,11 @@ class OneWheelGraphView: UIView {
             }
             for (_, series) in self.series {
                 series.drawAxisLabels(rect: seriesAxisRect, numLabels: 5, bgColor: bgColor.cgColor, context: cgContext)
+                if series is SpeedSeries && series.drawMaxValLineWithAxisLabels {
+                    let maxMph = rpmToMph(Double(rideData.getMaxRpm()))
+                    let maxValFrac = maxMph / series.max
+                    series.drawSeriesMaxVal(rect: seriesRect, bgColor: bgColor.cgColor, context: cgContext, maxVal: CGFloat(maxValFrac))
+                }
             }
             
             drawTimeLabels(rect: timeLabelsRect, context: cgContext, numLabels: portraitMode ? 2: 3)
@@ -459,7 +464,7 @@ class OneWheelGraphView: UIView {
             
             if drawApexOverlay {
                 let overlay = CAShapeLayer()
-                overlay.frame = CGRect(x: 0, y: 0, width: 10.0, height: 10.0)
+                overlay.frame = CGRect(x: 0, y: 0, width: 10.0, height: 1.0)
                 sl.addSublayer(overlay)
                 overlay.zPosition = 1
                 let circlePath = UIBezierPath(arcCenter: CGPoint(x: overlay.bounds.width / 2, y: overlay.bounds.height / 2), radius: CGFloat(overlay.bounds.width / 2), startAngle: CGFloat(0), endAngle:CGFloat(Double.pi * 2), clockwise: true)
@@ -596,6 +601,8 @@ class OneWheelGraphView: UIView {
         let labelType: AxisLabelType
         let gradientUnderPath: Bool
         
+        var drawMaxValLineWithAxisLabels = false
+        
         var min = 0.0
         var max = 0.0
         
@@ -718,6 +725,40 @@ class OneWheelGraphView: UIView {
             }
         }
         
+        func drawSeriesMaxVal(rect: CGRect, bgColor: CGColor, context: CGContext, maxVal: CGFloat) {
+            let labelSideMargin: CGFloat = 5
+            let maxYPos: CGFloat = ((1.0 - maxVal) * rect.height) + rect.origin.y
+            let path = CGMutablePath()
+            path.move(to: CGPoint(x: rect.minX, y: maxYPos))
+            path.addLine(to: CGPoint(x: rect.maxX, y: maxYPos))
+//            context.move(to: CGPoint(x: rect.minX, y: maxYPos))
+//            context.addLine(to: CGPoint(x: rect.maxX, y: maxYPos))
+            // TODO : Line properties
+            context.setStrokeColor(color)
+            context.setLineWidth(1.0)
+            context.addPath(path)
+            context.strokePath()
+            
+            let paragraphStyle = NSMutableParagraphStyle()
+            paragraphStyle.alignment = (labelType == AxisLabelType.Left) ? .left : .right
+            
+            let attributes = [NSAttributedStringKey.paragraphStyle  : paragraphStyle,
+                              NSAttributedStringKey.font            : UIFont.systemFont(ofSize: 12.0),
+                              NSAttributedStringKey.foregroundColor : UIColor(cgColor: self.color)
+            ]
+            let maxLabel = String(format: "Max %.1f", (Double(maxVal) * max))
+            let attrString = NSAttributedString(string: maxLabel,
+                                                attributes: attributes)
+            let labelSize = attrString.size()
+            
+            let rt =  CGRect(x: rect.minX + labelSideMargin, y: maxYPos, width: labelSize.width, height: labelSize.height)
+            
+            context.setFillColor(bgColor)
+            context.fill(rt)
+            attrString.draw(in: rt)
+            // TODO : write max value
+        }
+        
         func printAxisVal(val: Double) -> String {
             return "\(val)"
         }
@@ -767,6 +808,7 @@ class OneWheelGraphView: UIView {
             
             // Draw max speed overlay
             self.drawApexOverlay = true
+            self.drawMaxValLineWithAxisLabels = true
         }
         
         override func getMaximumValueInfo() -> (Date, Float) {

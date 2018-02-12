@@ -61,11 +61,12 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     let characteristicTempUuid = CBUUID.init(string: "e659f310-ea98-11e3-ac10-0800200c9a66")
     let characteristicLastErrorUuid = CBUUID.init(string: "e659f31c-ea98-11e3-ac10-0800200c9a66")
     let characteristicLightsUuid = CBUUID.init(string: "e659f30c-ea98-11e3-ac10-0800200c9a66")
+    let characteristicOdometerUuid = CBUUID.init(string: "e659f319-ea98-11e3-ac10-0800200c9a66")
     
     private var characteristicForUUID = [CBUUID: CBCharacteristic]()
     
-    private let tempPollingInterval: TimeInterval = 10.0
-    private var lastTempPollDate: Date?
+    private let pollingInterval: TimeInterval = 10.0
+    private var lastPolledDate: Date?
     
     // MARK : Public API
     
@@ -213,7 +214,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             return service.uuid == serviceUuid
         }).first {
             NSLog("Peripheral target service discovered. Discovering characteristics")
-            peripheral.discoverCharacteristics([characteristicRpmUuid, characteristicErrorUuid, characteristicSafetyHeadroomUuid, characteristicBatteryUuid, characteristicTempUuid, characteristicLightsUuid /* Don't seem to be properly interpreting these values yet: characteristicLastErrorUuid*/], for: service)
+            peripheral.discoverCharacteristics([characteristicRpmUuid, characteristicErrorUuid, characteristicSafetyHeadroomUuid, characteristicBatteryUuid, characteristicTempUuid, characteristicLightsUuid, characteristicOdometerUuid /* Don't seem to be properly interpreting these values yet: characteristicLastErrorUuid*/], for: service)
         }
     }
     
@@ -231,13 +232,13 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
                 // Upon speed notifications, we can conditionally poll temperature e.g
                 let uuid = characteristic.uuid
                 characteristicForUUID[uuid] = characteristic
-                if (uuid != characteristicTempUuid && uuid != characteristicLightsUuid) {
+                if (uuid != characteristicTempUuid && uuid != characteristicLightsUuid && uuid != characteristicOdometerUuid) {
                     peripheral.setNotifyValue(true, for: characteristic)
                 }
-                if (uuid == characteristicBatteryUuid || uuid == characteristicTempUuid || uuid == characteristicErrorUuid/* Don't seem to be peroperly interpreting these values yet:|| characteristic.uuid == characteristicLastErrorUuid*/) {
+                if (uuid == characteristicBatteryUuid || uuid == characteristicTempUuid || uuid == characteristicErrorUuid || uuid == characteristicOdometerUuid/* Don't seem to be peroperly interpreting these values yet:|| characteristic.uuid == characteristicLastErrorUuid*/) {
                     peripheral.readValue(for: characteristic)
                     if uuid == characteristicTempUuid {
-                        lastTempPollDate = now
+                        lastPolledDate = now
                     }
                     //peripheral.discoverDescriptors(for: characteristic)
                 } else if (uuid == characteristicLightsUuid && userPrefs.getAutoLightsEnabled()) {
@@ -325,6 +326,14 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
                 NSLog("Peripheral last error charactersitic changed with no value")
             }
             
+        case characteristicOdometerUuid:
+            if let value = characteristic.value {
+                let intValue = Int16(bigEndian: value.withUnsafeBytes { $0.pointee })
+                handleUpdatedOdometer(intValue)
+            } else {
+                NSLog("Peripheral odometer charactersitic changed with no value")
+            }
+            
         default:
             NSLog("Peripheral unknown charactersitic (\(characteristic.uuid)) changed")
         }
@@ -387,6 +396,10 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
                 alertThrottler.cancelAlert(key: "heel-off", alertQueue: alertQueue, ifNoOutstandingAlert: nil)
                 queueHighAlert(delta, key: "Rider")
                 
+            case "Rider On. ":
+                queueHighAlert(delta, key: "Rider")
+                queueRiderOnAlerts()
+                
             default:
                 
                 // All OneWheelStatus changes are high priority, with the possible exception of charging
@@ -401,6 +414,12 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         lastState = newState
     }
     
+    // When rider mounts board, give some helpful info
+    private func queueRiderOnAlerts() {
+        queueLowAlert("Battery \(lastState.batteryLevel)", key: "Batt")
+        // TODO : Let's calculate remaining mileage from trip odometer and battery level
+    }
+    
     private func handleUpdatedRpm(_ rpm: Int16) {
         let date = Date.init()
         let newState = OneWheelState(time: date, riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: lastState.lastErrorCode, lastErrorCodeVal: lastState.lastErrorCodeVal)
@@ -413,11 +432,13 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             queueHighAlert("Speed \(mphRound)", key: "Speed", shortMessage: "\(mphRound)")
         }
         
+        // Temporarily using rpm to pace some other characteristics we don't only need coarse time resolution on
         let now = Date()
-        if lastTempPollDate != nil && lastTempPollDate!.addingTimeInterval(tempPollingInterval) < now {
-            if let tempCharacteristic = characteristicForUUID[characteristicTempUuid] {
+        if lastPolledDate != nil && lastPolledDate!.addingTimeInterval(pollingInterval) < now {
+            if let tempCharacteristic = characteristicForUUID[characteristicTempUuid], let odoCharacteristic = characteristicForUUID[characteristicOdometerUuid] {
                 connectedDevice?.readValue(for: tempCharacteristic)
-                lastTempPollDate = Date()
+                connectedDevice?.readValue(for: odoCharacteristic)
+                lastPolledDate = Date()
             }
         }
         
@@ -478,6 +499,28 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             queueHighAlert("Last Error \(newState.lastErrorDescription())")
         }
         lastState = newState
+    }
+    
+    private func handleUpdatedOdometer(_ odometer: Int16) {
+        let startOdometer = rideData.getOdometerStart()
+        if startOdometer == 0 {
+            rideData.setOdometerStart(revs: Int(odometer))
+            rideData.setOdometerLast(revs: Int(odometer))
+        }
+        let lastMileage = revolutionstoMiles(Double(rideData.getOdometerLast()))
+        let nowMileage = revolutionstoMiles(Double(odometer))
+        let startMileage = revolutionstoMiles(Double(startOdometer))
+        
+        let deltaMileage = nowMileage - lastMileage
+        
+        queueLowAlert("Last mileage \(Int(lastMileage)) now mileage \(nowMileage)", key: "Mileage")
+        
+        if startOdometer > 0 && deltaMileage >= 1 {
+            if shouldSoundAlerts {
+                queueLowAlert("\(Int(lastMileage - startMileage)) trip miles", key: "Mileage")
+            }
+            rideData.setOdometerLast(revs: Int(odometer))
+        }
     }
     
     private func queueLowAlert(_ message: String, key: String? = nil, shortMessage: String? = nil) {
@@ -658,15 +701,22 @@ class OneWheelLocalData {
 class RideLocalData {
     private let keyMaxRpm = "r_max_rpm"
     private let keyMaxRpmDate = "r_max_rpm_date"
+    
+    private let keyOdometerStart = "r_odometer_start"
+    private let keyOdometerLast = "r_odometer_last"
 
     private let data = UserDefaults.standard
     
     init() {
         data.register(defaults: [keyMaxRpm : 0])
+        data.register(defaults: [keyOdometerStart : 0])
+        data.register(defaults: [keyOdometerLast : 0])
     }
     
     func clear() {
         data.removeObject(forKey: keyMaxRpm)
+        data.removeObject(forKey: keyMaxRpmDate)
+        data.removeObject(forKey: keyOdometerStart)
     }
     
     func setMaxRpm(_ max: Int, date: Date) {
@@ -680,6 +730,22 @@ class RideLocalData {
     
     func getMaxRpmDate() -> Date? {
         return data.object(forKey: keyMaxRpmDate) as? Date
+    }
+    
+    func setOdometerStart(revs: Int) {
+        data.setValue(revs, forKey: keyOdometerStart)
+    }
+    
+    func getOdometerStart() -> Int {
+        return data.integer(forKey: keyOdometerStart)
+    }
+    
+    func setOdometerLast(revs: Int) {
+        data.setValue(revs, forKey: keyOdometerLast)
+    }
+    
+    func getOdometerLast() -> Int {
+        return data.integer(forKey: keyOdometerLast)
     }
 }
 
@@ -755,7 +821,7 @@ class BenchmarkMonitor {
 class SpeedMonitor: BenchmarkMonitor {
     
     init() {
-        let benchmarks = [5.0, 10.0, 12.0, 14.0] + Array(stride(from: 15.0, through: 30.0, by: 1.0))
+        let benchmarks = [12.0, 14.0] + Array(stride(from: 15.0, through: 30.0, by: 1.0))
         let hysteresis = 1.5
         super.init(benchmarks: benchmarks, hysteresis: hysteresis)
     }

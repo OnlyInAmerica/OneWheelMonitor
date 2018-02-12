@@ -309,7 +309,11 @@ class OneWheelState : Record, CustomStringConvertible {
 }
 
 func rpmToMph(_ rpm: Double) -> Double {
-     return 60.0 * (35.0 * rpm) / 63360.0;
+     return 60.0 * (35.0 * rpm) / 63360.0
+}
+
+func revolutionstoMiles(_ revolutions: Double) -> Double {
+    return revolutions * 35.0 / 63360.0;
 }
 
 protocol UpdateListener {
