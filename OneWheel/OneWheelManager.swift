@@ -833,7 +833,7 @@ class BatteryMonitor: BenchmarkMonitor {
     
     init() {
         // 1% increments from [0-10]%, then 5% increments
-        let benchmarks = Array(stride(from: 0.0, to: 10.0, by: 1.0)) + Array(stride(from: 10.0, to: 100.0, by: 5.0))
+        let benchmarks = Array(stride(from: 0.0, to: 10.0, by: 1.0)) + Array(stride(from: 10.0, through: 100.0, by: 5.0))
         let hysteresis = 1.0
         super.init(benchmarks: benchmarks, hysteresis: hysteresis)
     }
