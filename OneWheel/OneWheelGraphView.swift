@@ -49,24 +49,37 @@ class OneWheelGraphView: UIView {
     
     // Layers managed by view
     var zoomLayer: CALayer? = nil
+    var axisLabelLayer: CALayer? = nil
+    
+    // Layer delegates
+    let axisLabelLayerDelegate = AxisLayerDelegate()
     
     // Gestures
     var lastScale: CGFloat = 1.0
     var lastScalePoint: CGPoint? = nil
     
     public override func layoutSublayers(of layer: CALayer) {
+
         NSLog("CALayer - layoutSublayers with bounds \(self.bounds) frame \(self.frame)")
         
         let seriesAxisRect = self.bounds.insetBy(dx: 0.0, dy: 11.0).applying(CGAffineTransform(translationX: 0.0, y: -11.0))
         let timeLabelsRect = portraitMode ? self.bounds.insetBy(dx: 20.0, dy: 0.0) : self.bounds.insetBy(dx: 40.0, dy: 0.0).applying(CGAffineTransform(translationX: 7.0, y: 0.0)) // last affineT is a janky compensation for the MPH / Battery label width differences :/
         let seriesRect = portraitMode ? seriesAxisRect.insetBy(dx: 20.0, dy: 0.0).applying(CGAffineTransform(translationX: -20.0, y: 0.0)) : seriesAxisRect.insetBy(dx: 45.0, dy: 0.0).applying(CGAffineTransform(translationX: 7.0, y: 0.0))
-
+        
         for (_, series) in self.series {
             if !series.didSetupLayers {
                 if zoomLayer == nil {
                     zoomLayer = CALayer()
                     zoomLayer?.frame = seriesAxisRect
                     self.layer.addSublayer(zoomLayer!)
+                }
+                if axisLabelLayer == nil {
+                    axisLabelLayer = CALayer()
+                    axisLabelLayer?.zPosition = 10
+                    axisLabelLayer?.frame = seriesAxisRect
+                    axisLabelLayerDelegate.graphView = self
+                    axisLabelLayer?.delegate = axisLabelLayerDelegate
+                    self.layer.addSublayer(axisLabelLayer!)
                 }
                 series.requestLayerSetup(root: self.zoomLayer!, frame: seriesRect, graphView: self)
             } else {
@@ -76,6 +89,10 @@ class OneWheelGraphView: UIView {
         self.seriesRect = seriesRect
         self.seriesAxisRect = seriesAxisRect
         self.timeLabelsRect = timeLabelsRect
+        
+//        self.zoomLayer?.frame = seriesAxisRect
+//        self.axisLabelLayer?.frame = seriesAxisRect
+//        self.axisLabelLayer?.setNeedsDisplay()
         
         super.layoutSublayers(of: layer)
     }
@@ -188,7 +205,7 @@ class OneWheelGraphView: UIView {
         zoomLayer?.transform = CATransform3DIdentity
         CATransaction.commit()
         
-        if let dataSource = self.dataSource, let seriesRect = self.seriesRect, let seriesAxisRect = self.seriesAxisRect, let timeLabelsRect = self.timeLabelsRect, let cgContext = UIGraphicsGetCurrentContext() {
+        if let dataSource = self.dataSource, let seriesRect = self.seriesRect {
             let dataCount = dataSource.getCount()
             if stateCacheDataCount != dataCount {
                 NSLog("CALayer - Caching data. \(dataCount) items, \(stateCache.count) in cache")
@@ -198,23 +215,47 @@ class OneWheelGraphView: UIView {
                 for (_, series) in self.series {
                     series.bindData(rect: seriesRect, graphView: self)
                 }
+                axisLabelLayer?.display()
             }
-            for (_, series) in self.series {
-                series.drawAxisLabels(rect: seriesAxisRect, numLabels: 5, bgColor: bgColor.cgColor, context: cgContext)
-                if series is SpeedSeries && series.drawMaxValLineWithAxisLabels {
-                    let maxValFrac = (series as! ValueSeries).getMaximumValueInfo().1
-                    if maxValFrac > 0 {
-                        series.drawSeriesMaxVal(rect: seriesRect, bgColor: bgColor.cgColor, context: cgContext, maxVal: CGFloat(maxValFrac))
+            super.draw(rect)
+        }
+    }
+    
+    class AxisLayerDelegate: NSObject, CALayerDelegate {
+        
+        var graphView: OneWheelGraphView? = nil
+        
+        func layoutSublayers(of layer: CALayer) {
+            if let gV = graphView, let seriesRect = gV.seriesRect {
+                layer.bounds = seriesRect
+                layer.position = seriesRect.origin
+                layer.setNeedsDisplay()
+            }
+        }
+        
+        func draw(_ layer: CALayer,
+                  in cgContext: CGContext) {
+            NSLog("Draw axisLabelLayer out")
+
+            if let gV = graphView, let seriesRect = graphView?.seriesRect, let seriesAxisRect = graphView?.seriesAxisRect, let timeLabelsRect = graphView?.timeLabelsRect {
+                NSLog("Draw axisLabelLayer in")
+                
+                for (_, series) in gV.series {
+                    series.drawAxisLabels(rect: seriesAxisRect, numLabels: 5, bgColor: gV.bgColor.cgColor, context: cgContext)
+                    if series is SpeedSeries && series.drawMaxValLineWithAxisLabels {
+                        let maxValFrac = (series as! ValueSeries).getMaximumValueInfo().1
+                        if maxValFrac > 0 {
+                            series.drawSeriesMaxVal(rect: seriesRect, bgColor: gV.bgColor.cgColor, context: cgContext, maxVal: CGFloat(maxValFrac))
+                        }
                     }
                 }
+                
+                gV.drawTimeLabels(rect: timeLabelsRect, context: cgContext, numLabels: gV.portraitMode ? 2: 3)
+                gV.drawZoomHint(rect: seriesRect, context: cgContext)
+                
+                //            cgContext.setFillColor(bgColor.cgColor)
+                //            cgContext.fill(rect)
             }
-            
-            drawTimeLabels(rect: timeLabelsRect, context: cgContext, numLabels: portraitMode ? 2: 3)
-            drawZoomHint(rect: seriesRect, context: cgContext)
-            // Forget background color for now
-//            cgContext.setFillColor(bgColor)
-//            cgContext.fill(rect)
-            super.draw(rect)
         }
     }
     
