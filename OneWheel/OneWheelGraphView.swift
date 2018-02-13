@@ -103,7 +103,6 @@ class OneWheelGraphView: UIView {
             zoomLayer!.transform = transform
             let xTrans = zoomLayer!.value(forKeyPath: "transform.translation.x")
             let xScale = zoomLayer!.value(forKeyPath: "transform.scale.x") as! CGFloat
-            NSLog("PinchScale scale \(xScale) trans \(xTrans)")
 
             CATransaction.commit()
             
@@ -150,7 +149,6 @@ class OneWheelGraphView: UIView {
         let dataRangeLeeway = (xTrans > 0) ? /* left */ 1.0 - dataRange.y : /* right */ dataRange.x
         let xTransNormal = min(dataRangeLeeway, xTrans)
 
-        NSLog("Pan \(dataRange) by \(xTransNormal)")
         if sender.state == .changed {
             
             // Limit pan
