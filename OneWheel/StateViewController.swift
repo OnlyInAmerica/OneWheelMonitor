@@ -12,6 +12,7 @@ import GRDB
 class StateViewController: UIViewController {
     
     @IBOutlet var graphView: OneWheelGraphView!
+    @IBOutlet var settingsButton: UIBarButtonItem!
     @IBOutlet var connActionButton: UIBarButtonItem!
     @IBOutlet var newRideButton: UIBarButtonItem!
     @IBOutlet var muteAudioButton: UIBarButtonItem!
@@ -60,6 +61,9 @@ class StateViewController: UIViewController {
         self.owManager.connListener = self
         self.owManager.db?.updateListener = self
         updateUi(isConnected: false, onewheel: nil)
+        
+        settingsButton.target = self
+        settingsButton.action = #selector(settingsActionClick(_:))
         
         connActionButton.target = self
         connActionButton.action = #selector(connActionClick(_:))
@@ -143,6 +147,19 @@ class StateViewController: UIViewController {
         NSLog("willRotate to \(toInterfaceOrientation)")
         self.graphView.portraitMode = toInterfaceOrientation.isPortrait
         setupController(isLandscape: toInterfaceOrientation.isLandscape)
+    }
+    
+    @objc func settingsActionClick(_ sender: UIButton) {
+        guard let settingsUrl = URL(string: UIApplicationOpenSettingsURLString) else {
+            return
+        }
+        
+        if UIApplication.shared.canOpenURL(settingsUrl) {
+            UIApplication.shared.open(settingsUrl, completionHandler: { (success) in
+                // Checking for setting is opened or not
+                print("Setting is opened: \(success)")
+            })
+        }
     }
 
     @objc func connActionClick(_ sender: UIButton) {

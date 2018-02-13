@@ -10,6 +10,114 @@
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 			<key>Title</key>
+			<string>Audio Alerts</string>
+			<key>FooterText</key>
+			<string>Ducking other audio adds a short delay to each alert playback, but makes alerts play nice with music. The (&quot;Rider Off&quot;) alert sounds ~500ms before board shutoff, but most aren&apos;t time critical.</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Require Headphones</string>
+			<key>Key</key>
+			<string>ow_alerts_requires_headphones</string>
+			<key>DefaultValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Duck Other Audio</string>
+			<key>Key</key>
+			<string>ow_alerts_duck_audio</string>
+			<key>DefaultValue</key>
+			<false/>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>FooterText</key>
+			<string>Reports when connection is made (&quot;Connected&quot;) and lost (&quot;Disconnected&quot;) from the board.</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Board Connection Alerts</string>
+			<key>Key</key>
+			<string>ow_alerts_connection</string>
+			<key>DefaultValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>FooterText</key>
+			<string>Reports ride mileage on an interval (&quot;2.5 ride miles&quot;).</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Mileage Alerts</string>
+			<key>Key</key>
+			<string>ow_alerts_mileage</string>
+			<key>DefaultValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>FooterText</key>
+			<string>Reports battery level, as a percentage, every 5% (&quot;Battery 50&quot;).</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Battery Alerts</string>
+			<key>Key</key>
+			<string>ow_alerts_battery</string>
+			<key>DefaultValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>FooterText</key>
+			<string>Reports when speed passes certain benchmarks, starting at 12mph (&quot;Speed 17&quot;).</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Speed Alerts</string>
+			<key>Key</key>
+			<string>ow_alerts_speed</string>
+			<key>DefaultValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>FooterText</key>
+			<string>Reports when Heel (&quot;Heel Off&quot;) or Toe (&quot;Toe Off&quot;) foot sensors detect no pressure for 1.5 seconds, or as soon as both sensors detect no pressure (&quot;Rider Off&quot;). Board shutoff seems to occur ~500ms after a &quot;Rider Off&quot; alert.</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Foot Sensor Alerts</string>
+			<key>Key</key>
+			<string>ow_alerts_foot_sensor</string>
+			<key>DefaultValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
 			<string>Lights</string>
 			<key>FooterText</key>
 			<string>Automatically switch your OW+ lights after connecting. On from 5p-8a, off otherwise.</string>

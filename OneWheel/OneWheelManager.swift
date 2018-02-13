@@ -22,7 +22,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     private var headphonesPresent = checkHeadphonesPresent()
     private var shouldSoundAlerts: Bool {
         get {
-            return userPrefs.getAudioAlertsEnabled() && headphonesPresent
+            return userPrefs.getAudioAlertsEnabled() && (!userPrefs.getAlertsRequireHeadphones() || headphonesPresent)
         }
     }
     
@@ -77,8 +77,11 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         cm = CBCentralManager.init(delegate: self, queue: nil, options: nil)
         // delegate awaits poweredOn state
         
+        setAVSessionInfo()
+        
         headphonesPresent = checkHeadphonesPresent()
         setHeadphoneNotificationsEnabled(true)
+        setUserDefaultsNotificatioinsEnabled(true)
     }
     
     func discoveredDevices() -> [OneWheel] {
@@ -92,6 +95,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             cm?.cancelPeripheralConnection(device)
         }
         setHeadphoneNotificationsEnabled(false)
+        setUserDefaultsNotificatioinsEnabled(false)
     }
     
     func toggleLights(onewheel: OneWheel, on: Bool) {
@@ -100,11 +104,24 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     
     // MARK : Private APIs
     
+    private func setUserDefaultsNotificatioinsEnabled(_ enabled: Bool) {
+        NotificationCenter.default.removeObserver(self, name: UserDefaults.didChangeNotification, object: nil)
+        if enabled {
+            NotificationCenter.default.addObserver(self, selector: #selector(handleUserDefaultsChange(_:)), name: UserDefaults.didChangeNotification, object: nil)
+        }
+    }
+    
     private func setHeadphoneNotificationsEnabled(_ enabled: Bool) {
         NotificationCenter.default.removeObserver(self, name: NSNotification.Name.AVAudioSessionRouteChange, object: nil)
         if enabled {
             NotificationCenter.default.addObserver(self, selector: #selector(handleAudioRouteChange(_:)), name: NSNotification.Name.AVAudioSessionRouteChange, object: nil)
         }
+    }
+    
+    private func setAVSessionInfo() {
+        try? AVAudioSession.sharedInstance().setCategory(
+            AVAudioSessionCategoryPlayback,
+            with:userPrefs.getAlertsDuckAudio() ? .duckOthers : .mixWithOthers)
     }
     
     private func toggleLights(peripheral: CBPeripheral, on: Bool) {
@@ -185,7 +202,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         NSLog("Peripheral disconnected: \(peripheral.identifier) - \(peripheral.name ?? "No Name")")
         if peripheral.identifier == connectedDevice?.identifier {
             NSLog("Reconnecting disconnected peripheral")
-            if shouldSoundAlerts {
+            if shouldSoundAlerts && userPrefs.getConnectionAlertsEnabled() {
                 if startRequested {
                     queueHighAlert("Reconnecting")
                 } else {
@@ -244,10 +261,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
                     }
                     //peripheral.discoverDescriptors(for: characteristic)
                 } else if (uuid == characteristicLightsUuid && userPrefs.getAutoLightsEnabled()) {
-                    let hour = Calendar.current.component(.hour, from: now)
-                    let isProbablyDark = (hour > 17 || hour < 8)
-                    NSLog("Current hour is \(hour). Is probably dark: \(isProbablyDark)")
-                    toggleLights(peripheral: peripheral, on: isProbablyDark)
+                    applyAutoLights(now)
                 }
             }
         }
@@ -352,7 +366,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         device.discoverServices([serviceUuid])
         // Delegate awaits service discovery
         
-        if shouldSoundAlerts {
+        if shouldSoundAlerts && userPrefs.getConnectionAlertsEnabled() {
             queueHighAlert("Connected")
         }
     }
@@ -363,13 +377,15 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         
         if shouldSoundAlerts {
             
+            let footAlertsEnabled = userPrefs.getFootAlertsEnabled()
+            
             let feetOffInMotion = newState.feetOffDuringMotion() && !lastState.feetOffDuringMotion()
             
             var delta = newState.describeDelta(prev: lastState)
             
             // If feet off in motion, we'll send a special high priority alert as the last item (to supercede any other announcements). The
             // feet off announcement can also replace the Heel/Toe Off announcement.
-            if feetOffInMotion {
+            if feetOffInMotion && footAlertsEnabled {
                 delta = delta.replacingOccurrences(of: "Heel Off. ", with: "").replacingOccurrences(of: "Toe Off.", with: "")
             }
             
@@ -378,28 +394,32 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             // more nuisance than help if not throttled
             switch delta {
             case "Heel Off. ":
-                if newState.riderPresent {
+                if newState.riderPresent && footAlertsEnabled {
                     alertThrottler.scheduleAlert(key: "heel-off", alertQueue: alertQueue, alert: speechManager.createSpeechAlert(priority: .HIGH, message: delta, key:"Heel"))
                 }
             case "Heel On. ":
-                if newState.riderPresent {
+                if newState.riderPresent && footAlertsEnabled {
                     alertThrottler.cancelAlert(key: "heel-off", alertQueue: alertQueue, ifNoOutstandingAlert: speechManager.createSpeechAlert(priority: .HIGH, message: delta, key:"Heel"))
                 }
             case "Toe Off. ":
-                if newState.riderPresent {
+                if newState.riderPresent && footAlertsEnabled {
                     alertThrottler.scheduleAlert(key: "toe-off", alertQueue: alertQueue, alert: speechManager.createSpeechAlert(priority: .HIGH, message: delta, key:"Toe"))
                 }
             case "Toe On. ":
-                if newState.riderPresent {
+                if newState.riderPresent && footAlertsEnabled {
                     alertThrottler.cancelAlert(key: "toe-off", alertQueue: alertQueue, ifNoOutstandingAlert: speechManager.createSpeechAlert(priority: .HIGH, message: delta, key:"Toe"))
                 }
             case "Rider Off. ":
-                alertThrottler.cancelAlert(key: "toe-off", alertQueue: alertQueue, ifNoOutstandingAlert: nil)
-                alertThrottler.cancelAlert(key: "heel-off", alertQueue: alertQueue, ifNoOutstandingAlert: nil)
-                queueHighAlert(delta, key: "Rider")
+                if footAlertsEnabled {
+                    alertThrottler.cancelAlert(key: "toe-off", alertQueue: alertQueue, ifNoOutstandingAlert: nil)
+                    alertThrottler.cancelAlert(key: "heel-off", alertQueue: alertQueue, ifNoOutstandingAlert: nil)
+                    queueHighAlert(delta, key: "Rider")
+                }
                 
             case "Rider On. ":
-                queueHighAlert(delta, key: "Rider")
+                if footAlertsEnabled {
+                    queueHighAlert(delta, key: "Rider")
+                }
                 queueRiderOnAlerts()
                 
             default:
@@ -409,7 +429,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             }
             
             // Queue this last so it's at the head of the queue (High priority alerts skip to front)
-            if feetOffInMotion {
+            if feetOffInMotion && footAlertsEnabled {
                 queueHighAlert("Feet off", key: "Feet")
             }
         }
@@ -428,7 +448,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         writeState(newState)
         let mph = newState.mph()
         let lastSpeedBenchmark = speedMonitor.lastBenchmarkIdx
-        if shouldSoundAlerts && speedMonitor.passedBenchmark(mph) && /* Only announce speed increases */ lastSpeedBenchmark > speedMonitor.lastBenchmarkIdx {
+        if shouldSoundAlerts && userPrefs.getSpeedAlertsEnabled() && speedMonitor.passedBenchmark(mph) && /* Only announce speed increases */ lastSpeedBenchmark > speedMonitor.lastBenchmarkIdx {
             NSLog("Announcing speed change from \(lastSpeedBenchmark) to \(speedMonitor.lastBenchmarkIdx)")
             let mphRound = Int(mph)
             queueHighAlert("Speed \(mphRound)", key: "Speed", shortMessage: "\(mphRound)")
@@ -469,7 +489,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             try? db?.insertState(state: newState)
         }
         let batteryLevel = Double(batteryLevelInt)
-        if shouldSoundAlerts && batteryMonitor.passedBenchmark(batteryLevel){
+        if shouldSoundAlerts && userPrefs.getBatteryAlertsEnabled() && batteryMonitor.passedBenchmark(batteryLevel){
             // Only speak the benchmark battery val. e.g: 70%, not 69%
             let currentBattBenchmark = batteryMonitor.getBenchmarkVal(batteryMonitor.lastBenchmarkIdx) // "last"BenchmarkIdx relative to last call to #passedBenchmark
             let lastBattBenchmark = batteryMonitor.getBenchmarkVal(batteryMonitor.lastLastBenchmarkIdx)
@@ -518,8 +538,10 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         NSLog("Last mileage \(lastMileage) now mileage \(nowMileage)")
         
         if startOdometer > 0 && deltaMileage >= tripMileageAnnounceInterval {
-            if shouldSoundAlerts {
-                queueLowAlert("\(String(format: "%.1f", nowMileage - startMileage)) trip miles", key: "Mileage")
+            if shouldSoundAlerts && userPrefs.getMileageAlertsEnabled() {
+                // TODO : I think everyone wants to know estimated miles remaining vs miles covered...
+                // Let's calculate a running average here and possibly announce along with battery report?
+                queueLowAlert("\(String(format: "%.1f", nowMileage - startMileage)) ride miles", key: "Mileage")
             }
             rideData.setOdometerLast(revs: Int(odometer))
         }
@@ -587,6 +609,27 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             self.headphonesPresent = checkHeadphonesPresent()
         default:
             NSLog("handleAudioRouteChange Error: Unknown reason: \(reason)")
+        }
+    }
+    
+    // MARK : NSUserDefaults settings change
+    @objc func handleUserDefaultsChange(_ notification: Notification) {
+        // Respond to NSUserDefaults aren't checked at the moment of their effect
+        setAVSessionInfo()
+        
+        if userPrefs.getAutoLightsEnabled() {
+            applyAutoLights(Date())
+        }
+    }
+    
+    // MARK : AutoLights
+    
+    private func applyAutoLights(_ now: Date) {
+        if let peripheral = connectedDevice {
+            let hour = Calendar.current.component(.hour, from: now)
+            let isProbablyDark = (hour > 17 || hour < 8)
+            NSLog("Current hour is \(hour). Is probably dark: \(isProbablyDark)")
+            toggleLights(peripheral: peripheral, on: isProbablyDark)
         }
     }
 }
@@ -664,11 +707,26 @@ class OneWheelLocalData {
     
     // Surfaced in Settings.bundle
     private let keyAutoLights = "ow_auto_lights"
-
+    private let keyFootAlerts = "ow_alerts_foot_sensor"
+    private let keySpeedAlerts = "ow_alerts_speed"
+    private let keyBatteryAlerts = "ow_alerts_battery"
+    private let keyMileageAlerts = "ow_alerts_mileage"
+    private let keyConnectionAlerts = "ow_alerts_connection"
+    private let keyAlertsRequiresHeadphones = "ow_alerts_requires_headphones"
+    private let keyAlertsDuckAudio = "ow_alerts_duck_audio"
+    
     private let data = UserDefaults.standard
     
     init() {
         data.register(defaults: [keyAudioAlerts : true])
+        data.register(defaults: [keyAutoLights : false])
+        data.register(defaults: [keyFootAlerts : true])
+        data.register(defaults: [keySpeedAlerts : true])
+        data.register(defaults: [keyBatteryAlerts : true])
+        data.register(defaults: [keyMileageAlerts : true])
+        data.register(defaults: [keyConnectionAlerts : true])
+        data.register(defaults: [keyAlertsRequiresHeadphones : true])
+        data.register(defaults: [keyAlertsDuckAudio : false])
     }
     
     func clearPrimaryDeviceUUID() {
@@ -697,6 +755,34 @@ class OneWheelLocalData {
     
     func getAutoLightsEnabled() -> Bool {
         return data.bool(forKey: keyAutoLights)
+    }
+    
+    func getFootAlertsEnabled() -> Bool {
+        return data.bool(forKey: keyFootAlerts)
+    }
+    
+    func getSpeedAlertsEnabled() -> Bool {
+        return data.bool(forKey: keySpeedAlerts)
+    }
+    
+    func getBatteryAlertsEnabled() -> Bool {
+        return data.bool(forKey: keyBatteryAlerts)
+    }
+    
+    func getMileageAlertsEnabled() -> Bool {
+        return data.bool(forKey: keyMileageAlerts)
+    }
+    
+    func getConnectionAlertsEnabled() -> Bool {
+        return data.bool(forKey: keyConnectionAlerts)
+    }
+    
+    func getAlertsDuckAudio() -> Bool {
+        return data.bool(forKey: keyAlertsDuckAudio)
+    }
+    
+    func getAlertsRequireHeadphones() -> Bool {
+        return data.bool(forKey: keyAlertsRequiresHeadphones)
     }
 }
 

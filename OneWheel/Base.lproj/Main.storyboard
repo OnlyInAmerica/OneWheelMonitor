@@ -6,6 +6,7 @@
     <dependencies>
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="13772"/>
+        <capability name="Navigation items with more than one left or right bar item" minToolsVersion="7.0"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -50,7 +51,12 @@
                     </toolbarItems>
                     <navigationItem key="navigationItem" id="Nk5-Iw-Jqq">
                         <barButtonItem key="backBarButtonItem" title="Bac" id="OzM-za-vaO"/>
-                        <barButtonItem key="leftBarButtonItem" id="bEo-F1-PgP"/>
+                        <leftBarButtonItems>
+                            <barButtonItem id="bEo-F1-PgP"/>
+                            <barButtonItem title="Settings" id="yUB-hA-TBR">
+                                <color key="tintColor" red="0.9828532338" green="0.12936714290000001" blue="0.54412341119999996" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                            </barButtonItem>
+                        </leftBarButtonItems>
                         <barButtonItem key="rightBarButtonItem" title="Connect" id="b1P-7X-HMw">
                             <color key="tintColor" red="0.9828532338" green="0.12936714290000001" blue="0.54412341119999996" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         </barButtonItem>
@@ -62,6 +68,7 @@
                         <outlet property="graphView" destination="mbN-aS-kiI" id="sVi-t5-nMS"/>
                         <outlet property="muteAudioButton" destination="oib-Zx-wyN" id="jZA-tA-g6b"/>
                         <outlet property="newRideButton" destination="js6-br-AfO" id="iB6-L9-bap"/>
+                        <outlet property="settingsButton" destination="yUB-hA-TBR" id="cM7-X8-hIH"/>
                         <outlet property="unpairButton" destination="sYO-vD-UXO" id="Oin-8g-j7u"/>
                     </connections>
                 </viewController>

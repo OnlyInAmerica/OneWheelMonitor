@@ -34,10 +34,6 @@ class SpeechAlertManager {
             self.message = message
             self.key = key
             self.shortMessage = (shortMessage != nil) ? shortMessage! : message
-            
-            try? AVAudioSession.sharedInstance().setCategory(
-                AVAudioSessionCategoryPlayback,
-                with:.mixWithOthers)
         }
         
         func trigger(useShortMessage: Bool, completion: @escaping () -> Void) {
