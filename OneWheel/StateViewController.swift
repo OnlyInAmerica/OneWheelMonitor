@@ -215,10 +215,10 @@ class StateViewController: UIViewController {
     
     func updateUi(isConnected: Bool, onewheel: OneWheel?) {
         if isConnected {
-            self.navigationItem.title = "Connected to \(onewheel?.name ?? "OneWheel")"
+            self.navigationItem.title = "\(onewheel?.name ?? "Connected")"
             self.connActionButton.title = "Disconnect"
         } else if owManager.startRequested {
-            self.navigationItem.title = "Searching for OneWheel..."
+            self.navigationItem.title = "Searching..."
             self.connActionButton.title = "Stop"
         } else {
             self.navigationItem.title = ""
