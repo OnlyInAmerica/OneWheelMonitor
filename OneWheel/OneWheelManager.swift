@@ -201,9 +201,9 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         // TODO : Allow user to control if auto re-connection is desired
         NSLog("Peripheral disconnected: \(peripheral.identifier) - \(peripheral.name ?? "No Name")")
         if peripheral.identifier == connectedDevice?.identifier {
-            NSLog("Reconnecting disconnected peripheral")
             if shouldSoundAlerts && userPrefs.getConnectionAlertsEnabled() {
                 if startRequested {
+                    NSLog("Reconnecting disconnected peripheral")
                     queueHighAlert("Reconnecting")
                 } else {
                     queueHighAlert("Disconnected")

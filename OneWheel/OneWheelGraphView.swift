@@ -43,13 +43,13 @@ class OneWheelGraphView: UIView {
     var stateXPosCache = [CGFloat]()
     
     // Display rects
-    var seriesRect: CGRect? = nil
-    var seriesAxisRect: CGRect? = nil
-    var timeLabelsRect: CGRect? = nil
+    var seriesRect = CGRect()
+    var seriesAxisRect = CGRect()
+    var timeLabelsRect = CGRect()
     
     // Layers managed by view
-    var zoomLayer: CALayer? = nil
-    var axisLabelLayer: CALayer? = nil
+    var zoomLayer = CALayer()
+    var axisLabelLayer = CALayer()
     
     // Layer delegates
     let axisLabelLayerDelegate = AxisLayerDelegate()
@@ -58,42 +58,52 @@ class OneWheelGraphView: UIView {
     var lastScale: CGFloat = 1.0
     var lastScalePoint: CGPoint? = nil
     
-    public override func layoutSublayers(of layer: CALayer) {
-
-        NSLog("CALayer - layoutSublayers with bounds \(self.bounds) frame \(self.frame)")
+    public override init(frame: CGRect) {
+        super.init(frame: frame)
+        setup()
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        super.init(coder: aDecoder)
+        setup()
+    }
+    
+    private func setup() {
+        calculateRects()
         
+        zoomLayer.frame = seriesAxisRect
+        self.layer.addSublayer(zoomLayer)
+        
+        axisLabelLayer.frame = seriesAxisRect
+        axisLabelLayerDelegate.graphView = self
+        axisLabelLayer.delegate = axisLabelLayerDelegate
+        self.layer.addSublayer(axisLabelLayer)
+    }
+    
+    private func calculateRects() {
+        NSLog("Calculate rects with bounds \(self.bounds)")
         let seriesAxisRect = self.bounds.insetBy(dx: 0.0, dy: 11.0).applying(CGAffineTransform(translationX: 0.0, y: -11.0))
         let timeLabelsRect = portraitMode ? self.bounds.insetBy(dx: 20.0, dy: 0.0) : self.bounds.insetBy(dx: 40.0, dy: 0.0).applying(CGAffineTransform(translationX: 7.0, y: 0.0)) // last affineT is a janky compensation for the MPH / Battery label width differences :/
         let seriesRect = portraitMode ? seriesAxisRect.insetBy(dx: 20.0, dy: 0.0).applying(CGAffineTransform(translationX: -20.0, y: 0.0)) : seriesAxisRect.insetBy(dx: 45.0, dy: 0.0).applying(CGAffineTransform(translationX: 7.0, y: 0.0))
-        
-        for (_, series) in self.series {
-            if !series.didSetupLayers {
-                if zoomLayer == nil {
-                    zoomLayer = CALayer()
-                    zoomLayer?.frame = seriesAxisRect
-                    self.layer.addSublayer(zoomLayer!)
-                }
-                if axisLabelLayer == nil {
-                    axisLabelLayer = CALayer()
-                    axisLabelLayer?.zPosition = 10
-                    axisLabelLayer?.frame = seriesAxisRect
-                    axisLabelLayerDelegate.graphView = self
-                    axisLabelLayer?.delegate = axisLabelLayerDelegate
-                    self.layer.addSublayer(axisLabelLayer!)
-                }
-                series.requestLayerSetup(root: self.zoomLayer!, frame: seriesRect, graphView: self)
-            } else {
-                series.resizeLayers(frame: seriesRect, graphView: self)
-            }
-        }
+    
         self.seriesRect = seriesRect
         self.seriesAxisRect = seriesAxisRect
         self.timeLabelsRect = timeLabelsRect
+    }
+    
+    public override func layoutSublayers(of layer: CALayer) {
+
+        NSLog("CALayer - layoutSublayers with bounds \(self.bounds) frame \(self.frame)")
+        calculateRects()
         
-//        self.zoomLayer?.frame = seriesAxisRect
-//        self.axisLabelLayer?.frame = seriesAxisRect
-//        self.axisLabelLayer?.setNeedsDisplay()
+        // Resize layers, but do not reset transform
+        self.zoomLayer.frame = seriesAxisRect
+        self.axisLabelLayer.frame = seriesAxisRect
         
+        for (_, series) in self.series {
+            series.resizeLayers(frame: seriesRect, graphView: self)
+        }
+        refreshGraph()
         super.layoutSublayers(of: layer)
     }
     
@@ -113,13 +123,13 @@ class OneWheelGraphView: UIView {
             
             var point = sender.location(in: self)
             point = self.layer.convert(point, to: zoomLayer)
-            point.x -= zoomLayer!.bounds.midX
-            var transform = CATransform3DTranslate(zoomLayer!.transform, point.x, 0.0, 0.0)
+            point.x -= zoomLayer.bounds.midX
+            var transform = CATransform3DTranslate(zoomLayer.transform, point.x, 0.0, 0.0)
             transform = CATransform3DScale(transform, scale, 1.0, 1.0)
             transform = CATransform3DTranslate(transform, -point.x, 0.0, 0.0)
-            zoomLayer!.transform = transform
-            let xTrans = zoomLayer!.value(forKeyPath: "transform.translation.x")
-            let xScale = zoomLayer!.value(forKeyPath: "transform.scale.x") as! CGFloat
+            zoomLayer.transform = transform
+            let xTrans = zoomLayer.value(forKeyPath: "transform.translation.x")
+            let xScale = zoomLayer.value(forKeyPath: "transform.scale.x") as! CGFloat
 
             CATransaction.commit()
             
@@ -128,9 +138,9 @@ class OneWheelGraphView: UIView {
             let dataScale = dataRange.y - dataRange.x
             let xScale = 1 / dataScale
             
-            let seriesRectFromZoomLayer = self.layer.convert(self.seriesRect!, from: self.zoomLayer!)
-            let zlVisibleFrac = (self.seriesRect!.width / seriesRectFromZoomLayer.width)
-            let zlStartFrac = (self.seriesRect!.origin.x - seriesRectFromZoomLayer.origin.x) / seriesRectFromZoomLayer.width
+            let seriesRectFromZoomLayer = self.layer.convert(self.seriesRect, from: self.zoomLayer)
+            let zlVisibleFrac = (self.seriesRect.width / seriesRectFromZoomLayer.width)
+            let zlStartFrac = (self.seriesRect.origin.x - seriesRectFromZoomLayer.origin.x) / seriesRectFromZoomLayer.width
             
             let newDataRange = CGPoint(x: max(0.0, dataRange.x + (zlStartFrac / xScale)), y: min(1.0, dataRange.x + ((zlStartFrac + zlVisibleFrac) / xScale)))
             
@@ -145,7 +155,7 @@ class OneWheelGraphView: UIView {
                 self.setNeedsDisplay()
             } else {
                 // Animate transform back to identity. No meaningful zoom happened (e.g: Just zoomed out 1x scale)
-                zoomLayer?.transform = CATransform3DIdentity
+                zoomLayer.transform = CATransform3DIdentity
             }
         }
     }
@@ -160,9 +170,9 @@ class OneWheelGraphView: UIView {
         let translation = sender.translation(in: self)
         let xTransNormalized = translation.x // / xScale
         
-        let seriesRectFromZoomLayer = self.layer.convert(self.seriesRect!, from: self.zoomLayer!)
-        let xTransRaw = self.seriesRect!.origin.x - seriesRectFromZoomLayer.origin.x
-        let xTrans = (xTransRaw / self.seriesRect!.width) / xScale
+        let seriesRectFromZoomLayer = self.layer.convert(self.seriesRect, from: self.zoomLayer)
+        let xTransRaw = self.seriesRect.origin.x - seriesRectFromZoomLayer.origin.x
+        let xTrans = (xTransRaw / self.seriesRect.width) / xScale
         let dataRangeLeeway = (xTrans > 0) ? /* left */ 1.0 - dataRange.y : /* right */ dataRange.x
         let xTransNormal = min(dataRangeLeeway, xTrans)
 
@@ -177,7 +187,7 @@ class OneWheelGraphView: UIView {
             
             CATransaction.begin()
             CATransaction.setDisableActions(true)
-            zoomLayer?.transform = CATransform3DTranslate(zoomLayer!.transform, xTransNormalized, 0.0, 0.0)
+            zoomLayer.transform = CATransform3DTranslate(zoomLayer.transform, xTransNormalized, 0.0, 0.0)
             CATransaction.commit()
             sender.setTranslation(CGPoint.zero, in: self)
             
@@ -190,48 +200,46 @@ class OneWheelGraphView: UIView {
             if newDataRange != self.dataRange {
                 self.dataRange = newDataRange
                 clearStateCache()
-                self.setNeedsDisplay()
+                refreshGraph()
             }
         }
     }
     
-    override func draw(_ rect: CGRect) {
-        NSLog("CALayer - draw with bounds \(self.bounds) frame \(self.frame)")
-
-        // Always make sure we start drawing with identity transform
-        // Transforms are mutated during pinch zooming / panning
+    func refreshGraph() {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        zoomLayer?.transform = CATransform3DIdentity
+        zoomLayer.transform = CATransform3DIdentity
         CATransaction.commit()
         
-        if let dataSource = self.dataSource, let seriesRect = self.seriesRect {
+        if let dataSource = self.dataSource {
             let dataCount = dataSource.getCount()
             if stateCacheDataCount != dataCount {
                 NSLog("CALayer - Caching data. \(dataCount) items, \(stateCache.count) in cache")
                 // Assume that we're working with timeseries data so only need to update cache if size changes
                 self.cacheState(dataSource: dataSource, rect: seriesRect)
-
+                
                 for (_, series) in self.series {
                     series.bindData(rect: seriesRect, graphView: self)
                 }
-                axisLabelLayer?.display()
+                drawLayers()
             }
-            super.draw(rect)
+        }
+    }
+    
+    func drawLayers() {
+        NSLog("Draw layers")
+        axisLabelLayer.display()
+        zoomLayer.display()
+        zoomLayer.sublayers?.forEach {
+            $0.display()
+            NSLog("Draw zoomLayer sublayer \($0.name)")
+
         }
     }
     
     class AxisLayerDelegate: NSObject, CALayerDelegate {
         
         var graphView: OneWheelGraphView? = nil
-        
-        func layoutSublayers(of layer: CALayer) {
-            if let gV = graphView, let seriesRect = gV.seriesRect {
-                layer.bounds = seriesRect
-                layer.position = seriesRect.origin
-                layer.setNeedsDisplay()
-            }
-        }
         
         func draw(_ layer: CALayer,
                   in cgContext: CGContext) {
@@ -250,7 +258,9 @@ class OneWheelGraphView: UIView {
                     }
                 }
                 
-                gV.drawTimeLabels(rect: timeLabelsRect, context: cgContext, numLabels: gV.portraitMode ? 2: 3)
+                if let _ = gV.dataSource {
+                    gV.drawTimeLabels(rect: timeLabelsRect, context: cgContext, numLabels: gV.portraitMode ? 2: 3)
+                }
                 gV.drawZoomHint(rect: seriesRect, context: cgContext)
                 
                 //            cgContext.setFillColor(bgColor.cgColor)
@@ -305,7 +315,8 @@ class OneWheelGraphView: UIView {
     }
     
     func drawTimeLabels(rect: CGRect, context: CGContext, numLabels: Int) {
-        
+        NSLog("drawTimeLabels")
+
         let dataCount = dataSource!.getCount()
         
         if dataCount == 0 {
@@ -366,7 +377,7 @@ class OneWheelGraphView: UIView {
     }
     
     func drawZoomHint(rect: CGRect, context: CGContext) {
-        
+        NSLog("drawZoomHint")
         if dataRange.y - dataRange.x == 1.0 {
             // Don't draw zoom hint when zoomed all the way out
             return
@@ -388,6 +399,7 @@ class OneWheelGraphView: UIView {
         if self.dataSource != nil {
             series[newSeries.name] = newSeries
             //addSeriesSubLayer(series: newSeries) BAD_ACCESS
+            newSeries.requestLayerSetup(root: self.zoomLayer, frame: seriesRect, graphView: self)
         } else {
             NSLog("Cannot add series before a datasource is set")
         }
@@ -453,22 +465,17 @@ class OneWheelGraphView: UIView {
         
         override func setupLayers(root: CALayer, frame: CGRect, graphView: OneWheelGraphView) {
             let scale = UIScreen.main.scale
-            let position = CGPoint(x: frame.midX, y: frame.midY)
             
             if gradientUnderPath {
                 let bgM = CAShapeLayer()
-                bgM.needsDisplayOnBoundsChange = true
                 bgM.contentsScale = scale
-                bgM.bounds = frame
-                bgM.position = position
+                bgM.frame = frame
                 bgM.fillColor = color
                 self.bgMaskLayer = bgM
                 
                 let bg = CAGradientLayer()
-                bg.needsDisplayOnBoundsChange = true
                 bg.contentsScale = scale
-                bg.bounds = frame
-                bg.position = position
+                bg.frame = frame
                 bg.colors = [color.copy(alpha: 0.9)!, color.copy(alpha: 0.0)!]
                 bg.startPoint = CGPoint(x: 0.0, y: 0.0)
                 bg.endPoint = CGPoint(x: 0.0, y: 1.0)
@@ -481,10 +488,8 @@ class OneWheelGraphView: UIView {
             
             let sl = CAShapeLayer()
             sl.miterLimit = 0
-            sl.needsDisplayOnBoundsChange = true
             sl.contentsScale = scale
-            sl.bounds = frame
-            sl.position = position
+            sl.frame = frame
             sl.fillColor = UIColor.clear.cgColor
             sl.lineWidth = 3.0
             sl.strokeColor = color
@@ -493,23 +498,17 @@ class OneWheelGraphView: UIView {
         }
         
         override func resizeLayers(frame: CGRect, graphView: OneWheelGraphView) {
-            let position = CGPoint(x: frame.midX, y: frame.midY)
             
-            shapeLayer?.bounds = frame
-            shapeLayer?.position = position
-
-            bgMaskLayer?.bounds = frame
-            bgMaskLayer?.position = position
-            
-            bgLayer?.bounds = frame
-            bgLayer?.position = position
+            shapeLayer?.frame = frame
+            bgMaskLayer?.frame = frame
+            bgLayer?.frame = frame
             
             if let shapeLayer = self.shapeLayer {
 
                 let newPath = createPath(rect: frame, graphView: graphView)
                 animateShapeLayerPath(shapeLayer: shapeLayer, newPath: newPath)
              
-                if gradientUnderPath, let bgMaskLayer = self.bgMaskLayer, let bgLayer = self.bgLayer {
+                if gradientUnderPath, let bgMaskLayer = self.bgMaskLayer {
                     let newMaskPath = closePath(path: newPath, rect: frame)
                     animateShapeLayerPath(shapeLayer: bgMaskLayer, newPath: newMaskPath)
                 }
@@ -704,6 +703,7 @@ class OneWheelGraphView: UIView {
         }
         
         func drawSeriesMaxVal(rect: CGRect, bgColor: CGColor, context: CGContext, maxVal: CGFloat) {
+            NSLog("drawSeriesMaxVal")
             let labelSideMargin: CGFloat = 5
             let maxYPos: CGFloat = ((1.0 - maxVal) * rect.height) + rect.origin.y
             let path = CGMutablePath()
