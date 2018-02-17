@@ -172,6 +172,11 @@ class OneWheelGraphView: UIView {
         }
     }
     
+    // Whether to fully draw every intermediate step
+    // Because of sampling this doesn't look great yet
+    
+    var smoothPan = false
+    
     func onPan(_ sender: UIPanGestureRecognizer) {
         if portraitMode {
             return
@@ -191,6 +196,8 @@ class OneWheelGraphView: UIView {
         let xTrans = (xTransRaw / self.seriesRect.width) / xScale
         let dataRangeLeeway = (xTrans > 0) ? /* left */ 1.0 - dataRange.y : /* right */ dataRange.x
         let xTransNormal = min(dataRangeLeeway, xTrans)
+        
+        sender.setTranslation(CGPoint.zero, in: self)
 
         if sender.state == .changed {
             
@@ -200,12 +207,20 @@ class OneWheelGraphView: UIView {
                 (xTransNormalized < 0.0 && self.dataRange.y + xTransNormal >= 1.0) {        // Panning beyond right bounds
                 return
             }
-            
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
-            zoomLayer.transform = CATransform3DTranslate(zoomLayer.transform, xTransNormalized, 0.0, 0.0)
-            CATransaction.commit()
-            sender.setTranslation(CGPoint.zero, in: self)
+
+            if (!smoothPan) {
+                CATransaction.begin()
+                CATransaction.setDisableActions(true)
+                zoomLayer.transform = CATransform3DTranslate(zoomLayer.transform, xTransNormalized, 0.0, 0.0)
+                CATransaction.commit()
+            } else {
+                let xTransInDataRange = (translation.x / self.seriesRect.width) / xScale
+                let newDataRange = CGPoint(x: max(0, self.dataRange.x - xTransInDataRange), y: min(1.0, self.dataRange.y - xTransInDataRange))
+                if newDataRange != self.dataRange {
+                    self.dataRange = newDataRange
+                    refreshGraph()
+                }
+            }
             
         } else if (sender.state == .ended) {
             
@@ -259,15 +274,14 @@ class OneWheelGraphView: UIView {
     private func drawLabels() {
         NSLog("Draw axisLabelLayer in")
         
-        // TODO : Move to refreshGraph
         for (_, series) in series {
-            series.drawAxisLabels(rect: seriesAxisRect, root: layer, numLabels: 5, bgColor: bgColor.cgColor)
             if series is SpeedSeries && series.drawMaxValLineWithAxisLabels {
                 let maxValFrac = (series as! ValueSeries).getMaximumValueInfo().1
                 if maxValFrac > 0 {
-                    series.drawSeriesMaxVal(rect: seriesRect, root: layer, bgColor: bgColor.cgColor, maxVal: CGFloat(maxValFrac))
+                    series.drawSeriesMaxVal(rect: seriesRect, root: layer, bgColor: bgColor.cgColor, maxVal: CGFloat(maxValFrac), portraitMode: portraitMode)
                 }
             }
+            series.drawAxisLabels(rect: seriesAxisRect, root: layer, numLabels: 5, bgColor: bgColor.cgColor)
         }
         
 //        if let _ = dataSource {
@@ -737,7 +751,7 @@ class OneWheelGraphView: UIView {
             }
         }
         
-        func drawSeriesMaxVal(rect: CGRect, root: CALayer, bgColor: CGColor, maxVal: CGFloat) {
+        func drawSeriesMaxVal(rect: CGRect, root: CALayer, bgColor: CGColor, maxVal: CGFloat, portraitMode: Bool) {
             NSLog("drawSeriesMaxVal")
             
             if (maxValLayer == nil) {
@@ -752,14 +766,14 @@ class OneWheelGraphView: UIView {
             maxValLayer!.frame = rect
             maxValLabel!.frame = rect
             
-            let labelSideMargin: CGFloat = 10
+            let labelSideMargin: CGFloat = portraitMode ? 60 : 10  // In portrait mode we let the seriesRect extend behind axis labels
             let maxYPos: CGFloat = ((1.0 - maxVal) * rect.height) + rect.origin.y
             let path = CGMutablePath()
             path.move(to: CGPoint(x: 0, y: maxYPos))
             path.addLine(to: CGPoint(x: rect.width, y: maxYPos))
             // TODO : Line properties
             maxValLayer!.path = path
-            maxValLayer!.strokeColor = color
+            maxValLayer!.strokeColor = color.copy(alpha: 0.7)
             maxValLayer!.lineWidth = 1.0
             
             let maxLabel = String(format: "%.1f", (Double(maxVal) * max))
