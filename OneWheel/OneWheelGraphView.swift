@@ -51,9 +51,6 @@ class OneWheelGraphView: UIView {
     var zoomLayer = CALayer()
     var axisLabelLayer = CALayer()
     
-    // Layer delegates
-    let axisLabelLayerDelegate = AxisLayerDelegate()
-    
     // Gestures
     var lastScale: CGFloat = 1.0
     var lastScalePoint: CGPoint? = nil
@@ -73,11 +70,10 @@ class OneWheelGraphView: UIView {
         calculateRects()
         
         zoomLayer.frame = seriesAxisRect
+        zoomLayer.masksToBounds = true
         self.layer.addSublayer(zoomLayer)
         
         axisLabelLayer.frame = seriesAxisRect
-        axisLabelLayerDelegate.graphView = self
-        axisLabelLayer.delegate = axisLabelLayerDelegate
         self.layer.addSublayer(axisLabelLayer)
     }
     
@@ -181,6 +177,10 @@ class OneWheelGraphView: UIView {
             return
         }
         
+        if sender.state == .began {
+            isGesturing = true
+        }
+        
         let dataScale = dataRange.y - dataRange.x
         let xScale = 1 / dataScale
         let translation = sender.translation(in: self)
@@ -209,13 +209,14 @@ class OneWheelGraphView: UIView {
             
         } else if (sender.state == .ended) {
             
+            isGesturing = false
+
             let newDataRange = CGPoint(x: max(0, self.dataRange.x + xTransNormal), y: min(1.0, self.dataRange.y + xTransNormal))
             
             NSLog("Pan [\(dataRange) -> \(newDataRange)")
 
             if newDataRange != self.dataRange {
                 self.dataRange = newDataRange
-                clearStateCache()
                 refreshGraph()
             }
         }
@@ -225,7 +226,6 @@ class OneWheelGraphView: UIView {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         zoomLayer.transform = CATransform3DIdentity
-        CATransaction.commit()
         
         resizeLayers()
         
@@ -242,49 +242,38 @@ class OneWheelGraphView: UIView {
             }
         }
         drawLayers()
+        CATransaction.commit()
     }
     
     func drawLayers() {
         NSLog("Draw layers")
-        axisLabelLayer.display()
+        drawLabels()
+        //axisLabelLayer.display()
         zoomLayer.display()
         zoomLayer.sublayers?.forEach {
             $0.display()
             //NSLog("Draw zoomLayer sublayer \($0.name)")
-
         }
-    } // willRotate, layoutSublayers, 
+    } // willRotate, layoutSublayers,
     
-    class AxisLayerDelegate: NSObject, CALayerDelegate {
+    private func drawLabels() {
+        NSLog("Draw axisLabelLayer in")
         
-        var graphView: OneWheelGraphView? = nil
-        
-        func draw(_ layer: CALayer,
-                  in cgContext: CGContext) {
-            NSLog("Draw axisLabelLayer out")
-
-            if let gV = graphView, let seriesRect = graphView?.seriesRect, let seriesAxisRect = graphView?.seriesAxisRect, let timeLabelsRect = graphView?.timeLabelsRect {
-                NSLog("Draw axisLabelLayer in")
-                
-                for (_, series) in gV.series {
-                    series.drawAxisLabels(rect: seriesAxisRect, numLabels: 5, bgColor: gV.bgColor.cgColor, context: cgContext)
-                    if series is SpeedSeries && series.drawMaxValLineWithAxisLabels {
-                        let maxValFrac = (series as! ValueSeries).getMaximumValueInfo().1
-                        if maxValFrac > 0 {
-                            series.drawSeriesMaxVal(rect: seriesRect, bgColor: gV.bgColor.cgColor, context: cgContext, maxVal: CGFloat(maxValFrac))
-                        }
-                    }
+        // TODO : Move to refreshGraph
+        for (_, series) in series {
+            series.drawAxisLabels(rect: seriesAxisRect, root: layer, numLabels: 5, bgColor: bgColor.cgColor)
+            if series is SpeedSeries && series.drawMaxValLineWithAxisLabels {
+                let maxValFrac = (series as! ValueSeries).getMaximumValueInfo().1
+                if maxValFrac > 0 {
+                    series.drawSeriesMaxVal(rect: seriesRect, root: layer, bgColor: bgColor.cgColor, maxVal: CGFloat(maxValFrac))
                 }
-                
-                if let _ = gV.dataSource {
-                    gV.drawTimeLabels(rect: timeLabelsRect, context: cgContext, numLabels: gV.portraitMode ? 2: 3)
-                }
-                gV.drawZoomHint(rect: seriesRect, context: cgContext)
-                
-                //            cgContext.setFillColor(bgColor.cgColor)
-                //            cgContext.fill(rect)
             }
         }
+        
+//        if let _ = dataSource {
+//            drawTimeLabels(rect: timeLabelsRect, context: cgContext, numLabels: portraitMode ? 2: 3)
+//        }
+//        drawZoomHint(rect: seriesRect, context: cgContext)
     }
     
     private func resetDataRange() {
@@ -617,6 +606,9 @@ class OneWheelGraphView: UIView {
         
         // Drawing
         internal var didSetupLayers = false // private set
+        internal var axisLabelLayers: [CATextLayer]? = nil
+        internal var maxValLayer: CAShapeLayer? = nil
+        internal var maxValLabel: CATextLayer? = nil
         
         init(name: String, color: CGColor, labelType: AxisLabelType, gradientUnderPath: Bool, evaluator: SeriesEvaluator) {
             self.name = name
@@ -692,19 +684,27 @@ class OneWheelGraphView: UIView {
             CATransaction.commit()
         }
         
-        func drawAxisLabels(rect: CGRect, numLabels: Int, bgColor: CGColor, context: CGContext) {
+        func drawAxisLabels(rect: CGRect, root: CALayer, numLabels: Int, bgColor: CGColor) {
             if labelType == AxisLabelType.None {
+                for layer in axisLabelLayers ?? [] {
+                    layer.isHidden = true
+                }
                 return
             }
             
-            let paragraphStyle = NSMutableParagraphStyle()
-            paragraphStyle.alignment = (labelType == AxisLabelType.Left) ? .left : .right
+            if axisLabelLayers == nil {
+                axisLabelLayers = [CATextLayer]()
+            }
             
-            let attributes = [NSAttributedStringKey.paragraphStyle  : paragraphStyle,
-                              NSAttributedStringKey.font            : UIFont.systemFont(ofSize: 14.0),
-                              NSAttributedStringKey.foregroundColor : UIColor(cgColor: self.color)
-                              ]
+            while (axisLabelLayers!.count < numLabels) {
+                let newLayer = CATextLayer()
+                axisLabelLayers?.append(newLayer)
+                root.addSublayer(newLayer)
+            }
             
+            let labelFont = UIFont.systemFont(ofSize: 14.0)
+            
+            var labelNum = 0
             let labelSideMargin: CGFloat = 5
             let x: CGFloat = (labelType == AxisLabelType.Left) ? CGFloat(labelSideMargin) : rect.width - labelSideMargin
             for axisLabelVal in stride(from: min, through: max, by: (max - min) / Double(numLabels)) {
@@ -712,56 +712,72 @@ class OneWheelGraphView: UIView {
                 if axisLabelVal == min {
                     continue
                 }
+                
                 let y = CGFloat(1.0 - ((axisLabelVal - min) / (max - min))) * rect.height
                 let axisLabel = printAxisVal(val: axisLabelVal)
-                let attrString = NSAttributedString(string: axisLabel,
-                                                    attributes: attributes)
-                let labelSize = attrString.size()
+                
+                let labelLayer = axisLabelLayers![labelNum]
+                labelLayer.isHidden = false
+                labelLayer.font = labelFont
+                labelLayer.fontSize = labelFont.pointSize
+                labelLayer.alignmentMode = (labelType == AxisLabelType.Left) ? "left" : "right"
+                labelLayer.foregroundColor = color
+                labelLayer.backgroundColor = bgColor
+                labelLayer.string = axisLabel
+                labelLayer.contentsScale = UIScreen.main.scale
+                
+                var labelRect = axisLabel.boundingRect(with: rect.size, options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: [NSAttributedStringKey.font: labelFont], context: nil)
+                let rectX = (labelType == AxisLabelType.Right) ? x - labelRect.width : x
+                labelRect = CGRect(x: rectX, y: y, width: labelRect.width, height: labelRect.height)
+                labelLayer.frame = labelRect
+                labelLayer.display()
+                NSLog("Axis label \(axisLabel) at \(labelLayer.position)")
                 // Assumes RTL language : When positioning left-flowing text on the right side, need to move our start point left by the text width
-                let rectX = (labelType == AxisLabelType.Right) ? x - labelSize.width : x
-                
-                let rt =  CGRect(x: rectX, y: y, width: labelSize.width, height: labelSize.height)
-                
-                context.setFillColor(bgColor)
-                context.fill(rt)
-                
-                attrString.draw(in: rt)
+                labelNum+=1
             }
         }
         
-        func drawSeriesMaxVal(rect: CGRect, bgColor: CGColor, context: CGContext, maxVal: CGFloat) {
+        func drawSeriesMaxVal(rect: CGRect, root: CALayer, bgColor: CGColor, maxVal: CGFloat) {
             NSLog("drawSeriesMaxVal")
-            let labelSideMargin: CGFloat = 5
+            
+            if (maxValLayer == nil) {
+                maxValLayer = CAShapeLayer()
+                root.addSublayer(maxValLayer!)
+            }
+            if (maxValLabel == nil) {
+                maxValLabel = CATextLayer()
+                root.addSublayer(maxValLabel!)
+            }
+            
+            maxValLayer!.frame = rect
+            maxValLabel!.frame = rect
+            
+            let labelSideMargin: CGFloat = 10
             let maxYPos: CGFloat = ((1.0 - maxVal) * rect.height) + rect.origin.y
             let path = CGMutablePath()
-            path.move(to: CGPoint(x: rect.minX, y: maxYPos))
-            path.addLine(to: CGPoint(x: rect.maxX, y: maxYPos))
-//            context.move(to: CGPoint(x: rect.minX, y: maxYPos))
-//            context.addLine(to: CGPoint(x: rect.maxX, y: maxYPos))
+            path.move(to: CGPoint(x: 0, y: maxYPos))
+            path.addLine(to: CGPoint(x: rect.width, y: maxYPos))
             // TODO : Line properties
-            context.setStrokeColor(color)
-            context.setLineWidth(1.0)
-            context.addPath(path)
-            context.strokePath()
+            maxValLayer!.path = path
+            maxValLayer!.strokeColor = color
+            maxValLayer!.lineWidth = 1.0
             
-            let paragraphStyle = NSMutableParagraphStyle()
-            paragraphStyle.alignment = (labelType == AxisLabelType.Left) ? .left : .right
-            
-            let attributes = [NSAttributedStringKey.paragraphStyle  : paragraphStyle,
-                              NSAttributedStringKey.font            : UIFont.systemFont(ofSize: 12.0),
-                              NSAttributedStringKey.foregroundColor : UIColor(cgColor: self.color)
-            ]
             let maxLabel = String(format: "%.1f", (Double(maxVal) * max))
-            let attrString = NSAttributedString(string: maxLabel,
-                                                attributes: attributes)
-            let labelSize = attrString.size()
             
-            let rt =  CGRect(x: rect.minX + labelSideMargin, y: maxYPos + labelSideMargin, width: labelSize.width, height: labelSize.height)
+            let labelFont = UIFont.systemFont(ofSize: 12.0)
             
-            context.setFillColor(bgColor)
-            context.fill(rt)
-            attrString.draw(in: rt)
-            // TODO : write max value
+            var labelRect = maxLabel.boundingRect(with: rect.size, options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: [NSAttributedStringKey.font: labelFont], context: nil)
+            labelRect = CGRect(x: rect.minX + labelSideMargin, y: maxYPos - (labelRect.height / 2), width: labelRect.width, height: labelRect.height)
+
+            maxValLabel!.frame = labelRect
+            maxValLabel!.isHidden = false
+            maxValLabel!.font = labelFont
+            maxValLabel!.fontSize = labelFont.pointSize
+            maxValLabel!.alignmentMode = "left"
+            maxValLabel!.foregroundColor = color
+            maxValLabel!.backgroundColor = bgColor
+            maxValLabel!.string = maxLabel
+            maxValLabel!.contentsScale = UIScreen.main.scale
         }
         
         func printAxisVal(val: Double) -> String {
