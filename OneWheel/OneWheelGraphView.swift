@@ -254,6 +254,9 @@ class OneWheelGraphView: UIView {
                 self.cacheState(dataSource: dataSource, rect: seriesRect)
                 
                 for (_, series) in self.series {
+                    if series is SpeedSeries {
+                        series.max = max(series.max, 1.10 * rpmToMph(Double(rideData.getMaxRpm())))
+                    }
                     series.bindData(rect: seriesRect, graphView: self)
                 }
             }
