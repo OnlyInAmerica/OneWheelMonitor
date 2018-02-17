@@ -50,6 +50,7 @@ class OneWheelGraphView: UIView {
     // Layers managed by view
     var zoomLayer = CALayer()
     var axisLabelLayer = CALayer()
+    var timeAxisLabels : [CATextLayer]? = nil  // sublayers of axisLabelLayer
     
     // Gestures
     var lastScale: CGFloat = 1.0
@@ -281,12 +282,12 @@ class OneWheelGraphView: UIView {
                     series.drawSeriesMaxVal(rect: seriesRect, root: layer, bgColor: bgColor.cgColor, maxVal: CGFloat(maxValFrac), portraitMode: portraitMode)
                 }
             }
-            series.drawAxisLabels(rect: seriesAxisRect, root: layer, numLabels: 5, bgColor: bgColor.cgColor)
+            series.drawAxisLabels(rect: seriesAxisRect, root: axisLabelLayer, numLabels: 5, bgColor: bgColor.cgColor)
         }
         
-//        if let _ = dataSource {
-//            drawTimeLabels(rect: timeLabelsRect, context: cgContext, numLabels: portraitMode ? 2: 3)
-//        }
+        if let _ = dataSource {
+            drawTimeLabels(rect: timeLabelsRect, root: axisLabelLayer, numLabels: portraitMode ? 2: 3)
+        }
 //        drawZoomHint(rect: seriesRect, context: cgContext)
     }
     
@@ -335,8 +336,18 @@ class OneWheelGraphView: UIView {
         NSLog("CALayer - Cached \(stateCache.count)/\(dataSourceCount) graph data [\(dataRange.x)-\(dataRange.y)] [\(dataIdxstart)-\(dataIdx)] [\(CGFloat(dataIdxstart)/CGFloat(dataSourceCount))-\(CGFloat(dataIdx)/CGFloat(dataSourceCount))]")
     }
     
-    func drawTimeLabels(rect: CGRect, context: CGContext, numLabels: Int) {
+    func drawTimeLabels(rect: CGRect, root: CALayer, numLabels: Int) {
         NSLog("drawTimeLabels")
+        
+        if timeAxisLabels == nil {
+            timeAxisLabels = [CATextLayer]()
+        }
+        
+        while (timeAxisLabels!.count < numLabels) {
+            let newLayer = CATextLayer()
+            timeAxisLabels?.append(newLayer)
+            root.addSublayer(newLayer)
+        }
 
         let dataCount = dataSource!.getCount()
         
@@ -344,56 +355,56 @@ class OneWheelGraphView: UIView {
             return
         }
         
+        let labelFont = UIFont.systemFont(ofSize: 14.0)
+        
         let formatter = DateFormatter()
         formatter.dateStyle = .none
         formatter.timeStyle = .short
         
-        let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.alignment = .center
-        
-        let attributes = [NSAttributedStringKey.paragraphStyle  : paragraphStyle,
-                          NSAttributedStringKey.font            : UIFont.systemFont(ofSize: 14.0),
-                          NSAttributedStringKey.foregroundColor : UIColor(cgColor: UIColor.white.cgColor)
-        ]
-        
         let labelSideMargin: CGFloat = 5
         for axisLabelIdx in 0..<numLabels {
-            if axisLabelIdx == 0 {
-                paragraphStyle.alignment = .left
-            } else if axisLabelIdx == numLabels - 1 {
-                paragraphStyle.alignment = .right
-            } else {
-                paragraphStyle.alignment = .center
-            }
             
             let axisLabelFrac: CGFloat = CGFloat(axisLabelIdx) / CGFloat(numLabels-1)
             let startIdx = Int(dataRange.x * CGFloat((dataCount - 1)))
             let state = dataSource!.getStateForIndex(index: min(dataCount - 1, Int(CGFloat(dataCount-1) * ((dataRange.y - dataRange.x) * axisLabelFrac)) + startIdx))
-
+            
             let x: CGFloat = (rect.width * axisLabelFrac) + rect.origin.x
             let axisLabel = formatter.string(from: state.time)
-            let attrString = NSAttributedString(string: axisLabel,
-                                                attributes: attributes)
-            let labelSize = attrString.size()
-            var rectX = x - (labelSize.width / 2)
-            if paragraphStyle.alignment == .left {
+            
+            var labelRect = axisLabel.boundingRect(with: rect.size, options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: [NSAttributedStringKey.font: labelFont], context: nil)
+            var rectX = x - (labelRect.width / 2)
+            let rectY = rect.height - labelSideMargin - labelRect.height
+            
+            let labelLayer = timeAxisLabels![axisLabelIdx]
+            labelLayer.isHidden = false
+            labelLayer.font = labelFont
+            labelLayer.fontSize = labelFont.pointSize
+            labelLayer.foregroundColor = UIColor.white.cgColor
+            labelLayer.backgroundColor = bgColor.cgColor
+            labelLayer.contentsScale = UIScreen.main.scale
+            
+            if axisLabelIdx == 0 {
                 rectX = labelSideMargin + x
-            } else if paragraphStyle.alignment == .right {
-                rectX = x - labelSideMargin - labelSize.width
+                labelLayer.alignmentMode = "left"
+            } else if axisLabelIdx == numLabels - 1 {
+                rectX = x - labelSideMargin - labelRect.width
+                labelLayer.alignmentMode = "right"
+            } else {
+                labelLayer.alignmentMode = "center"
             }
             
-            let rectY = rect.height - labelSideMargin - labelSize.height
+            labelLayer.string = axisLabel
             
-            let bgPad: CGFloat = 2.0
-            let bgPad2: CGFloat = bgPad * 2.0
-            let rt =  CGRect(x: rectX - bgPad2, y: rectY - bgPad2, width: labelSize.width + bgPad2, height: labelSize.height + bgPad2)
-            
-            context.setFillColor(bgColor.cgColor)
-            context.fill(rt)
+            labelRect = CGRect(x: rectX, y: rectY, width: labelRect.width, height: labelRect.height)
+            labelLayer.frame = labelRect
+            labelLayer.display()
             
             NSLog("Drawing time axis label \(axisLabel)")
-
-            attrString.draw(in: rt)
+        }
+        
+        for i in numLabels..<timeAxisLabels!.count {
+            timeAxisLabels![i].isHidden = true
+            NSLog("Hiding time axis label \(timeAxisLabels![i].string)")
         }
     }
     
@@ -718,7 +729,7 @@ class OneWheelGraphView: UIView {
             
             let labelFont = UIFont.systemFont(ofSize: 14.0)
             
-            var labelNum = 0
+            var labelIdx = 0
             let labelSideMargin: CGFloat = 5
             let x: CGFloat = (labelType == AxisLabelType.Left) ? CGFloat(labelSideMargin) : rect.width - labelSideMargin
             for axisLabelVal in stride(from: min, through: max, by: (max - min) / Double(numLabels)) {
@@ -730,7 +741,7 @@ class OneWheelGraphView: UIView {
                 let y = CGFloat(1.0 - ((axisLabelVal - min) / (max - min))) * rect.height
                 let axisLabel = printAxisVal(val: axisLabelVal)
                 
-                let labelLayer = axisLabelLayers![labelNum]
+                let labelLayer = axisLabelLayers![labelIdx]
                 labelLayer.isHidden = false
                 labelLayer.font = labelFont
                 labelLayer.fontSize = labelFont.pointSize
@@ -746,8 +757,13 @@ class OneWheelGraphView: UIView {
                 labelLayer.frame = labelRect
                 labelLayer.display()
                 NSLog("Axis label \(axisLabel) at \(labelLayer.position)")
+                labelIdx += 1
+
                 // Assumes RTL language : When positioning left-flowing text on the right side, need to move our start point left by the text width
-                labelNum+=1
+            }
+            
+            for i in labelIdx..<axisLabelLayers!.count {
+                axisLabelLayers![i].isHidden = true
             }
         }
         
