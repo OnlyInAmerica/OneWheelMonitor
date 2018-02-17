@@ -51,6 +51,7 @@ class OneWheelGraphView: UIView {
     var zoomLayer = CALayer()
     var axisLabelLayer = CALayer()
     var timeAxisLabels : [CATextLayer]? = nil  // sublayers of axisLabelLayer
+    var zoomHintLayer: CAShapeLayer? = nil
     
     // Gestures
     var lastScale: CGFloat = 1.0
@@ -288,7 +289,7 @@ class OneWheelGraphView: UIView {
         if let _ = dataSource {
             drawTimeLabels(rect: timeLabelsRect, root: axisLabelLayer, numLabels: portraitMode ? 2: 3)
         }
-//        drawZoomHint(rect: seriesRect, context: cgContext)
+        drawZoomHint(rect: seriesRect, root: axisLabelLayer)
     }
     
     private func resetDataRange() {
@@ -408,11 +409,17 @@ class OneWheelGraphView: UIView {
         }
     }
     
-    func drawZoomHint(rect: CGRect, context: CGContext) {
+    func drawZoomHint(rect: CGRect, root: CALayer) {
         NSLog("drawZoomHint")
         if dataRange.y - dataRange.x == 1.0 {
             // Don't draw zoom hint when zoomed all the way out
+            zoomHintLayer?.isHidden = true
             return
+        }
+        
+        if zoomHintLayer == nil {
+            zoomHintLayer = CAShapeLayer()
+            root.addSublayer(zoomHintLayer!)
         }
         
         let yPad: CGFloat = 0.0
@@ -423,8 +430,9 @@ class OneWheelGraphView: UIView {
         
         let rt = CGRect(x: zoomStart, y: yPad, width: zoomEnd - zoomStart, height: yHeight)
         
-        context.setFillColor(zoomHintColor)
-        context.fill(rt)
+        zoomHintLayer!.isHidden = false
+        zoomHintLayer!.frame = rt
+        zoomHintLayer!.backgroundColor = zoomHintColor
     }
 
     func addSeries(newSeries: Series) {
