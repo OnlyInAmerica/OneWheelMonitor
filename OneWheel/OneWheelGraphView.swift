@@ -105,8 +105,11 @@ class OneWheelGraphView: UIView {
         calculateRects()
         
         // Resize layers, but do not reset transform
-        self.zoomLayer.frame = seriesAxisRect
-        self.axisLabelLayer.frame = seriesAxisRect
+        self.zoomLayer.bounds = seriesRect
+        self.zoomLayer.position = CGPoint(x: seriesRect.midX, y: seriesRect.midY)
+        
+        self.axisLabelLayer.bounds = seriesAxisRect
+        self.axisLabelLayer.position = CGPoint(x: seriesAxisRect.midX, y: seriesAxisRect.midY)
         
         for (_, series) in self.series {
             series.resizeLayers(frame: seriesRect, graphView: self)
@@ -385,7 +388,7 @@ class OneWheelGraphView: UIView {
             context.setFillColor(bgColor.cgColor)
             context.fill(rt)
             
-//            NSLog("Drawing time axis label \(axisLabel)")
+            NSLog("Drawing time axis label \(axisLabel)")
 
             attrString.draw(in: rt)
         }
@@ -437,7 +440,10 @@ class OneWheelGraphView: UIView {
         }
         
         override func resizeLayers(frame: CGRect, graphView: OneWheelGraphView) {
-            layer?.frame = frame
+            let midPt = CGPoint(x: frame.midX, y: frame.midY)
+            
+            layer?.bounds = frame
+            layer?.position = midPt
             
             if let path = self.path, !path.boundingBox.isEmpty, let layer = self.layer {
                 
@@ -510,10 +516,16 @@ class OneWheelGraphView: UIView {
         }
         
         override func resizeLayers(frame: CGRect, graphView: OneWheelGraphView) {
+            let midPt = CGPoint(x: frame.midX, y: frame.midY)
             
-            shapeLayer?.frame = frame
-            bgMaskLayer?.frame = frame
-            bgLayer?.frame = frame
+            shapeLayer?.bounds = frame
+            shapeLayer?.position = midPt
+            
+            bgMaskLayer?.bounds = frame
+            bgMaskLayer?.position = midPt
+            
+            bgLayer?.bounds = frame
+            bgLayer?.position = midPt
             
             if let shapeLayer = self.shapeLayer {
 
