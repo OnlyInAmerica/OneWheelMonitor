@@ -10,7 +10,47 @@
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 			<key>Title</key>
-			<string>Audio Alerts</string>
+			<string>Lights</string>
+			<key>FooterText</key>
+			<string>Automatically keep your OW+ lights on from 5p-8a, off otherwise.</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>AutoLights</string>
+			<key>Key</key>
+			<string>ow_auto_lights</string>
+			<key>DefaultValue</key>
+			<false/>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
+			<string>Audio Alerts Volume</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSSliderSpecifier</string>
+			<key>FooterText</key>
+			<string>Header</string>
+			<key>MinimumValueImage</key>
+			<string></string>
+			<key>Key</key>
+			<string>ow_alerts_volume</string>
+			<key>DefaultValue</key>
+			<integer>1</integer>
+			<key>MinimumValue</key>
+			<integer>0</integer>
+			<key>MaximumValue</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
+			<string>Audio Alerts Tweaks</string>
 			<key>FooterText</key>
 			<string>Ducking other audio adds a short delay to each alert playback, but makes alerts play nice with music. The (&quot;Rider Off&quot;) alert sounds ~500ms before board shutoff, but most aren&apos;t time critical.</string>
 		</dict>
@@ -37,6 +77,8 @@
 		<dict>
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
+			<key>Title</key>
+			<string>Audio Alerts</string>
 			<key>FooterText</key>
 			<string>Reports when connection is made (&quot;Connected&quot;) and lost (&quot;Disconnected&quot;) from the board.</string>
 		</dict>
@@ -54,7 +96,7 @@
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 			<key>FooterText</key>
-			<string>Reports ride mileage on an interval (&quot;2.5 ride miles&quot;).</string>
+			<string>Reports ride mileage on a 0.5 mile interval (&quot;2.5 ride miles&quot;).</string>
 		</dict>
 		<dict>
 			<key>Type</key>
@@ -86,7 +128,7 @@
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 			<key>FooterText</key>
-			<string>Reports when speed passes certain benchmarks, starting at 12mph (&quot;Speed 17&quot;).</string>
+			<string>Reports when speed passes certain benchmarks, starting at 12mph (&quot;Speed 12&quot;).</string>
 		</dict>
 		<dict>
 			<key>Type</key>
@@ -113,24 +155,6 @@
 			<string>ow_alerts_foot_sensor</string>
 			<key>DefaultValue</key>
 			<true/>
-		</dict>
-		<dict>
-			<key>Type</key>
-			<string>PSGroupSpecifier</string>
-			<key>Title</key>
-			<string>Lights</string>
-			<key>FooterText</key>
-			<string>Automatically switch your OW+ lights after connecting. On from 5p-8a, off otherwise.</string>
-		</dict>
-		<dict>
-			<key>Type</key>
-			<string>PSToggleSwitchSpecifier</string>
-			<key>Title</key>
-			<string>AutoLights</string>
-			<key>Key</key>
-			<string>ow_auto_lights</string>
-			<key>DefaultValue</key>
-			<false/>
 		</dict>
 	</array>
 </dict>

@@ -44,6 +44,9 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     private let bgQueue = DispatchQueue(label: "bgQueue")
     private let bgDbTransactionLength = 20 // When in background, group inserts to conserve CPU
     private var bgStateQueue = [OneWheelState]()
+    
+    // Cache lights state for AutoLights
+    private var lightsOn: Bool? = nil
 
     // Bluetooth
     private var cm : CBCentralManager?
@@ -65,6 +68,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     
     private var characteristicForUUID = [CBUUID: CBCharacteristic]()
     
+    // Polling
     private let pollingInterval: TimeInterval = 10.0
     private var lastPolledDate: Date?
     
@@ -133,6 +137,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             }
             NSLog("Writing lights \(on ? "on" : "off")")
             peripheral.writeValue(data, for: lightChar, type: CBCharacteristicWriteType.withResponse)
+            self.lightsOn = on
         } else {
             NSLog("Cannot toggle lights, lighting characteristic not yet discovered")
         }
@@ -201,9 +206,9 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         // TODO : Allow user to control if auto re-connection is desired
         NSLog("Peripheral disconnected: \(peripheral.identifier) - \(peripheral.name ?? "No Name")")
         if peripheral.identifier == connectedDevice?.identifier {
-            NSLog("Reconnecting disconnected peripheral")
             if shouldSoundAlerts && userPrefs.getConnectionAlertsEnabled() {
                 if startRequested {
+                    NSLog("Reconnecting disconnected peripheral")
                     queueHighAlert("Reconnecting")
                 } else {
                     queueHighAlert("Disconnected")
@@ -454,13 +459,17 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             queueHighAlert("Speed \(mphRound)", key: "Speed", shortMessage: "\(mphRound)")
         }
         
-        // Temporarily using rpm to pace some other characteristics we don't only need coarse time resolution on
+        // TODO : Temporarily using rpm to pace some other characteristics we only need coarse time resolution on
         let now = Date()
         if lastPolledDate != nil && lastPolledDate!.addingTimeInterval(pollingInterval) < now {
             if let tempCharacteristic = characteristicForUUID[characteristicTempUuid], let odoCharacteristic = characteristicForUUID[characteristicOdometerUuid] {
                 connectedDevice?.readValue(for: tempCharacteristic)
                 connectedDevice?.readValue(for: odoCharacteristic)
                 lastPolledDate = Date()
+            }
+            
+            if userPrefs.getAutoLightsEnabled() {
+                applyAutoLights(now)
             }
         }
         
@@ -523,27 +532,38 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         lastState = newState
     }
     
-    private func handleUpdatedOdometer(_ odometer: Int16) {
-        let startOdometer = rideData.getOdometerStart()
-        if startOdometer == 0 {
-            rideData.setOdometerStart(revs: Int(odometer))
-            rideData.setOdometerLast(revs: Int(odometer))
+    private func handleUpdatedOdometer(_ tripOdometer: Int16) {
+        // A OW+ trip seems to be between charging. We need to support summing multiple OW "trips" into an app-managed ride
+        
+        var rideOdometer = rideData.getOdometerSum()
+        let tripOdometerOffset = rideData.getOdometerTripOffset()
+        
+        let deltaOdometer = Int(tripOdometer) + tripOdometerOffset - rideOdometer
+        
+        if deltaOdometer < 0 {
+            // Trip must have reset
+            rideData.setOdometerTripOffset(revs: abs(deltaOdometer))
+            rideData.setOdometerSum(revs: rideOdometer + Int(tripOdometer))
+        } else {
+            rideData.setOdometerSum(revs: rideOdometer + deltaOdometer)
         }
-        let lastMileage = revolutionstoMiles(Double(rideData.getOdometerLast()))
-        let nowMileage = revolutionstoMiles(Double(odometer))
-        let startMileage = revolutionstoMiles(Double(startOdometer))
+
+        rideOdometer = rideData.getOdometerSum()
         
-        let deltaMileage = nowMileage - lastMileage
+        let lastAnnouncedMileage = revolutionstoMiles(Double(rideData.getOdometerLastAnnounced()))
+        let nowMileage = revolutionstoMiles(Double(rideOdometer))
         
-        NSLog("Last mileage \(lastMileage) now mileage \(nowMileage)")
+        let mileageSinceAnnounce = nowMileage - lastAnnouncedMileage
         
-        if startOdometer > 0 && deltaMileage >= tripMileageAnnounceInterval {
+        NSLog("Last mileage \(lastAnnouncedMileage) now mileage \(nowMileage)")
+        
+        if rideOdometer > 0 && mileageSinceAnnounce >= tripMileageAnnounceInterval {
             if shouldSoundAlerts && userPrefs.getMileageAlertsEnabled() {
                 // TODO : I think everyone wants to know estimated miles remaining vs miles covered...
                 // Let's calculate a running average here and possibly announce along with battery report?
-                queueLowAlert("\(String(format: "%.1f", nowMileage - startMileage)) ride miles", key: "Mileage")
+                queueLowAlert("\(String(format: "%.1f", nowMileage)) ride miles", key: "Mileage")
             }
-            rideData.setOdometerLast(revs: Int(odometer))
+            rideData.setOdometerLastAnnounced(revs: rideOdometer)
         }
     }
     
@@ -629,7 +649,10 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             let hour = Calendar.current.component(.hour, from: now)
             let isProbablyDark = (hour > 17 || hour < 8)
             NSLog("Current hour is \(hour). Is probably dark: \(isProbablyDark)")
-            toggleLights(peripheral: peripheral, on: isProbablyDark)
+            let lightsOnDesired = isProbablyDark
+            if lightsOn != lightsOnDesired {
+                toggleLights(peripheral: peripheral, on: lightsOnDesired)
+            }
         }
     }
 }
@@ -702,6 +725,9 @@ class OneWheel {
 }
 
 class OneWheelLocalData {
+    
+    private let keyOnboarded = "ow_onboarded"
+    
     private let keyUuid = "ow_uuid"
     private let keyAudioAlerts = "ow_audio_alerts"
     
@@ -714,10 +740,12 @@ class OneWheelLocalData {
     private let keyConnectionAlerts = "ow_alerts_connection"
     private let keyAlertsRequiresHeadphones = "ow_alerts_requires_headphones"
     private let keyAlertsDuckAudio = "ow_alerts_duck_audio"
-    
+    private let keyAlertsVolume = "ow_alerts_volume"
+
     private let data = UserDefaults.standard
     
     init() {
+        data.register(defaults: [keyOnboarded : false])
         data.register(defaults: [keyAudioAlerts : true])
         data.register(defaults: [keyAutoLights : false])
         data.register(defaults: [keyFootAlerts : true])
@@ -727,6 +755,8 @@ class OneWheelLocalData {
         data.register(defaults: [keyConnectionAlerts : true])
         data.register(defaults: [keyAlertsRequiresHeadphones : true])
         data.register(defaults: [keyAlertsDuckAudio : false])
+        data.register(defaults: [keyAlertsVolume : 1.0])
+
     }
     
     func clearPrimaryDeviceUUID() {
@@ -784,27 +814,44 @@ class OneWheelLocalData {
     func getAlertsRequireHeadphones() -> Bool {
         return data.bool(forKey: keyAlertsRequiresHeadphones)
     }
+    
+    func getAlertsVolume() -> Float {
+        return data.float(forKey: keyAlertsVolume)
+    }
+    
+    func setOnboarded(_ onboarded: Bool) {
+        data.setValue(onboarded, forKeyPath: keyOnboarded)
+    }
+    
+    func getOnboarded() -> Bool {
+        return data.bool(forKey: keyOnboarded)
+    }
 }
 
 class RideLocalData {
     private let keyMaxRpm = "r_max_rpm"
     private let keyMaxRpmDate = "r_max_rpm_date"
     
-    private let keyOdometerStart = "r_odometer_start"
-    private let keyOdometerLast = "r_odometer_last"
+    private let keyOdometerSum = "r_odometer_sum"
+    private let keyOdometerLast = "r_odometer_last"  // Last announced
+    private let keyOdometerTripOffset = "r_odometer_trip_offset"  // When trip timer resets within a ride, keep a measure of prior trip odo to sum
 
     private let data = UserDefaults.standard
     
     init() {
         data.register(defaults: [keyMaxRpm : 0])
-        data.register(defaults: [keyOdometerStart : 0])
+        data.register(defaults: [keyOdometerSum : 0])
         data.register(defaults: [keyOdometerLast : 0])
+        data.register(defaults: [keyOdometerTripOffset : 0])
+
     }
     
     func clear() {
         data.removeObject(forKey: keyMaxRpm)
         data.removeObject(forKey: keyMaxRpmDate)
-        data.removeObject(forKey: keyOdometerStart)
+        data.removeObject(forKey: keyOdometerSum)
+        data.removeObject(forKey: keyOdometerLast)
+        data.removeObject(forKey: keyOdometerTripOffset)
     }
     
     func setMaxRpm(_ max: Int, date: Date) {
@@ -820,20 +867,28 @@ class RideLocalData {
         return data.object(forKey: keyMaxRpmDate) as? Date
     }
     
-    func setOdometerStart(revs: Int) {
-        data.setValue(revs, forKey: keyOdometerStart)
+    func setOdometerSum(revs: Int) {
+        data.setValue(revs, forKey: keyOdometerSum)
     }
     
-    func getOdometerStart() -> Int {
-        return data.integer(forKey: keyOdometerStart)
+    func getOdometerSum() -> Int {
+        return data.integer(forKey: keyOdometerSum)
     }
     
-    func setOdometerLast(revs: Int) {
+    func setOdometerLastAnnounced(revs: Int) {
         data.setValue(revs, forKey: keyOdometerLast)
     }
     
-    func getOdometerLast() -> Int {
+    func getOdometerLastAnnounced() -> Int {
         return data.integer(forKey: keyOdometerLast)
+    }
+    
+    func setOdometerTripOffset(revs: Int) {
+        data.setValue(revs, forKey: keyOdometerTripOffset)
+    }
+    
+    func getOdometerTripOffset() -> Int {
+        return data.integer(forKey: keyOdometerTripOffset)
     }
 }
 

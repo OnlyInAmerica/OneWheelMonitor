@@ -15,6 +15,8 @@ class SpeechAlertManager {
     private let speechSynth = AVSpeechSynthesizer()
     private let speechVoice = AVSpeechSynthesisVoice(language: "en-US")
     
+    private let userPrefs = OneWheelLocalData()
+
     func createSpeechAlert(priority: Priority, message: String, key: String? = nil, shortMessage: String? = nil) -> Alert {
         return SpeechAlert(speechManager: self, priority: priority, message: message, key: key, shortMessage: shortMessage)
     }
@@ -48,6 +50,7 @@ class SpeechAlertManager {
             speechAlertManager.speechSynth.delegate = self
             let utterance = AVSpeechUtterance(string: toSpeak)
             utterance.rate = 0.55
+            utterance.volume = speechAlertManager.userPrefs.getAlertsVolume()
             utterance.voice = speechAlertManager.speechVoice
             speechAlertManager.speechSynth.speak(utterance)
         }
