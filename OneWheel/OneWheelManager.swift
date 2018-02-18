@@ -524,26 +524,36 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     }
     
     private func handleUpdatedOdometer(_ odometer: Int16) {
-        let startOdometer = rideData.getOdometerStart()
-        if startOdometer == 0 {
-            rideData.setOdometerStart(revs: Int(odometer))
-            rideData.setOdometerLast(revs: Int(odometer))
+        var rideOdometer = rideData.getOdometerSum()
+        if rideOdometer == 0 {
+            // First odometer update
+            rideData.setOdometerSum(revs: Int(odometer))
+            rideData.setOdometerLastAnnounced(revs: Int(odometer))
+        } else if odometer < rideOdometer {
+            // The board's trip counter reset, but we've gotta keep on counting
+            // If trip counter reset and our first update was with a trip odo > ride odo, we're sorta boned for now
+            rideData.setOdometerSum(revs: rideOdometer + Int(odometer))
+        } else {
+            rideData.setOdometerSum(revs: Int(odometer))
         }
-        let lastMileage = revolutionstoMiles(Double(rideData.getOdometerLast()))
-        let nowMileage = revolutionstoMiles(Double(odometer))
-        let startMileage = revolutionstoMiles(Double(startOdometer))
+        
+        rideOdometer = rideData.getOdometerSum()
+        
+        let lastMileage = revolutionstoMiles(Double(rideData.getOdometerLastAnnounced()))
+        let nowMileage = revolutionstoMiles(Double(rideOdometer))
+        let startMileage = 0.0
         
         let deltaMileage = nowMileage - lastMileage
         
         NSLog("Last mileage \(lastMileage) now mileage \(nowMileage)")
         
-        if startOdometer > 0 && deltaMileage >= tripMileageAnnounceInterval {
+        if rideOdometer > 0 && deltaMileage >= tripMileageAnnounceInterval {
             if shouldSoundAlerts && userPrefs.getMileageAlertsEnabled() {
                 // TODO : I think everyone wants to know estimated miles remaining vs miles covered...
                 // Let's calculate a running average here and possibly announce along with battery report?
                 queueLowAlert("\(String(format: "%.1f", nowMileage - startMileage)) ride miles", key: "Mileage")
             }
-            rideData.setOdometerLast(revs: Int(odometer))
+            rideData.setOdometerLastAnnounced(revs: Int(odometer))
         }
     }
     
@@ -790,21 +800,22 @@ class RideLocalData {
     private let keyMaxRpm = "r_max_rpm"
     private let keyMaxRpmDate = "r_max_rpm_date"
     
-    private let keyOdometerStart = "r_odometer_start"
+    private let keyOdometerSum = "r_odometer_sum"
     private let keyOdometerLast = "r_odometer_last"
 
     private let data = UserDefaults.standard
     
     init() {
         data.register(defaults: [keyMaxRpm : 0])
-        data.register(defaults: [keyOdometerStart : 0])
+        data.register(defaults: [keyOdometerSum : 0])
         data.register(defaults: [keyOdometerLast : 0])
     }
     
     func clear() {
         data.removeObject(forKey: keyMaxRpm)
         data.removeObject(forKey: keyMaxRpmDate)
-        data.removeObject(forKey: keyOdometerStart)
+        data.removeObject(forKey: keyOdometerSum)
+        data.removeObject(forKey: keyOdometerLast)
     }
     
     func setMaxRpm(_ max: Int, date: Date) {
@@ -820,19 +831,19 @@ class RideLocalData {
         return data.object(forKey: keyMaxRpmDate) as? Date
     }
     
-    func setOdometerStart(revs: Int) {
-        data.setValue(revs, forKey: keyOdometerStart)
+    func setOdometerSum(revs: Int) {
+        data.setValue(revs, forKey: keyOdometerSum)
     }
     
-    func getOdometerStart() -> Int {
-        return data.integer(forKey: keyOdometerStart)
+    func getOdometerSum() -> Int {
+        return data.integer(forKey: keyOdometerSum)
     }
     
-    func setOdometerLast(revs: Int) {
+    func setOdometerLastAnnounced(revs: Int) {
         data.setValue(revs, forKey: keyOdometerLast)
     }
     
-    func getOdometerLast() -> Int {
+    func getOdometerLastAnnounced() -> Int {
         return data.integer(forKey: keyOdometerLast)
     }
 }
