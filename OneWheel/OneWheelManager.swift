@@ -508,7 +508,10 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
 
             let currentBattDiff = abs(currentBattBenchmark - batteryLevel)
             let lastBattDiff = abs(lastBattBenchmark - batteryLevel)
-            if (currentBattDiff < lastBattDiff) {
+            if lastBattBenchmark == 100 && batteryLevel == 99 {
+                // At 100 -> 99, announce "99", not "100". Because of battery characteristics this transition represents significant battery use
+                queueLowAlert("Battery \(Int(batteryLevel))", key: "Batt")
+            } else if (currentBattDiff < lastBattDiff) {
                 queueLowAlert("Battery \(Int(currentBattBenchmark))", key: "Batt")
             } else {
                 queueLowAlert("Battery \(Int(lastBattBenchmark))", key: "Batt")
