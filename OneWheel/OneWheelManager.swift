@@ -532,37 +532,38 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         lastState = newState
     }
     
-    private func handleUpdatedOdometer(_ odometer: Int16) {
-        var rideOdometer = rideData.getOdometerSum()
-        if rideOdometer == 0 {
-            // First odometer update
-            rideData.setOdometerSum(revs: Int(odometer))
-            rideData.setOdometerLastAnnounced(revs: Int(odometer))
-        } else if odometer < rideOdometer {
-            // The board's trip counter reset, but we've gotta keep on counting
-            // If trip counter reset and our first update was with a trip odo > ride odo, we're sorta boned for now
-            rideData.setOdometerSum(revs: rideOdometer + Int(odometer))
-        } else {
-            rideData.setOdometerSum(revs: Int(odometer))
-        }
+    private func handleUpdatedOdometer(_ tripOdometer: Int16) {
+        // A OW+ trip seems to be between charging. We need to support summing multiple OW "trips" into an app-managed ride
         
+        var rideOdometer = rideData.getOdometerSum()
+        let tripOdometerOffset = rideData.getOdometerTripOffset()
+        
+        let deltaOdometer = Int(tripOdometer) + tripOdometerOffset - rideOdometer
+        
+        if deltaOdometer < 0 {
+            // Trip must have reset
+            rideData.setOdometerTripOffset(revs: abs(deltaOdometer))
+            rideData.setOdometerSum(revs: rideOdometer + Int(tripOdometer))
+        } else {
+            rideData.setOdometerSum(revs: rideOdometer + deltaOdometer)
+        }
+
         rideOdometer = rideData.getOdometerSum()
         
-        let lastMileage = revolutionstoMiles(Double(rideData.getOdometerLastAnnounced()))
+        let lastAnnouncedMileage = revolutionstoMiles(Double(rideData.getOdometerLastAnnounced()))
         let nowMileage = revolutionstoMiles(Double(rideOdometer))
-        let startMileage = 0.0
         
-        let deltaMileage = nowMileage - lastMileage
+        let mileageSinceAnnounce = nowMileage - lastAnnouncedMileage
         
-        NSLog("Last mileage \(lastMileage) now mileage \(nowMileage)")
+        NSLog("Last mileage \(lastAnnouncedMileage) now mileage \(nowMileage)")
         
-        if rideOdometer > 0 && deltaMileage >= tripMileageAnnounceInterval {
+        if rideOdometer > 0 && mileageSinceAnnounce >= tripMileageAnnounceInterval {
             if shouldSoundAlerts && userPrefs.getMileageAlertsEnabled() {
                 // TODO : I think everyone wants to know estimated miles remaining vs miles covered...
                 // Let's calculate a running average here and possibly announce along with battery report?
-                queueLowAlert("\(String(format: "%.1f", nowMileage - startMileage)) ride miles", key: "Mileage")
+                queueLowAlert("\(String(format: "%.1f", nowMileage)) ride miles", key: "Mileage")
             }
-            rideData.setOdometerLastAnnounced(revs: Int(odometer))
+            rideData.setOdometerLastAnnounced(revs: rideOdometer)
         }
     }
     
