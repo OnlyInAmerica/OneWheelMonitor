@@ -736,7 +736,8 @@ class OneWheelLocalData {
     private let keyConnectionAlerts = "ow_alerts_connection"
     private let keyAlertsRequiresHeadphones = "ow_alerts_requires_headphones"
     private let keyAlertsDuckAudio = "ow_alerts_duck_audio"
-    
+    private let keyAlertsVolume = "ow_alerts_volume"
+
     private let data = UserDefaults.standard
     
     init() {
@@ -749,6 +750,8 @@ class OneWheelLocalData {
         data.register(defaults: [keyConnectionAlerts : true])
         data.register(defaults: [keyAlertsRequiresHeadphones : true])
         data.register(defaults: [keyAlertsDuckAudio : false])
+        data.register(defaults: [keyAlertsVolume : 1.0])
+
     }
     
     func clearPrimaryDeviceUUID() {
@@ -806,6 +809,10 @@ class OneWheelLocalData {
     func getAlertsRequireHeadphones() -> Bool {
         return data.bool(forKey: keyAlertsRequiresHeadphones)
     }
+    
+    func getAlertsVolume() -> Float {
+        return data.float(forKey: keyAlertsVolume)
+    }
 }
 
 class RideLocalData {
@@ -813,7 +820,8 @@ class RideLocalData {
     private let keyMaxRpmDate = "r_max_rpm_date"
     
     private let keyOdometerSum = "r_odometer_sum"
-    private let keyOdometerLast = "r_odometer_last"
+    private let keyOdometerLast = "r_odometer_last"  // Last announced
+    private let keyOdometerTripOffset = "r_odometer_trip_offset"  // When trip timer resets within a ride, keep a measure of prior trip odo to sum
 
     private let data = UserDefaults.standard
     
@@ -821,6 +829,8 @@ class RideLocalData {
         data.register(defaults: [keyMaxRpm : 0])
         data.register(defaults: [keyOdometerSum : 0])
         data.register(defaults: [keyOdometerLast : 0])
+        data.register(defaults: [keyOdometerTripOffset : 0])
+
     }
     
     func clear() {
@@ -828,6 +838,7 @@ class RideLocalData {
         data.removeObject(forKey: keyMaxRpmDate)
         data.removeObject(forKey: keyOdometerSum)
         data.removeObject(forKey: keyOdometerLast)
+        data.removeObject(forKey: keyOdometerTripOffset)
     }
     
     func setMaxRpm(_ max: Int, date: Date) {
@@ -857,6 +868,14 @@ class RideLocalData {
     
     func getOdometerLastAnnounced() -> Int {
         return data.integer(forKey: keyOdometerLast)
+    }
+    
+    func setOdometerTripOffset(revs: Int) {
+        data.setValue(revs, forKey: keyOdometerTripOffset)
+    }
+    
+    func getOdometerTripOffset() -> Int {
+        return data.integer(forKey: keyOdometerTripOffset)
     }
 }
 
