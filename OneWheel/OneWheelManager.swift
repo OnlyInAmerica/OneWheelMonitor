@@ -30,7 +30,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     private let alertQueue = AlertQueue()
     
     // Used to throttle alert generation
-    private let speedMonitor: BenchmarkMonitor = SpeedMonitor()
+    private let speedMonitor: SpeedMonitor = SpeedMonitor()
     private let batteryMonitor: BenchmarkMonitor = BatteryMonitor()
     private let headroomMonitor: BenchmarkMonitor = HeadroomMonitor()
     private let alertThrottler = CancelableAlertThrottler()
@@ -473,7 +473,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             }
         }
         
-        if rideData.getMaxRpm() < rpm {
+        if rideData.getMaxRpm() < rpm && !speedMonitor.wheelSlipDetected {
             NSLog("Setting new max rpm \(rpm)")
             rideData.setMaxRpm(Int(rpm), date: date)
             if shouldSoundAlerts && userPrefs.getSpeedAlertsEnabled() && mphRound > 12 {
@@ -966,10 +966,39 @@ class BenchmarkMonitor {
 
 class SpeedMonitor: BenchmarkMonitor {
     
+    private var lastSpeed: Double? = nil
+    private var lastSpeedDate: Date? = nil
+    private let wheelSlipThresholdMphps = 31.0 // Mph / s
+    var wheelSlipDetected = false
+    
     init() {
         let benchmarks = [12.0, 14.0] + Array(stride(from: 15.0, through: 30.0, by: 1.0))
         let hysteresis = 1.5
         super.init(benchmarks: benchmarks, hysteresis: hysteresis)
+    }
+    
+    override func passedBenchmark(_ val: Double) -> Bool {
+        
+        let now = Date()
+        
+        // Rough wheel slip detection based on instantaneous acceleration
+        if let lastSpeed = self.lastSpeed, let lastSpeedDate = self.lastSpeedDate {
+            let accel = (val - lastSpeed) / (now.timeIntervalSince(lastSpeedDate))
+            if accel >= wheelSlipThresholdMphps {
+                wheelSlipDetected = true
+            } else if accel <= -wheelSlipThresholdMphps || val == 0.0 {
+               wheelSlipDetected = false
+            }
+        }
+        
+        lastSpeed = val
+        lastSpeedDate = now
+        
+        if wheelSlipDetected {
+            return false
+        } else {
+            return super.passedBenchmark(val)
+        }
     }
 }
 
