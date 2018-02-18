@@ -477,7 +477,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             NSLog("Setting new max rpm \(rpm)")
             rideData.setMaxRpm(Int(rpm), date: date)
             if shouldSoundAlerts && userPrefs.getSpeedAlertsEnabled() && mphRound > 12 {
-                queueLowAlert("New Top Speed \(mphRound)", key: "TopSpeed")
+                alertThrottler.scheduleAlert(key: "TopSpeed", alertQueue: alertQueue, alert: speechManager.createSpeechAlert(priority: .LOW, message: "New Top Speed \(mphRound)", key:"TopSpeed"))
             }
         } else {
             NSLog("Max rpm still \(rideData.getMaxRpm())")
