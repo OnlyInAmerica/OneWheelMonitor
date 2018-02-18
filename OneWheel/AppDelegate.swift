@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import Onboard
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -15,6 +16,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     let owManager = OneWheelManager()
     var stateVc : StateViewController?
+    
+    var onboarding = false
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
@@ -26,6 +29,41 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         
         self.stateVc = ((self.window?.rootViewController as! UINavigationController).topViewController as! StateViewController)
         stateVc!.owManager = owManager
+        
+        let didOnboard = OneWheelLocalData().getOnboarded()
+        
+        if !didOnboard {
+            let firstPage = OnboardingContentViewController(title: "All aboard!", body: "Thanks for trying Float Deck. Here's some ProTips...", image: nil, buttonText: "Go on...") { () -> Void in
+                // no-op
+            }
+            firstPage.movesToNextViewController = true
+            let secondPage = OnboardingContentViewController(title: "One App at a Time", body: "Force close other OW apps to avoid problems connecting your board.", image: nil, buttonText: "Got it") { () -> Void in
+                // no-op
+            }
+            secondPage.movesToNextViewController = true
+            let thirdPage = OnboardingContentViewController(title: "Alerts Require Headphones", body: "You can change this, and more, with the in-app settings button", image: nil, buttonText: "Done") { () -> Void in
+                
+                OneWheelLocalData().setOnboarded(true)
+                
+                self.onboarding = false
+                (self.window!.rootViewController as! UINavigationController).hidesBarsOnTap = true
+                (self.window!.rootViewController as! UINavigationController).isToolbarHidden = false
+                (self.window!.rootViewController as! UINavigationController).isNavigationBarHidden = false
+                (self.window!.rootViewController as! UINavigationController).popViewController(animated: true)
+            }
+            thirdPage.movesToNextViewController = true
+            let onboardingVC = OnboardingViewController(backgroundImage: UIImage(named: "ow-app"), contents: [firstPage, secondPage, thirdPage])
+            
+            onboarding = true
+            (self.window!.rootViewController as! UINavigationController).hidesBarsOnTap = false
+            (self.window!.rootViewController as! UINavigationController).isToolbarHidden = true
+            (self.window!.rootViewController as! UINavigationController).isNavigationBarHidden = true
+
+            (self.window!.rootViewController as! UINavigationController).pushViewController(onboardingVC!, animated: false)
+            
+//            self.window?.rootViewController = onboardingVC
+        }
+        
         return true
     }
 
@@ -50,6 +88,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func applicationWillTerminate(_ application: UIApplication) {
         // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
+    }
+    
+    public func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+        if onboarding {
+            return .portrait
+        } else {
+            return .allButUpsideDown
+        }
     }
 }
 

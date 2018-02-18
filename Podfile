@@ -7,6 +7,7 @@ target 'OneWheel' do
 
   # Pods for OneWheel
   pod 'GRDB.swift', '2.4.1'
+  pod 'Onboard'
 
   target 'OneWheelTests' do
     inherit! :search_paths

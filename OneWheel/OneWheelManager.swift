@@ -725,6 +725,9 @@ class OneWheel {
 }
 
 class OneWheelLocalData {
+    
+    private let keyOnboarded = "ow_onboarded"
+    
     private let keyUuid = "ow_uuid"
     private let keyAudioAlerts = "ow_audio_alerts"
     
@@ -742,6 +745,7 @@ class OneWheelLocalData {
     private let data = UserDefaults.standard
     
     init() {
+        data.register(defaults: [keyOnboarded : false])
         data.register(defaults: [keyAudioAlerts : true])
         data.register(defaults: [keyAutoLights : false])
         data.register(defaults: [keyFootAlerts : true])
@@ -813,6 +817,14 @@ class OneWheelLocalData {
     
     func getAlertsVolume() -> Float {
         return data.float(forKey: keyAlertsVolume)
+    }
+    
+    func setOnboarded(_ onboarded: Bool) {
+        data.setValue(onboarded, forKeyPath: keyOnboarded)
+    }
+    
+    func getOnboarded() -> Bool {
+        return data.bool(forKey: keyOnboarded)
     }
 }
 
