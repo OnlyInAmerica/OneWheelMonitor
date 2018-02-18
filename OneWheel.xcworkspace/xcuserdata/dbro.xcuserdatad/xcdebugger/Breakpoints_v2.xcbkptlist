@@ -225,7 +225,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "758"
             endingLineNumber = "758"
-            landmarkName = "setAudioAlertsEnabled(_:)"
+            landmarkName = "setPrimaryDeviceUUID(_:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -433,7 +433,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "527"
             endingLineNumber = "527"
-            landmarkName = "handleUpdatedOdometer(_:)"
+            landmarkName = "handleUpdatedLastErrorCode(errorCode1:errorCode2:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -449,8 +449,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "731"
             endingLineNumber = "731"
-            landmarkName = "init()"
-            landmarkType = "7">
+            landmarkName = "OneWheelLocalData"
+            landmarkType = "3">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy

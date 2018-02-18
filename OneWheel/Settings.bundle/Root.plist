@@ -120,7 +120,7 @@
 			<key>Title</key>
 			<string>Lights</string>
 			<key>FooterText</key>
-			<string>Automatically switch your OW+ lights after connecting. On from 5p-8a, off otherwise.</string>
+			<string>Automatically keep your OW+ lights on from 5p-8a, off otherwise.</string>
 		</dict>
 		<dict>
 			<key>Type</key>

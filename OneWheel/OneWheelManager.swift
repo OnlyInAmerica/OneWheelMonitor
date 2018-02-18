@@ -44,6 +44,9 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     private let bgQueue = DispatchQueue(label: "bgQueue")
     private let bgDbTransactionLength = 20 // When in background, group inserts to conserve CPU
     private var bgStateQueue = [OneWheelState]()
+    
+    // Cache lights state for AutoLights
+    private var lightsOn: Bool? = nil
 
     // Bluetooth
     private var cm : CBCentralManager?
@@ -65,6 +68,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     
     private var characteristicForUUID = [CBUUID: CBCharacteristic]()
     
+    // Polling
     private let pollingInterval: TimeInterval = 10.0
     private var lastPolledDate: Date?
     
@@ -133,6 +137,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             }
             NSLog("Writing lights \(on ? "on" : "off")")
             peripheral.writeValue(data, for: lightChar, type: CBCharacteristicWriteType.withResponse)
+            self.lightsOn = on
         } else {
             NSLog("Cannot toggle lights, lighting characteristic not yet discovered")
         }
@@ -454,13 +459,17 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             queueHighAlert("Speed \(mphRound)", key: "Speed", shortMessage: "\(mphRound)")
         }
         
-        // Temporarily using rpm to pace some other characteristics we don't only need coarse time resolution on
+        // TODO : Temporarily using rpm to pace some other characteristics we only need coarse time resolution on
         let now = Date()
         if lastPolledDate != nil && lastPolledDate!.addingTimeInterval(pollingInterval) < now {
             if let tempCharacteristic = characteristicForUUID[characteristicTempUuid], let odoCharacteristic = characteristicForUUID[characteristicOdometerUuid] {
                 connectedDevice?.readValue(for: tempCharacteristic)
                 connectedDevice?.readValue(for: odoCharacteristic)
                 lastPolledDate = Date()
+            }
+            
+            if userPrefs.getAutoLightsEnabled() {
+                applyAutoLights(now)
             }
         }
         
@@ -639,7 +648,10 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             let hour = Calendar.current.component(.hour, from: now)
             let isProbablyDark = (hour > 17 || hour < 8)
             NSLog("Current hour is \(hour). Is probably dark: \(isProbablyDark)")
-            toggleLights(peripheral: peripheral, on: isProbablyDark)
+            let lightsOnDesired = isProbablyDark
+            if lightsOn != lightsOnDesired {
+                toggleLights(peripheral: peripheral, on: lightsOnDesired)
+            }
         }
     }
 }
