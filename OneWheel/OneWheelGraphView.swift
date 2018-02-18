@@ -296,7 +296,7 @@ class OneWheelGraphView: UIView {
         }
         
         if let _ = dataSource {
-            drawTimeLabels(rect: timeLabelsRect, root: axisLabelLayer, numLabels: portraitMode ? 2: 3)
+            drawTimeLabels(rect: timeLabelsRect, root: axisLabelLayer, numLabels: 3)
         }
         drawZoomHint(rect: seriesRect, root: axisLabelLayer)
     }
@@ -379,8 +379,12 @@ class OneWheelGraphView: UIView {
             let state = dataSource!.getStateForIndex(index: min(dataCount - 1, Int(CGFloat(dataCount-1) * ((dataRange.y - dataRange.x) * axisLabelFrac)) + startIdx))
             
             let x: CGFloat = (rect.width * axisLabelFrac) + rect.origin.x
-            let axisLabel = formatter.string(from: state.time)
-            
+            var axisLabel = formatter.string(from: state.time)
+            if axisLabelIdx % 2 == 1 && axisLabelIdx == (numLabels / 2) { // If there's a middle label, use that for distance
+                let miles = revolutionstoMiles(Double(rideData.getOdometerSum()))
+                let milesStr = String(format: "%.1f", miles)
+                axisLabel = "\(milesStr) Ride Miles"
+            }
             var labelRect = axisLabel.boundingRect(with: rect.size, options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: [NSAttributedStringKey.font: labelFont], context: nil)
             var rectX = x - (labelRect.width / 2)
             let rectY = rect.height - labelSideMargin - labelRect.height
