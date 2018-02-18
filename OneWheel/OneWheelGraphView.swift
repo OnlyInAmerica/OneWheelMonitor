@@ -58,6 +58,8 @@ class OneWheelGraphView: UIView {
     var lastScalePoint: CGPoint? = nil
     var isGesturing = false
     
+    var performedFirstDraw = false
+    
     public override init(frame: CGRect) {
         super.init(frame: frame)
         setup()
@@ -248,21 +250,25 @@ class OneWheelGraphView: UIView {
         
         if let dataSource = self.dataSource {
             let dataCount = dataSource.getCount()
-            if true { //stateCacheDataCount != dataCount {
-                NSLog("CALayer - Caching data. \(dataCount) items, \(stateCache.count) in cache")
-                // Assume that we're working with timeseries data so only need to update cache if size changes
-                self.cacheState(dataSource: dataSource, rect: seriesRect)
-                
-                for (_, series) in self.series {
-                    if series is SpeedSeries {
-                        series.max = max(series.max, 1.10 * rpmToMph(Double(rideData.getMaxRpm())))
-                    }
-                    series.bindData(rect: seriesRect, graphView: self)
+            NSLog("CALayer - Caching data. \(dataCount) items, \(stateCache.count) in cache")
+            // Assume that we're working with timeseries data so only need to update cache if size changes
+            self.cacheState(dataSource: dataSource, rect: seriesRect)
+            
+            for (_, series) in self.series {
+                if series is SpeedSeries {
+                    series.max = max(series.max, 1.10 * rpmToMph(Double(rideData.getMaxRpm())))
                 }
+                series.bindData(rect: seriesRect, graphView: self)
             }
         }
-        drawLayers()
-        CATransaction.commit()
+        if !performedFirstDraw {
+            drawLayers()
+            CATransaction.commit()
+        } else {
+            CATransaction.commit()
+            drawLayers()
+        }
+        performedFirstDraw = !performedFirstDraw
     }
     
     func drawLayers() {
