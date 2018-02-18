@@ -37,11 +37,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                 // no-op
             }
             firstPage.movesToNextViewController = true
-            let secondPage = OnboardingContentViewController(title: "One App at a Time", body: "Force close other OW apps to avoid problems connecting your board.", image: nil, buttonText: "Got it") { () -> Void in
+            let secondPage = OnboardingContentViewController(title: "One App at a Time", body: "Force close other OW apps to avoid problems connecting to your board.", image: nil, buttonText: "Next") { () -> Void in
                 // no-op
             }
             secondPage.movesToNextViewController = true
-            let thirdPage = OnboardingContentViewController(title: "Alerts Require Headphones", body: "You can change this, and more, with the in-app settings button", image: nil, buttonText: "Done") { () -> Void in
+            let thirdPage = OnboardingContentViewController(title: "Portrait & Landscape", body: "Portrait mode shows the last 60 seconds of data. Landscape shows your entire ride.", image: nil, buttonText: "Next") { () -> Void in
+                // no-op
+            }
+            thirdPage.movesToNextViewController = true
+            let fourthPage = OnboardingContentViewController(title: "Alerts Require Headphones", body: "You can change this via the in-app settings button. You can also review & control every alert type.", image: nil, buttonText: "Done") { () -> Void in
                 
                 OneWheelLocalData().setOnboarded(true)
                 
@@ -51,8 +55,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                 (self.window!.rootViewController as! UINavigationController).isNavigationBarHidden = false
                 (self.window!.rootViewController as! UINavigationController).popViewController(animated: true)
             }
-            thirdPage.movesToNextViewController = true
-            let onboardingVC = OnboardingViewController(backgroundImage: UIImage(named: "ow-app"), contents: [firstPage, secondPage, thirdPage])
+            fourthPage.movesToNextViewController = true
+            let onboardingVC = OnboardingViewController(backgroundImage: UIImage(named: "ow-app"), contents: [firstPage, secondPage, thirdPage, fourthPage])
             
             onboarding = true
             (self.window!.rootViewController as! UINavigationController).hidesBarsOnTap = false
