@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import GRDB
 
 class OneWheelGraphView: UIView {
     
@@ -37,10 +38,8 @@ class OneWheelGraphView: UIView {
         }
     }
     
-    // Parallel cache arrays of state and x placement
-    var stateCacheDataCount: Int = 0
-    var stateCache = [OneWheelState]()
-    var stateXPosCache = [CGFloat]()
+    // Data cahce
+    var rowCache = [Row]()
     
     // Display rects
     var seriesRect = CGRect()
@@ -59,6 +58,10 @@ class OneWheelGraphView: UIView {
     var isGesturing = false
     
     var performedFirstDraw = false
+    
+    // For time axis labels
+    private var startTime: Date? = nil
+    private var endTime: Date? = nil
     
     public override init(frame: CGRect) {
         super.init(frame: frame)
@@ -116,6 +119,10 @@ class OneWheelGraphView: UIView {
         }
     }
     
+    // Whether to fully draw every intermediate zoom step (true) or transform view until pan complete (false)
+    // TODO : smoothPinch not yet finished
+    var smoothPinch = false
+
     func onPinch(_ sender: UIPinchGestureRecognizer) {
         if portraitMode {
             return
@@ -127,23 +134,48 @@ class OneWheelGraphView: UIView {
         
         if sender.state == .changed {
             
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
-            // Only scale x axis
-            let scale = sender.scale
-            sender.scale = 1.0
-            lastScale = scale
-            
-            var point = sender.location(in: self)
-            point = self.layer.convert(point, to: zoomLayer)
-            point.x -= zoomLayer.bounds.midX  // zoomLayer anchorPoint is at center
-            var transform = CATransform3DTranslate(zoomLayer.transform, point.x, 0.0, 0.0)
-            transform = CATransform3DScale(transform, scale, 1.0, 1.0)
-            transform = CATransform3DTranslate(transform, -point.x, 0.0, 0.0)
-            zoomLayer.transform = transform
-            let xTrans = zoomLayer.value(forKeyPath: "transform.translation.x")
-            let xScale = zoomLayer.value(forKeyPath: "transform.scale.x") as! CGFloat
-            CATransaction.commit()
+            if !smoothPinch {
+                CATransaction.begin()
+                CATransaction.setDisableActions(true)
+                // Only scale x axis
+                let scale = sender.scale
+                sender.scale = 1.0
+                lastScale = scale
+                
+                var point = sender.location(in: self)
+                point = self.layer.convert(point, to: zoomLayer)
+                point.x -= zoomLayer.bounds.midX  // zoomLayer anchorPoint is at center
+                var transform = CATransform3DTranslate(zoomLayer.transform, point.x, 0.0, 0.0)
+                transform = CATransform3DScale(transform, scale, 1.0, 1.0)
+                transform = CATransform3DTranslate(transform, -point.x, 0.0, 0.0)
+                zoomLayer.transform = transform
+                //let xTrans = zoomLayer.value(forKeyPath: "transform.translation.x")
+                //let xScale = zoomLayer.value(forKeyPath: "transform.scale.x") as! CGFloat
+                CATransaction.commit()
+            } else {
+                let dataScale = dataRange.y - dataRange.x
+                let xScale = 1 / dataScale
+                
+                let seriesRectFromZoomLayer = self.layer.convert(self.seriesRect, from: self.zoomLayer)
+                let zlVisibleFrac = (self.seriesRect.width / seriesRectFromZoomLayer.width)
+                let zlStartFrac = (self.seriesRect.origin.x - seriesRectFromZoomLayer.origin.x) / seriesRectFromZoomLayer.width
+                
+                let newDataRange = CGPoint(x: max(0.0, dataRange.x + (zlStartFrac / xScale)), y: min(1.0, dataRange.x + ((zlStartFrac + zlVisibleFrac) / xScale)))
+                
+                //NSLog("Pinch to [\(newDataRange.x):\(newDataRange.y)]")
+                if newDataRange != self.dataRange && (newDataRange.y - newDataRange.x < 1.0) {
+                    // Zoomed in
+                    NSLog("Pinch to [\(newDataRange.x):\(newDataRange.y)]")
+                    self.dataRange = newDataRange
+                    refreshGraph()
+                } else if newDataRange != self.dataRange {
+                    // Zoomed all the way out
+                    resetDataRange()
+                    refreshGraph()
+                } else {
+                    // no-op
+                }
+            }
             
         } else if (sender.state == .ended) {
             
@@ -163,7 +195,6 @@ class OneWheelGraphView: UIView {
                 // Zoomed in
                 NSLog("Pinch to [\(newDataRange.x):\(newDataRange.y)]")
                 self.dataRange = newDataRange
-                clearStateCache()
                 refreshGraph()
             } else if newDataRange != self.dataRange {
                 // Zoomed all the way out
@@ -176,10 +207,8 @@ class OneWheelGraphView: UIView {
         }
     }
     
-    // Whether to fully draw every intermediate step
-    // Because of sampling this doesn't look great yet
-    
-    var smoothPan = false
+    // Whether to fully draw every intermediate pan step (true) or transform view until pan complete (false)
+    var smoothPan = true
     
     func onPan(_ sender: UIPanGestureRecognizer) {
         if portraitMode {
@@ -193,32 +222,44 @@ class OneWheelGraphView: UIView {
         let dataScale = dataRange.y - dataRange.x
         let xScale = 1 / dataScale
         let translation = sender.translation(in: self)
-        let xTransNormalized = translation.x // / xScale
+        let xTransNormalized = translation.x / xScale
         
+        // Rect-based xTrans measurements only work with smoothPan false e.g: When we're translating layer
         let seriesRectFromZoomLayer = self.layer.convert(self.seriesRect, from: self.zoomLayer)
         let xTransRaw = self.seriesRect.origin.x - seriesRectFromZoomLayer.origin.x
         let xTrans = (xTransRaw / self.seriesRect.width) / xScale
         let dataRangeLeeway = (xTrans > 0) ? /* left */ 1.0 - dataRange.y : /* right */ dataRange.x
         let xTransNormal = min(dataRangeLeeway, xTrans)
-        
         sender.setTranslation(CGPoint.zero, in: self)
+        
+        let xTransInDataRange = (translation.x / self.seriesRect.width) / xScale
+        NSLog("xT \(xTransInDataRange), xTnormal \(xTransNormal)")
 
         if sender.state == .changed {
             
             // Limit pan
-            if xScale <= 1.0 ||                                                             // Not zoomed in
-                (xTransNormalized > 0.0 && self.dataRange.x + xTransNormal <= 0.0) ||       // Panning beyond left bounds
-                (xTransNormalized < 0.0 && self.dataRange.y + xTransNormal >= 1.0) {        // Panning beyond right bounds
-                return
-            }
 
             if (!smoothPan) {
+                
+                // TODO: Xcode complaining about complexity of expression. Something's wrong here...
+//                if xScale <= 1.0 ||                                                             // Not zoomed in
+//                    (xTransNormalized > 0.0 && self.dataRange.x + xTransNormal <= 0.0) ||       // Panning beyond left bounds
+//                    (xTransNormalized < 0.0 && self.dataRange.x + xTransNormal >= 1.0) {        // Panning beyond right bounds
+//                    return
+//                }
+
                 CATransaction.begin()
                 CATransaction.setDisableActions(true)
                 zoomLayer.transform = CATransform3DTranslate(zoomLayer.transform, xTransNormalized, 0.0, 0.0)
                 CATransaction.commit()
             } else {
-                let xTransInDataRange = (translation.x / self.seriesRect.width) / xScale
+                
+                if xScale <= 1.0 ||                                        // Not zoomed in
+                    (self.dataRange.x - xTransInDataRange <= 0.0) ||       // Panning beyond left bounds
+                    (self.dataRange.y - xTransInDataRange >= 1.0) {        // Panning beyond right bounds
+                    return
+                }
+                
                 let newDataRange = CGPoint(x: max(0, self.dataRange.x - xTransInDataRange), y: min(1.0, self.dataRange.y - xTransInDataRange))
                 if newDataRange != self.dataRange {
                     self.dataRange = newDataRange
@@ -249,26 +290,105 @@ class OneWheelGraphView: UIView {
         resizeLayers()
         
         if let dataSource = self.dataSource {
-            let dataCount = dataSource.getCount()
-            NSLog("CALayer - Caching data. \(dataCount) items, \(stateCache.count) in cache")
-            // Assume that we're working with timeseries data so only need to update cache if size changes
-            self.cacheState(dataSource: dataSource, rect: seriesRect)
+            
+            let dataSourceCount = dataSource.getCount()
             
             for (_, series) in self.series {
-                if series is SpeedSeries {
-                    series.max = max(series.max, 1.10 * rpmToMph(Double(rideData.getMaxRpm())))
-                }
-                series.bindData(rect: seriesRect, graphView: self)
+                series.startNewPath(rect: seriesRect, numItems: dataSourceCount, graphView: self)
             }
+            
+            let rect = seriesRect
+            let dataCount = Int(CGFloat(dataSourceCount) * (dataRange.y - dataRange.x))
+            let widthPtsPerData: CGFloat = 2
+            let maxPoints = Int(rect.width / widthPtsPerData)
+            let numPoints = min(dataCount, maxPoints)
+            let deltaX = rect.width / (CGFloat(numPoints - 1))
+            var x: CGFloat = rect.origin.x
+            
+            if dataSourceCount != rowCache.count {
+                // Cache rows and append to series paths
+                
+                let dataIdxstart = Int(CGFloat(dataSourceCount) * dataRange.x)
+                let dataIdxend = Int(CGFloat(dataSourceCount) * dataRange.y)
+                // Using floor below potentially gives us more points than we need, using ceil gives us potentially less
+                let stride = Int(ceil(Double((dataIdxend - dataIdxstart)) / Double(numPoints)))
+                let numPointsFinal = (dataIdxend - dataIdxstart) / stride
+                let deltaXFinal = rect.width / (CGFloat(numPointsFinal - 1))
+
+                NSLog("Query [\(dataIdxstart):\(dataIdxend)] [\(CGFloat(dataIdxstart)/CGFloat(dataSourceCount)):\(CGFloat(dataIdxend) / CGFloat(dataSourceCount))] mod \(stride) numPoints \(numPoints)")
+                if let cursor = dataSource.getCursor(start: dataIdxstart, end: dataIdxend, stride: stride) {
+
+                    rowCache.removeAll()
+                    
+                    var dataIdx = 0
+                    
+                    var startIdx: Int = 0, endIdx: Int = 0
+                    
+                    try? cursor.forEach({ (row) in
+                        //NSLog("dataIdx \(dataIdx) id \(row[colIdxId])")
+                        if dataIdx == 0 {
+                            startIdx = row[colIdxId]
+                            startTime = row[colIdxTime]
+                        } else if dataIdx == numPointsFinal - 1 {
+                            endIdx = row[colIdxId]
+                            endTime = row[colIdxTime]
+                        }
+                        
+                        if isGesturing {
+                            // If we're gesturing, don't bother caching because we're going to do many draws with varying data range
+                            appendRowToPath(x: x, row: row)
+                        } else {
+                            let rowCopy = row.copy()
+                            appendRowToPath(x: x, row: rowCopy)
+                            rowCache.append(rowCopy)
+                        }
+                        
+                        dataIdx += 1
+                        x += deltaXFinal
+                    })
+                    
+                    let startFrac = CGFloat(startIdx) / CGFloat(dataSourceCount)
+                    let endFrac = CGFloat(endIdx) / CGFloat(dataSourceCount)
+
+                    NSLog("Query result to [\(startIdx):\(endIdx)] [\(startFrac):\(endFrac)]")
+                } else {
+                    NSLog("Fuckup alert, no cursor")
+                    return
+                }
+            } else {
+                NSLog("Re-using rowCache")
+
+                // We just need to append cached rows to series paths
+                self.startTime = rowCache[0][colIdxTime]
+                self.endTime = rowCache[rowCache.count - 1][colIdxTime]
+                for row in rowCache {
+                    appendRowToPath(x: x, row: row)
+                    x += deltaX
+                }
+            }
+            
+            // Complete paths
+            for (_, series) in self.series {
+                series.completePath()
+            }
+            if !performedFirstDraw {
+                drawLayers()
+                CATransaction.commit()
+            } else {
+                CATransaction.commit()
+                drawLayers()
+            }
+            performedFirstDraw = !performedFirstDraw
         }
-        if !performedFirstDraw {
-            drawLayers()
-            CATransaction.commit()
-        } else {
-            CATransaction.commit()
-            drawLayers()
+    }
+    
+    private func appendRowToPath(x: CGFloat, row: Row) {
+        for (_, series) in self.series {
+            if series is SpeedSeries {
+                series.max = max(series.max, 1.10 * rpmToMph(Double(rideData.getMaxRpm())))
+            }
+            series.appendToPath(x: x, row: row)
         }
-        performedFirstDraw = !performedFirstDraw
     }
     
     func drawLayers() {
@@ -283,7 +403,7 @@ class OneWheelGraphView: UIView {
     } // willRotate, layoutSublayers,
     
     private func drawLabels() {
-        NSLog("Draw axisLabelLayer in")
+        //NSLog("Draw axisLabelLayer in")
         
         for (_, series) in series {
             if series is SpeedSeries && series.drawMaxValLineWithAxisLabels {
@@ -296,57 +416,17 @@ class OneWheelGraphView: UIView {
         }
         
         if let _ = dataSource {
-            drawTimeLabels(rect: timeLabelsRect, root: axisLabelLayer, numLabels: 3)
+            drawTimeLabels(rect: timeLabelsRect, root: axisLabelLayer) //, numLabels: 3)
         }
         drawZoomHint(rect: seriesRect, root: axisLabelLayer)
     }
     
     private func resetDataRange() {
         self.dataRange = CGPoint(x: 0.0, y: 1.0)
-        clearStateCache()
     }
     
-    private func clearStateCache() {
-        stateCacheDataCount = 0
-        stateCache.removeAll()
-        stateXPosCache.removeAll()
-    }
-    
-    private func cacheState(dataSource: GraphDataSource, rect: CGRect) {
-        let dataSourceCount = dataSource.getCount()
-        let dataCount = Int(CGFloat(dataSourceCount) * (dataRange.y - dataRange.x))
-        let widthPtsPerData: CGFloat = 2
-        let maxPoints = Int(rect.width / widthPtsPerData)
-        let numPoints = min(dataCount, maxPoints)
-        stateCache = [OneWheelState](repeating: OneWheelState(), count: numPoints)
-        stateXPosCache = [CGFloat](repeating: 0.0, count: numPoints)
-        let deltaX = rect.width / (CGFloat(numPoints))
-        var x: CGFloat = rect.origin.x + deltaX
-        var cacheIdx = 0
-        let dataIdxstart = CGFloat(dataSourceCount) * dataRange.x
-        var dataIdx: Int = Int(dataIdxstart)
-        NSLog("CALayer - Caching \(numPoints)/\(dataCount) graph data by deltX \(deltaX)")
-        for idx in 0..<numPoints  {
-            
-            let frac = CGFloat(idx) / CGFloat(numPoints)
-            dataIdx = Int(dataIdxstart + (frac * CGFloat(dataCount)))
-            if dataIdx >= dataSourceCount {
-                break
-            }
-            
-            let state = dataSource.getStateForIndex(index: dataIdx)
-            
-            stateCache[cacheIdx] = state
-            stateXPosCache[cacheIdx] = x
-            
-            x += deltaX
-            cacheIdx += 1
-        }
-        stateCacheDataCount = dataCount
-        NSLog("CALayer - Cached \(stateCache.count)/\(dataSourceCount) graph data [\(dataRange.x)-\(dataRange.y)] [\(dataIdxstart)-\(dataIdx)] [\(CGFloat(dataIdxstart)/CGFloat(dataSourceCount))-\(CGFloat(dataIdx)/CGFloat(dataSourceCount))]")
-    }
-    
-    func drawTimeLabels(rect: CGRect, root: CALayer, numLabels: Int) {
+    func drawTimeLabels(rect: CGRect, root: CALayer) { //}, numLabels: Int) {
+        let numLabels = 3 // For now, just draw start (left), center with mileage, and end (right)
         NSLog("drawTimeLabels")
         
         if timeAxisLabels == nil {
@@ -376,10 +456,10 @@ class OneWheelGraphView: UIView {
             
             let axisLabelFrac: CGFloat = CGFloat(axisLabelIdx) / CGFloat(numLabels-1)
             let startIdx = Int(dataRange.x * CGFloat((dataCount - 1)))
-            let state = dataSource!.getStateForIndex(index: min(dataCount - 1, Int(CGFloat(dataCount-1) * ((dataRange.y - dataRange.x) * axisLabelFrac)) + startIdx))
+            let date: Date = axisLabelIdx == 0 ? startTime! : endTime!
             
             let x: CGFloat = (rect.width * axisLabelFrac) + rect.origin.x
-            var axisLabel = formatter.string(from: state.time)
+            var axisLabel = formatter.string(from: date)
             if axisLabelIdx % 2 == 1 && axisLabelIdx == (numLabels / 2) { // If there's a middle label, use that for distance
                 let miles = revolutionstoMiles(Double(rideData.getOdometerSum()))
                 let milesStr = String(format: "%.1f", miles)
@@ -413,7 +493,7 @@ class OneWheelGraphView: UIView {
             labelLayer.frame = labelRect
             labelLayer.display()
             
-            NSLog("Drawing time axis label \(axisLabel)")
+            //NSLog("Drawing time axis label \(axisLabel)")
         }
         
         for i in numLabels..<timeAxisLabels!.count {
@@ -480,34 +560,34 @@ class OneWheelGraphView: UIView {
             layer?.bounds = frame
             layer?.position = midPt
             
-            if let path = self.path, !path.boundingBox.isEmpty, let layer = self.layer {
-                
-                let newPath = createPath(rect: frame, graphView: graphView)
-                animateShapeLayerPath(shapeLayer: layer, newPath: newPath)
-            }
+//            if let path = self.path, !path.boundingBox.isEmpty, let layer = self.layer {
+//
+//                let newPath = createPath(rect: frame, graphView: graphView)
+//                animateShapeLayerPath(shapeLayer: layer, newPath: newPath)
+//            }
         }
         
-        override func bindData(rect: CGRect, graphView: OneWheelGraphView) {
-            layer?.setNeedsDisplay()
-            
-            if let layer = self.layer {
-                let path = createPath(rect: rect, graphView: graphView)
-                layer.path = path
-            }
-        }
-        
-        private func createPath(rect: CGRect, graphView: OneWheelGraphView) -> CGPath {
-            let path = CGMutablePath()
-            forEachData(rect: rect, graphView: graphView) { (x, state) -> CGFloat in
-                let normVal = CGFloat(getNormalizedVal(state: state))
-                if normVal == 1.0 {
-                    let errorRect = CGRect(x: lastX, y: rect.origin.y, width: (x-lastX), height: rect.height)
-                    path.addRect(errorRect)
-                }
-                return rect.origin.y
-            }
-            return path
-        }
+//        override func bindData(rect: CGRect, graphView: OneWheelGraphView) {
+//            layer?.setNeedsDisplay()
+//
+//            if let layer = self.layer {
+//                let path = createPath(rect: rect, graphView: graphView)
+//                layer.path = path
+//            }
+//        }
+//
+//        private func createPath(rect: CGRect, graphView: OneWheelGraphView) -> CGPath {
+//            let path = CGMutablePath()
+//            forEachData(rect: rect, graphView: graphView) { (x, state) -> CGFloat in
+//                let normVal = CGFloat(getNormalizedVal(state: state))
+//                if normVal == 1.0 {
+//                    let errorRect = CGRect(x: lastX, y: rect.origin.y, width: (x-lastX), height: rect.height)
+//                    path.addRect(errorRect)
+//                }
+//                return rect.origin.y
+//            }
+//            return path
+//        }
     }
     
     class ValueSeries : Series {
@@ -515,6 +595,10 @@ class OneWheelGraphView: UIView {
         private var shapeLayer: CAShapeLayer? = nil
         private var bgLayer: CAGradientLayer? = nil
         private var bgMaskLayer: CAShapeLayer? = nil
+        
+        private var path: CGMutablePath? = nil
+        private var pathRect: CGRect? = nil
+        var didInitPath = false
         
         override func setupLayers(root: CALayer, frame: CGRect, graphView: OneWheelGraphView) {
             let scale = UIScreen.main.scale
@@ -562,28 +646,46 @@ class OneWheelGraphView: UIView {
             bgLayer?.bounds = frame
             bgLayer?.position = midPt
             
-            if let shapeLayer = self.shapeLayer {
+            // TODO : We could use rowCache to re-create paths for animating
+//            if let shapeLayer = self.shapeLayer {
+//
+//                let newPath = createPath(rect: frame, graphView: graphView)
+//                animateShapeLayerPath(shapeLayer: shapeLayer, newPath: newPath)
+//
+//                if gradientUnderPath, let bgMaskLayer = self.bgMaskLayer {
+//                    let newMaskPath = closePath(path: newPath, rect: frame)
+//                    animateShapeLayerPath(shapeLayer: bgMaskLayer, newPath: newMaskPath)
+//                    bgLayer?.mask = bgMaskLayer
+//                }
+//            }
+        }
+        
+        override func startNewPath(rect: CGRect, numItems: Int, graphView: OneWheelGraphView) {
+            NSLog("NewPath")
+            self.pathRect = rect
+            self.path = CGMutablePath()
+            didInitPath = false
+        }
+        
+        override func appendToPath(x: CGFloat, row: Row) {
+            let normVal = CGFloat(getNormalizedVal(row: row))
+            let y = ((1.0 - normVal) * pathRect!.height) + pathRect!.origin.y
+            if !didInitPath {
+                didInitPath = true
+                path!.move(to: CGPoint(x: x, y: y))
+                //NSLog("AppendPath move to \(CGPoint(x: x, y: y))")
 
-                let newPath = createPath(rect: frame, graphView: graphView)
-                animateShapeLayerPath(shapeLayer: shapeLayer, newPath: newPath)
-             
-                if gradientUnderPath, let bgMaskLayer = self.bgMaskLayer {
-                    let newMaskPath = closePath(path: newPath, rect: frame)
-                    animateShapeLayerPath(shapeLayer: bgMaskLayer, newPath: newMaskPath)
-                    bgLayer?.mask = bgMaskLayer
-                }
+            } else {
+                path!.addLine(to: CGPoint(x: x, y: y))
+                //NSLog("AppendPath line to \(CGPoint(x: x, y: y))")
             }
         }
         
-        override func bindData(rect: CGRect, graphView: OneWheelGraphView) {
-            if let shapeLayer = self.shapeLayer {
-                let path = createPath(rect: rect, graphView: graphView)
-                shapeLayer.path = path
-                
-                if gradientUnderPath {
-                    bgMaskLayer?.path = closePath(path: path, rect: rect)
-                    bgLayer?.mask = bgMaskLayer
-                }
+        override func completePath() {
+            shapeLayer?.path = path
+            if gradientUnderPath {
+                bgMaskLayer?.path = closePath(path: path!, rect: pathRect!)
+                bgLayer?.mask = bgMaskLayer
             }
         }
         
@@ -594,36 +696,36 @@ class OneWheelGraphView: UIView {
         
         private func closePath(path: CGPath, rect: CGRect) -> CGPath {
             let maskPath = path.mutableCopy()!
-            maskPath.addLine(to: CGPoint(x: lastX, y: rect.height))
+            maskPath.addLine(to: CGPoint(x: rect.maxX, y: rect.height))
             maskPath.addLine(to: CGPoint(x: rect.origin.x, y: rect.height))
             maskPath.closeSubpath()
             return maskPath
         }
         
-        private func createPath(rect: CGRect, graphView: OneWheelGraphView) -> CGMutablePath {
-            NSLog("CALayer - ValueSeries createPath \(self.name) in \(rect)")
-            
-            // TODO : Guard graphView, series etc.
-            let path = CGMutablePath()
-            var didInitPath = false
-            
-            forEachData(rect: rect, graphView: graphView) { (x, state) -> CGFloat in
-                let normVal = CGFloat(getNormalizedVal(state: state))
-                let y = ((1.0 - normVal) * rect.height) + rect.origin.y
-                
-                if !didInitPath {
-                    didInitPath = true
-                    path.move(to: CGPoint(x: x, y: y))
-                } else {
-                    path.addLine(to: CGPoint(x: x, y: y))
-                }
-                
-                return y
-            }
-            NSLog("CALayer - createdPath \(self.name) in \(path.boundingBox)")
-
-            return path
-        }
+//        private func createPath(rect: CGRect, graphView: OneWheelGraphView) -> CGMutablePath {
+//            NSLog("CALayer - ValueSeries createPath \(self.name) in \(rect)")
+//
+//            // TODO : Guard graphView, series etc.
+//            let path = CGMutablePath()
+//            var didInitPath = false
+//
+//            forEachData(rect: rect, graphView: graphView) { (x, state) -> CGFloat in
+//                let normVal = CGFloat(getNormalizedVal(state: state))
+//                let y = ((1.0 - normVal) * rect.height) + rect.origin.y
+//
+//                if !didInitPath {
+//                    didInitPath = true
+//                    path.move(to: CGPoint(x: x, y: y))
+//                } else {
+//                    path.addLine(to: CGPoint(x: x, y: y))
+//                }
+//
+//                return y
+//            }
+//            NSLog("CALayer - createdPath \(self.name) in \(path.boundingBox)")
+//
+//            return path
+//        }
     }
     
     class Series : NSObject {
@@ -681,31 +783,42 @@ class OneWheelGraphView: UIView {
             // Subclass override
         }
         
-        func bindData(rect: CGRect, graphView: OneWheelGraphView) {
+        func startNewPath(rect: CGRect, numItems: Int, graphView: OneWheelGraphView) {
             // Subclass override
+            // e.g: Begin new path
+        }
+        
+        func appendToPath(x: CGFloat, row: Row) {
+            // Subclass override
+            // e.g: Add point from row to path
+        }
+        
+        func completePath() {
+            // Subclass override
+            // e.g: Set path to shape layer
         }
         
         // Return the normalized value at the given index.
         // returns a value between [0, 1]
-        func getNormalizedVal(state: OneWheelState) -> Double {
-            let val = evaluator.getValForState(state: state)
+        func getNormalizedVal(row: Row) -> Double {
+            let val = evaluator.getValForRow(row: row)
             return (val / (max - min))
         }
         
-        internal func forEachData(rect: CGRect, graphView: OneWheelGraphView, onData: (CGFloat, OneWheelState) -> CGFloat) {
-            lastX = 0
-            lastY = rect.height
-            
-            for cacheIdx in 0..<graphView.stateCache.count {
-                let state = graphView.stateCache[cacheIdx]
-                let x = graphView.stateXPosCache[cacheIdx]
-                
-                let y = onData(x, state)
-
-                lastX = x
-                lastY = y
-            }
-        }
+//        internal func forEachData(rect: CGRect, graphView: OneWheelGraphView, onData: (CGFloat, OneWheelState) -> CGFloat) {
+//            lastX = 0
+//            lastY = rect.height
+//
+//            for cacheIdx in 0..<graphView.stateCache.count {
+//                let state = graphView.stateCache[cacheIdx]
+//                let x = graphView.stateXPosCache[cacheIdx]
+//
+//                let y = onData(x, state)
+//
+//                lastX = x
+//                lastY = y
+//            }
+//        }
         
         internal func animateShapeLayerPath(shapeLayer: CAShapeLayer, newPath: CGPath) {
             let animation = CABasicAnimation(keyPath: "path")
@@ -777,7 +890,7 @@ class OneWheelGraphView: UIView {
                 labelRect = CGRect(x: rectX, y: y, width: labelRect.width, height: labelRect.height)
                 labelLayer.frame = labelRect
                 labelLayer.display()
-                NSLog("Axis label \(axisLabel) at \(labelLayer.position)")
+                //NSLog("Axis label \(axisLabel) at \(labelLayer.position)")
                 labelIdx += 1
 
                 // Assumes RTL language : When positioning left-flowing text on the right side, need to move our start point left by the text width
@@ -843,8 +956,8 @@ class OneWheelGraphView: UIView {
             max = 120 // TODO: Figure out reasonable max temperatures
         }
         
-        func getValForState(state: OneWheelState) -> Double {
-            return Double(state.controllerTemp)
+        func getValForRow(row: Row) -> Double {
+            return (row[colIdxControllerTemp] as Double)
         }
         
         override func printAxisVal(val: Double) -> String {
@@ -859,8 +972,8 @@ class OneWheelGraphView: UIView {
             max = 120 // TODO: Figure out reasonable max temperatures
         }
         
-        func getValForState(state: OneWheelState) -> Double {
-            return Double(state.motorTemp)
+        func getValForRow(row: Row) -> Double {
+            return (row[colIdxMotorTemp] as Double)
         }
         
         override func printAxisVal(val: Double) -> String {
@@ -886,8 +999,8 @@ class OneWheelGraphView: UIView {
             return (rideLocalData.getMaxRpmDate() ?? Date.distantFuture, Float(rpmToMph(Double(rideLocalData.getMaxRpm())) / max))
         }
         
-        func getValForState(state: OneWheelState) -> Double {
-            return state.mph()
+        func getValForRow(row: Row) -> Double {
+            return rpmToMph(row[colIdxRpm])
         }
         
         override func printAxisVal(val: Double) -> String {
@@ -902,8 +1015,8 @@ class OneWheelGraphView: UIView {
             max = 100.0
         }
         
-        func getValForState(state: OneWheelState) -> Double {
-            return Double(state.batteryLevel)
+        func getValForRow(row: Row) -> Double {
+            return (row[colIdxBatt] as Double)
         }
         
         override func printAxisVal(val: Double) -> String {
@@ -918,17 +1031,21 @@ class OneWheelGraphView: UIView {
             max = 1.0
         }
         
-        func getValForState(state: OneWheelState) -> Double {
-            return (state.mph() > 1.0) && ((!state.footPad1 && !state.footPad2) || (!state.riderPresent)) ? 1.0 : 0.0
+        func getValForRow(row: Row) -> Double {
+            let foot1: Bool = row[colIdxFoot1]
+            let foot2: Bool = row[colIdxFoot2]
+            let rider: Bool = row[colIdxRider]
+            let mph: Double = rpmToMph(row[colIdxRpm] as Double)
+            return (mph > 1.0) && ((!foot1 && !foot2) || (!rider)) ? 1.0 : 0.0
         }
     }
 }
 
 protocol GraphDataSource {
     func getCount() -> Int
-    func getStateForIndex(index: Int) -> OneWheelState
+    func getCursor(start: Int, end: Int, stride: Int) -> RowCursor?
 }
 
 protocol SeriesEvaluator {
-    func getValForState(state: OneWheelState) -> Double
+    func getValForRow(row: Row) -> Double
 }

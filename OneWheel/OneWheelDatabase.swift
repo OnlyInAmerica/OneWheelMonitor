@@ -11,6 +11,21 @@ import GRDB
 
 let tableState = "state"
 
+// Columns currently utilized by graph view
+private var requiredCols = "time, footPad1, footPad2, riderPresent, rpm, batteryLevel, id"
+
+let colIdxTime = 0
+let colIdxFoot1 = 1
+let colIdxFoot2 = 2
+let colIdxRider = 3
+let colIdxRpm = 4
+let colIdxBatt = 5
+let colIdxId = 6
+
+// currently unused
+let colIdxMotorTemp = 6
+let colIdxControllerTemp = 7
+
 class OneWheelDatabase {
     var updateListener: UpdateListener? = nil
     
@@ -50,25 +65,62 @@ class OneWheelDatabase {
         return controller
     }
     
-    func getRecentStateRecordsController(completion: @escaping((FetchedRecordsController<OneWheelState>) -> ())) throws {
-        let lastDate: Date = try dbPool.read { (db) in
-            if let state = try? OneWheelState.order(sql: "time DESC").fetchOne(db) {
-                return state?.time ?? Date()
-            } else {
-                return Date()
-            }
+    func getAllStateCursor(start: Int, end: Int, stride: Int) throws -> RowCursor {
+        return try dbPool.read { (db) in
+            return try Row.fetchCursor(db, "SELECT \(requiredCols) FROM state WHERE id >= ?1 AND id <= ?2 AND id % ?3 == 0", arguments: [start, end, stride])
         }
-        let startDate = Calendar.current.date(
-            byAdding: .minute,
-            value: -1,
-            to: lastDate)!
-        let sinceDateStr = dateFormatter.string(from: startDate)
-        NSLog("Fetching state since \(sinceDateStr)")
-        let controller = try FetchedRecordsController(
-            dbPool,
-            request: OneWheelState.filter(sql: "time > ?", arguments: [sinceDateStr]))
-        DispatchQueue.main.async {
-            completion(controller)
+    }
+    
+    func getAllStateCursor() throws -> RowCursor {
+        return try dbPool.read { (db) in
+            return try Row.fetchCursor(db, "SELECT \(requiredCols) FROM state")
+        }
+    }
+    
+    func getAllStateCount() throws -> Int {
+        return try dbPool.read { (db) in
+            return ((try? Int.fetchOne(db, "SELECT COUNT(id) FROM state")) ?? 0)!
+        }
+    }
+    
+    func getRecentStateCount() throws -> Int {
+        return try dbPool.read { (db) in
+            
+            var lastDate: Date? = nil
+            
+            if let state = try? OneWheelState.order(sql: "time DESC").fetchOne(db) {
+                lastDate = state?.time ?? Date()
+            } else {
+                lastDate = Date()
+            }
+            
+            let startDate = Calendar.current.date(
+                byAdding: .minute,
+                value: -1,
+                to: lastDate!)!
+            let sinceDateStr = dateFormatter.string(from: startDate)
+            NSLog("Fetching state since \(sinceDateStr)")
+            return ((try? Int.fetchOne(db, "SELECT COUNT(id) FROM state WHERE time > ?", arguments: [sinceDateStr])) ?? 0)!
+        }
+    }
+    
+    func getRecentStateCursor() throws -> RowCursor {
+        return try dbPool.read { (db) in
+            var lastDate: Date? = nil
+            
+            if let state = try? OneWheelState.order(sql: "time DESC").fetchOne(db) {
+                lastDate = state?.time ?? Date()
+            } else {
+                lastDate = Date()
+            }
+            
+            let startDate = Calendar.current.date(
+                byAdding: .minute,
+                value: -1,
+                to: lastDate!)!
+            let sinceDateStr = dateFormatter.string(from: startDate)
+            NSLog("Fetching state since \(sinceDateStr)")
+            return try Row.fetchCursor(db, "SELECT \(requiredCols) FROM state WHERE time > ?", arguments: [sinceDateStr])
         }
     }
     

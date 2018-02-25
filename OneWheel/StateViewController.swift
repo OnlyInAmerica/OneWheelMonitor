@@ -26,7 +26,9 @@ class StateViewController: UIViewController {
         }
     }
 
-    private var controller: FetchedRecordsController<OneWheelState>?
+    private var cursor: RowCursor?
+
+    private var isLandscapeQuery: Bool?
     private var graphRefreshTimer: Timer?
     private let graphRefreshTimeInterval: TimeInterval = 1.0
     private var dbChanged = true
@@ -98,11 +100,11 @@ class StateViewController: UIViewController {
     }
     
     func subscribeToState(doSubscribe: Bool) {
+        // This now refreshes chart at fixed interval, but we could draw the chart live in reasonable time now
         graphRefreshTimer?.invalidate()
         if doSubscribe {
             let isLandscape = self.view.bounds.width > self.view.bounds.height
             self.graphView.portraitMode = !isLandscape
-            setupController(isLandscape: isLandscape)
             graphRefreshTimer = Timer.scheduledTimer(withTimeInterval: graphRefreshTimeInterval, repeats: true, block: { (timer) in
                 let state = UIApplication.shared.applicationState
                 if self.isConnected && state == .active && self.dbChanged {
@@ -111,14 +113,14 @@ class StateViewController: UIViewController {
                 }
             })
         } else {
-            self.controller = nil
-            NSLog("Dereference controller")
+            self.cursor = nil
+            NSLog("Dereference cursor")
         }
     }
     
     private func refreshGraph() {
         NSLog("Refresh graph")
-        try! self.controller?.performFetch()
+        cursor = (try? owManager.db?.getAllStateCursor()) ?? nil
         self.graphView.refreshGraph()
     }
 
@@ -127,26 +129,26 @@ class StateViewController: UIViewController {
         // Dispose of any resources that can be recreated.
     }
     
-    func setupController(isLandscape: Bool) {
+    func setupCursor(isLandscape: Bool, start: Int, end: Int, stride: Int) {
+        isLandscapeQuery = isLandscape
         
-        let completion: (FetchedRecordsController<OneWheelState>) -> () = { (controller) in
-            self.controller = controller
-            NSLog("Setup controller")
-            self.refreshGraph()
+        let completion: (RowCursor) -> () = { (cursor) in
+            self.cursor = cursor
+            NSLog("Setup cursor")
         }
         
         if isLandscape {
-            let newController = try! owManager.db!.getStateRecordsController()
-            completion(newController)
+            let newCursor = try! owManager.db!.getAllStateCursor(start: start, end: end, stride: stride)
+            completion(newCursor)
         } else {
-            try! owManager.db!.getRecentStateRecordsController(completion: completion)
+            let newCursor = try! owManager.db!.getRecentStateCursor()
+            completion(newCursor)
         }
     }
     
     override func willRotate(to toInterfaceOrientation: UIInterfaceOrientation, duration: TimeInterval) {
         NSLog("willRotate to \(toInterfaceOrientation)")
         self.graphView.portraitMode = toInterfaceOrientation.isPortrait
-        setupController(isLandscape: toInterfaceOrientation.isLandscape)
     }
     
     @objc func settingsActionClick(_ sender: UIButton) {
@@ -249,15 +251,18 @@ extension StateViewController: ConnectionListener {
 
 // MARK: GraphDataSource
 extension StateViewController: GraphDataSource {
+    
     func getCount() -> Int {
-        let numItems = controller?.sections[0].numberOfRecords ?? 0
-        NSLog("\(numItems) graph items")
-        return numItems
+        if UIDevice.current.orientation == .portrait {
+            return ((try? owManager.db?.getRecentStateCount()) ?? 0)!
+        } else {
+            return ((try? owManager.db?.getAllStateCount()) ?? 0)!
+        }
     }
     
-    func getStateForIndex(index: Int) -> OneWheelState {
-        let state = controller!.record(at: IndexPath(row: index, section: 0))
-        return state
+    func getCursor(start: Int, end: Int, stride: Int) -> RowCursor? {
+        setupCursor(isLandscape: UIDevice.current.orientation != .portrait, start: start, end: end, stride: stride)
+        return cursor
     }
 }
 
