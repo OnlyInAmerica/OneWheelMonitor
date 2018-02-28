@@ -501,6 +501,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             try? db?.insertState(state: newState)
         }
         let batteryLevel = Double(batteryLevelInt)
+        rideData.setLastBattery(batt: Int(batteryLevelInt))
         if shouldSoundAlerts && userPrefs.getBatteryAlertsEnabled() && batteryMonitor.passedBenchmark(batteryLevel){
             // Only speak the benchmark battery val. e.g: 70%, not 69%
             let currentBattBenchmark = batteryMonitor.getBenchmarkVal(batteryMonitor.lastBenchmarkIdx) // "last"BenchmarkIdx relative to last call to #passedBenchmark
@@ -840,8 +841,9 @@ class RideLocalData {
     
     private let keyOdometerSum = "r_odometer_sum"
     private let keyOdometerLast = "r_odometer_last"  // Last announced
-    private let keyOdometerTripOffset = "r_odometer_trip_offset"  // When trip timer resets within a ride, keep a measure of prior trip odo to sum
-
+    private let keyOdometerTripOffset = "r_odometer_trip_offset"  // When trip timer resets within a ride, keep a measure of prior trip odo to sum    
+    private let keyLastBattery = "r_last_batt"  // Last known battery level
+    
     private let data = UserDefaults.standard
     
     init() {
@@ -849,7 +851,7 @@ class RideLocalData {
         data.register(defaults: [keyOdometerSum : 0])
         data.register(defaults: [keyOdometerLast : 0])
         data.register(defaults: [keyOdometerTripOffset : 0])
-
+        data.register(defaults: [keyLastBattery : 0])
     }
     
     func clear() {
@@ -858,6 +860,8 @@ class RideLocalData {
         data.removeObject(forKey: keyOdometerSum)
         data.removeObject(forKey: keyOdometerLast)
         data.removeObject(forKey: keyOdometerTripOffset)
+        // Don't clear last known battery state
+        //data.removeObject(forKey: keyLastBattery)
     }
     
     func setMaxRpm(_ max: Int, date: Date) {
@@ -895,6 +899,14 @@ class RideLocalData {
     
     func getOdometerTripOffset() -> Int {
         return data.integer(forKey: keyOdometerTripOffset)
+    }
+
+    func setLastBattery(batt: Int) {
+        data.setValue(batt, forKey: keyLastBattery)
+    }
+    
+    func getLastBattery() -> Int {
+        return data.integer(forKey: keyLastBattery)
     }
 }
 

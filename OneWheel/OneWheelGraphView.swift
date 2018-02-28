@@ -461,10 +461,13 @@ class OneWheelGraphView: UIView {
             
             let x: CGFloat = (rect.width * axisLabelFrac) + rect.origin.x
             var axisLabel = formatter.string(from: date)
-            if axisLabelIdx % 2 == 1 && axisLabelIdx == (numLabels / 2) { // If there's a middle label, use that for distance
+            
+            // If there's a middle label, use that for general info: distance, battery %
+            if axisLabelIdx % 2 == 1 && axisLabelIdx == (numLabels / 2) {
+                let batt = rideData.getLastBattery()
                 let miles = revolutionstoMiles(Double(rideData.getOdometerSum()))
                 let milesStr = String(format: "%.1f", miles)
-                axisLabel = "\(milesStr) Ride Miles"
+                axisLabel = "\(milesStr) Miles | \(batt)%"
             }
             var labelRect = axisLabel.boundingRect(with: rect.size, options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: [NSAttributedStringKey.font: labelFont], context: nil)
             var rectX = x - (labelRect.width / 2)
