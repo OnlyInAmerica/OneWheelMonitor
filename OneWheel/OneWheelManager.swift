@@ -659,9 +659,9 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         if let peripheral = connectedDevice {
             let hour = Calendar.current.component(.hour, from: now)
             let isProbablyDark = (hour > 17 || hour < 8)
-            NSLog("Current hour is \(hour). Is probably dark: \(isProbablyDark)")
             let lightsOnDesired = isProbablyDark
             if lightsOn != lightsOnDesired {
+                NSLog("Current hour is \(hour). Setting lights: \(isProbablyDark)")
                 toggleLights(peripheral: peripheral, on: lightsOnDesired)
             }
         }
