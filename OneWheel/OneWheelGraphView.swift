@@ -457,7 +457,6 @@ class OneWheelGraphView: UIView {
         for axisLabelIdx in 0..<numLabels {
             
             let axisLabelFrac: CGFloat = CGFloat(axisLabelIdx) / CGFloat(numLabels-1)
-            let startIdx = Int(dataRange.x * CGFloat((dataCount - 1)))
             let date: Date = axisLabelIdx == 0 ? startTime! : endTime!
             
             let x: CGFloat = (rect.width * axisLabelFrac) + rect.origin.x
@@ -466,9 +465,13 @@ class OneWheelGraphView: UIView {
             // If there's a middle label, use that for general info: distance, battery %
             if axisLabelIdx % 2 == 1 && axisLabelIdx == (numLabels / 2) {
                 let batt = rideData.getLastBattery()
-                let miles = revolutionstoMiles(Double(rideData.getOdometerSum()))
-                let milesStr = String(format: "%.1f", miles)
-                axisLabel = "\(milesStr) Miles | \(batt)%"
+                let odometer = rideData.getOdometerSum()
+                // If both are 0 we probably haven't initialized. Should use a no value constant to differentiate from 0
+                if !(batt == 0 && odometer == 0) {
+                    let miles = revolutionstoMiles(Double(rideData.getOdometerSum()))
+                    let milesStr = String(format: "%.1f", miles)
+                    axisLabel = "\(milesStr) Miles | \(batt)%"
+                }
             }
             var labelRect = axisLabel.boundingRect(with: rect.size, options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: [NSAttributedStringKey.font: labelFont], context: nil)
             var rectX = x - (labelRect.width / 2)
