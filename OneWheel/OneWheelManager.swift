@@ -17,6 +17,11 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     
     // Listener
     var connListener: ConnectionListener?
+    var connectedOneWheel: OneWheel? {
+        get {
+            return connectedDevice != nil ? OneWheel(connectedDevice!) : nil
+        }
+    }
     
     // Audio feedback
     private var headphonesPresent = checkHeadphonesPresent()
@@ -206,6 +211,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         // TODO : Allow user to control if auto re-connection is desired
         NSLog("Peripheral disconnected: \(peripheral.identifier) - \(peripheral.name ?? "No Name")")
         if peripheral.identifier == connectedDevice?.identifier {
+            self.connectedDevice = nil
             if shouldSoundAlerts && userPrefs.getConnectionAlertsEnabled() {
                 if startRequested {
                     NSLog("Reconnecting disconnected peripheral")
@@ -479,8 +485,6 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             if shouldSoundAlerts && userPrefs.getSpeedAlertsEnabled() && mphRound > 12 {
                 alertThrottler.scheduleAlert(key: "TopSpeed", alertQueue: alertQueue, alert: speechManager.createSpeechAlert(priority: .LOW, message: "New Top Speed \(mphRound)", key:"TopSpeed"))
             }
-        } else {
-            NSLog("Max rpm still \(rideData.getMaxRpm())")
         }
         lastState = newState
     }

@@ -19,10 +19,9 @@ class StateViewController: UIViewController {
     @IBOutlet var unpairButton: UIBarButtonItem!
     
     var owManager : OneWheelManager!
-    private var connectedOneWheel: OneWheel? = nil
-    private var isConnected: Bool {
+    var isConnected: Bool {
         get {
-            return connectedOneWheel != nil
+            return owManager?.connectedOneWheel != nil
         }
     }
 
@@ -64,9 +63,10 @@ class StateViewController: UIViewController {
         graphView.addGestureRecognizer(pinchGesture)
         graphView.isUserInteractionEnabled = true
         
+        let connectedOneWheel = owManager?.connectedOneWheel
+        updateUi(isConnected: connectedOneWheel != nil, onewheel: connectedOneWheel)
         self.owManager.connListener = self
         self.owManager.db?.updateListener = self
-        updateUi(isConnected: false, onewheel: nil)
         
         settingsButton.target = self
         settingsButton.action = #selector(settingsActionClick(_:))
@@ -104,6 +104,7 @@ class StateViewController: UIViewController {
     }
     
     func subscribeToState(doSubscribe: Bool) {
+        NSLog("SubscribeToState \(doSubscribe)")
         // This now refreshes chart at fixed interval, but we could draw the chart live in reasonable time now
         graphRefreshTimer?.invalidate()
         if doSubscribe {
@@ -194,7 +195,7 @@ class StateViewController: UIViewController {
         let audioEnabled = !userPrefs.getAudioAlertsEnabled()
         userPrefs.setAudioAlertsEnabled(audioEnabled)
         
-        updateUi(isConnected: isConnected, onewheel: connectedOneWheel)
+        updateUi(isConnected: isConnected, onewheel: owManager?.connectedOneWheel)
     }
     
     @objc func unpairClick(_ sender: UIButton) {
@@ -243,12 +244,10 @@ class StateViewController: UIViewController {
 // MARK: ConnectionListener
 extension StateViewController: ConnectionListener {
     func onConnected(oneWheel: OneWheel) {
-        connectedOneWheel = oneWheel
         updateUi(isConnected: true, onewheel: oneWheel)
     }
     
     func onDisconnected(oneWheel: OneWheel) {
-        connectedOneWheel = nil
         updateUi(isConnected: false, onewheel: oneWheel)
     }
 }
