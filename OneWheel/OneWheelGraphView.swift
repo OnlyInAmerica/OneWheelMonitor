@@ -318,7 +318,7 @@ class OneWheelGraphView: UIView {
                 let dataIdxstart = Int(CGFloat(dataSourceCount) * dataRange.x)
                 let dataIdxend = Int(CGFloat(dataSourceCount) * dataRange.y)
                 // Using floor below potentially gives us more points than we need, using ceil gives us potentially less
-                let stride = Int(ceil(Double((dataIdxend - dataIdxstart)) / Double(numPoints)))
+                let stride = (numPoints > 0) ? Int(ceil(Double((dataIdxend - dataIdxstart)) / Double(numPoints))) : 1
                 let numPointsFinal = (dataIdxend - dataIdxstart) / stride
                 let deltaXFinal = rect.width / (CGFloat(numPointsFinal - 1))
 
@@ -363,7 +363,7 @@ class OneWheelGraphView: UIView {
                     NSLog("Fuckup alert, no cursor")
                     return
                 }
-            } else {
+            } else if rowCache.count > 0 {
                 NSLog("Re-using rowCache")
 
                 // We just need to append cached rows to series paths
@@ -373,6 +373,10 @@ class OneWheelGraphView: UIView {
                     appendRowToPath(x: x, row: row)
                     x += deltaX
                 }
+            } else {
+                // No data
+                self.startTime = Date()
+                self.endTime = Date()
             }
             
             // Complete paths
