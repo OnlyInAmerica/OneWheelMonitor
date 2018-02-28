@@ -57,8 +57,6 @@ class OneWheelGraphView: UIView {
     var lastScalePoint: CGPoint? = nil
     var isGesturing = false
     
-    var performedFirstDraw = false
-    
     // For time axis labels
     private var startTime: Date? = nil
     private var endTime: Date? = nil
@@ -380,14 +378,8 @@ class OneWheelGraphView: UIView {
             for (_, series) in self.series {
                 series.completePath()
             }
-            if !performedFirstDraw {
-                drawLayers()
-                CATransaction.commit()
-            } else {
-                CATransaction.commit()
-                drawLayers()
-            }
-            performedFirstDraw = !performedFirstDraw
+            drawLayers()
+            CATransaction.commit()
         }
     }
     
