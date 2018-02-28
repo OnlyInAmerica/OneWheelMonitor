@@ -151,6 +151,15 @@ class OneWheelGraphView: UIView {
                 zoomLayer.transform = transform
                 //let xTrans = zoomLayer.value(forKeyPath: "transform.translation.x")
                 //let xScale = zoomLayer.value(forKeyPath: "transform.scale.x") as! CGFloat
+                let dataScale = dataRange.y - dataRange.x
+                let xScale = 1 / dataScale
+                
+                let seriesRectFromZoomLayer = self.layer.convert(self.seriesRect, from: self.zoomLayer)
+                let zlVisibleFrac = (self.seriesRect.width / seriesRectFromZoomLayer.width)
+                let zlStartFrac = (self.seriesRect.origin.x - seriesRectFromZoomLayer.origin.x) / seriesRectFromZoomLayer.width
+                
+                let newDataRange = CGPoint(x: max(0.0, dataRange.x + (zlStartFrac / xScale)), y: min(1.0, dataRange.x + ((zlStartFrac + zlVisibleFrac) / xScale)))
+                drawZoomHint(rect: seriesRect, root: axisLabelLayer, dataRange: newDataRange)
                 CATransaction.commit()
             } else {
                 let dataScale = dataRange.y - dataRange.x
@@ -418,7 +427,7 @@ class OneWheelGraphView: UIView {
         if let _ = dataSource {
             drawTimeLabels(rect: timeLabelsRect, root: axisLabelLayer) //, numLabels: 3)
         }
-        drawZoomHint(rect: seriesRect, root: axisLabelLayer)
+        drawZoomHint(rect: seriesRect, root: axisLabelLayer, dataRange: self.dataRange)
     }
     
     private func resetDataRange() {
@@ -502,7 +511,7 @@ class OneWheelGraphView: UIView {
         }
     }
     
-    func drawZoomHint(rect: CGRect, root: CALayer) {
+    func drawZoomHint(rect: CGRect, root: CALayer, dataRange: CGPoint) {
         NSLog("drawZoomHint")
         if dataRange.y - dataRange.x == 1.0 {
             // Don't draw zoom hint when zoomed all the way out
