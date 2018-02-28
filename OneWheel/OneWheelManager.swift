@@ -545,15 +545,15 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         var rideOdometer = rideData.getOdometerSum()
         let tripOdometerOffset = rideData.getOdometerTripOffset()
         
-        let deltaOdometer = Int(tripOdometer) + tripOdometerOffset - rideOdometer
+        let deltaOdometer = Int(tripOdometer) - tripOdometerOffset
         
         if deltaOdometer < 0 {
             // Trip must have reset
-            rideData.setOdometerTripOffset(revs: abs(deltaOdometer))
             rideData.setOdometerSum(revs: rideOdometer + Int(tripOdometer))
         } else {
             rideData.setOdometerSum(revs: rideOdometer + deltaOdometer)
         }
+        rideData.setOdometerTripOffset(revs: Int(tripOdometer))
 
         rideOdometer = rideData.getOdometerSum()
         
