@@ -28,6 +28,11 @@ class StateViewController: UIViewController {
 
     private var cursor: RowCursor?
 
+    private var isPortrait: Bool {
+        get {
+            return self.view.bounds.width < self.view.bounds.height
+        }
+    }
     private var isLandscapeQuery: Bool?
     private var graphRefreshTimer: Timer?
     private let graphRefreshTimeInterval: TimeInterval = 1.0
@@ -39,8 +44,7 @@ class StateViewController: UIViewController {
     
     override func viewDidLoad() {
         // Make sure we set graphView's initial portrait / landscape setting before its first sublayer layout
-        let isLandscape = self.view.bounds.width > self.view.bounds.height
-        self.graphView.portraitMode = !isLandscape
+        self.graphView.portraitMode = isPortrait
         
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
@@ -146,9 +150,9 @@ class StateViewController: UIViewController {
         }
     }
     
-    override func willRotate(to toInterfaceOrientation: UIInterfaceOrientation, duration: TimeInterval) {
-        NSLog("willRotate to \(toInterfaceOrientation)")
-        self.graphView.portraitMode = toInterfaceOrientation.isPortrait
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        let isPortrait = size.height > size.width
+        self.graphView.portraitMode = isPortrait
     }
     
     @objc func settingsActionClick(_ sender: UIButton) {
@@ -253,7 +257,7 @@ extension StateViewController: ConnectionListener {
 extension StateViewController: GraphDataSource {
     
     func getCount() -> Int {
-        if UIDevice.current.orientation == .portrait {
+        if isPortrait {
             return ((try? owManager.db?.getRecentStateCount()) ?? 0)!
         } else {
             return ((try? owManager.db?.getAllStateCount()) ?? 0)!
@@ -261,7 +265,7 @@ extension StateViewController: GraphDataSource {
     }
     
     func getCursor(start: Int, end: Int, stride: Int) -> RowCursor? {
-        setupCursor(isLandscape: UIDevice.current.orientation != .portrait, start: start, end: end, stride: stride)
+        setupCursor(isLandscape: !isPortrait, start: start, end: end, stride: stride)
         return cursor
     }
 }

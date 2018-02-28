@@ -31,8 +31,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "321"
             endingLineNumber = "321"
-            landmarkName = "peripheral(_:didUpdateValueFor:error:)"
-            landmarkType = "7">
+            landmarkName = "unknown"
+            landmarkType = "0">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -47,8 +47,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "329"
             endingLineNumber = "329"
-            landmarkName = "peripheral(_:didUpdateValueFor:error:)"
-            landmarkType = "7">
+            landmarkName = "unknown"
+            landmarkType = "0">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -63,8 +63,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "310"
             endingLineNumber = "310"
-            landmarkName = "peripheral(_:didUpdateValueFor:error:)"
-            landmarkType = "7">
+            landmarkName = "unknown"
+            landmarkType = "0">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -79,8 +79,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "300"
             endingLineNumber = "300"
-            landmarkName = "peripheral(_:didUpdateValueFor:error:)"
-            landmarkType = "7">
+            landmarkName = "unknown"
+            landmarkType = "0">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -129,8 +129,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "388"
             endingLineNumber = "388"
-            landmarkName = "handleUpdatedStatus(_:)"
-            landmarkType = "7">
+            landmarkName = "unknown"
+            landmarkType = "0">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -145,8 +145,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "390"
             endingLineNumber = "390"
-            landmarkName = "handleUpdatedStatus(_:)"
-            landmarkType = "7">
+            landmarkName = "unknown"
+            landmarkType = "0">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -177,8 +177,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "66"
             endingLineNumber = "66"
-            landmarkName = "unknown"
-            landmarkType = "0">
+            landmarkName = "testThrottlerNoCancel()"
+            landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -193,8 +193,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "72"
             endingLineNumber = "72"
-            landmarkName = "unknown"
-            landmarkType = "0">
+            landmarkName = "testThrottlerNoCancel()"
+            landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -209,8 +209,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "64"
             endingLineNumber = "64"
-            landmarkName = "unknown"
-            landmarkType = "0">
+            landmarkName = "testThrottlerNoCancel()"
+            landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -225,8 +225,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "779"
             endingLineNumber = "779"
-            landmarkName = "getPrimaryDeviceUUID()"
-            landmarkType = "7">
+            landmarkName = "unknown"
+            landmarkType = "0">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -236,11 +236,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "OneWheel/StateViewController.swift"
-            timestampString = "541053613.266537"
+            timestampString = "541519591.093401"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "87"
-            endingLineNumber = "87"
+            startingLineNumber = "91"
+            endingLineNumber = "91"
             landmarkName = "StateViewController"
             landmarkType = "3">
          </BreakpointContent>
@@ -364,12 +364,12 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "OneWheel/OneWheelGraphView.swift"
-            timestampString = "541053613.266681"
+            timestampString = "541518971.875469"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "502"
             endingLineNumber = "502"
-            landmarkName = "drawLabels()"
+            landmarkName = "drawTimeLabels(rect:root:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -380,12 +380,12 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "OneWheel/OneWheelGraphView.swift"
-            timestampString = "541053613.267108"
+            timestampString = "541518971.8758039"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "503"
             endingLineNumber = "503"
-            landmarkName = "drawLabels()"
+            landmarkName = "drawTimeLabels(rect:root:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -396,7 +396,7 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "OneWheel/OneWheelGraphView.swift"
-            timestampString = "541053613.267399"
+            timestampString = "541518971.87607"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "271"
@@ -412,11 +412,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "OneWheel/StateViewController.swift"
-            timestampString = "541053613.267694"
+            timestampString = "541519591.0938489"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "46"
-            endingLineNumber = "46"
+            startingLineNumber = "50"
+            endingLineNumber = "50"
             landmarkName = "viewDidLoad()"
             landmarkType = "7">
          </BreakpointContent>
@@ -433,8 +433,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "542"
             endingLineNumber = "542"
-            landmarkName = "handleUpdatedOdometer(_:)"
-            landmarkType = "7">
+            landmarkName = "unknown"
+            landmarkType = "0">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -449,7 +449,23 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "750"
             endingLineNumber = "750"
-            landmarkName = "OneWheelLocalData"
+            landmarkName = "unknown"
+            landmarkType = "0">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "OneWheel/OneWheelGraphView.swift"
+            timestampString = "541518971.8763911"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "752"
+            endingLineNumber = "752"
+            landmarkName = "Series"
             landmarkType = "3">
          </BreakpointContent>
       </BreakpointProxy>
@@ -460,29 +476,13 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "OneWheel/OneWheelGraphView.swift"
-            timestampString = "541053613.267838"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "752"
-            endingLineNumber = "752"
-            landmarkName = "setupLayers(root:frame:graphView:)"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "OneWheel/OneWheelGraphView.swift"
-            timestampString = "541053613.268157"
+            timestampString = "541518971.876646"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "809"
             endingLineNumber = "809"
-            landmarkName = "completePath()"
-            landmarkType = "7">
+            landmarkName = "Series"
+            landmarkType = "3">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -492,7 +492,7 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "OneWheel/OneWheelGraphView.swift"
-            timestampString = "541053613.268465"
+            timestampString = "541518971.87687"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "288"
@@ -508,7 +508,7 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "OneWheel/OneWheelGraphView.swift"
-            timestampString = "541053613.2687629"
+            timestampString = "541518971.877089"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "310"
@@ -524,11 +524,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "OneWheel/StateViewController.swift"
-            timestampString = "541053613.2690769"
+            timestampString = "541519591.094133"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "268"
-            endingLineNumber = "268"
+            startingLineNumber = "272"
+            endingLineNumber = "272"
             landmarkName = "unknown"
             landmarkType = "0">
          </BreakpointContent>
@@ -540,7 +540,7 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "OneWheel/OneWheelGraphView.swift"
-            timestampString = "541053613.269159"
+            timestampString = "541518971.8773479"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "341"
@@ -556,7 +556,7 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "OneWheel/OneWheelGraphView.swift"
-            timestampString = "541053613.269429"
+            timestampString = "541518971.87756"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "346"
@@ -572,7 +572,7 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "OneWheel/OneWheelGraphView.swift"
-            timestampString = "541053613.269695"
+            timestampString = "541518971.877774"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "343"
@@ -604,7 +604,7 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "OneWheel/OneWheelGraphView.swift"
-            timestampString = "541053613.270043"
+            timestampString = "541518971.878016"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "260"
@@ -620,12 +620,44 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "OneWheel/OneWheelGraphView.swift"
-            timestampString = "541053613.27027"
+            timestampString = "541518971.878219"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "259"
             endingLineNumber = "259"
             landmarkName = "onPan(_:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "OneWheel/OneWheelGraphView.swift"
+            timestampString = "541518971.878417"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "34"
+            endingLineNumber = "34"
+            landmarkName = "portraitMode"
+            landmarkType = "24">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "OneWheel/StateViewController.swift"
+            timestampString = "541519591.094416"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "260"
+            endingLineNumber = "260"
+            landmarkName = "getCount()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
