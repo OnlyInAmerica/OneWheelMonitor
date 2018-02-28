@@ -504,7 +504,7 @@ class OneWheelGraphView: UIView {
     }
     
     func drawZoomHint(rect: CGRect, root: CALayer, dataRange: CGPoint) {
-        NSLog("drawZoomHint")
+        //NSLog("drawZoomHint")
         if dataRange.y - dataRange.x == 1.0 {
             // Don't draw zoom hint when zoomed all the way out
             zoomHintLayer?.isHidden = true
@@ -516,14 +516,14 @@ class OneWheelGraphView: UIView {
             root.addSublayer(zoomHintLayer!)
         }
         
-        let yPad: CGFloat = 0.0
+        let yPad: CGFloat = 3.0
         let yHeight: CGFloat = 3.0
         
         let zoomStart = rect.origin.x + (dataRange.x * rect.width)
         let zoomEnd = zoomStart + ((dataRange.y - dataRange.x) * rect.width)
         
         let rt = CGRect(x: zoomStart, y: yPad, width: zoomEnd - zoomStart, height: yHeight)
-        
+        zoomHintLayer!.cornerRadius = 2.0
         zoomHintLayer!.isHidden = false
         zoomHintLayer!.frame = rt
         zoomHintLayer!.backgroundColor = zoomHintColor
