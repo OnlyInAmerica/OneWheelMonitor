@@ -322,7 +322,7 @@ class OneWheelGraphView: UIView {
                 let numPointsFinal = (dataIdxend - dataIdxstart) / stride
                 let deltaXFinal = rect.width / (CGFloat(numPointsFinal - 1))
 
-                NSLog("Query [\(dataIdxstart):\(dataIdxend)] [\(CGFloat(dataIdxstart)/CGFloat(dataSourceCount)):\(CGFloat(dataIdxend) / CGFloat(dataSourceCount))] mod \(stride) numPoints \(numPoints)")
+                NSLog("Query [\(dataIdxstart):\(dataIdxend)] [\(CGFloat(dataIdxstart)/CGFloat(dataSourceCount)):\(CGFloat(dataIdxend) / CGFloat(dataSourceCount))] mod \(stride) numPoints \(numPointsFinal)")
                 if let cursor = dataSource.getCursor(start: dataIdxstart, end: dataIdxend, stride: stride) {
 
                     rowCache.removeAll()
@@ -336,7 +336,8 @@ class OneWheelGraphView: UIView {
                         if dataIdx == 0 {
                             startIdx = row[colIdxId]
                             startTime = row[colIdxTime]
-                        } else if dataIdx == numPointsFinal - 1 {
+                        }
+                        if dataIdx == numPointsFinal - 1 {
                             endIdx = row[colIdxId]
                             endTime = row[colIdxTime]
                         }
