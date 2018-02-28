@@ -386,7 +386,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             
             let feetOffInMotion = newState.feetOffDuringMotion() && !lastState.feetOffDuringMotion()
             
-            var delta = newState.describeDelta(prev: lastState)
+            var delta = newState.describeDelta(prev: lastState, isGoofy: userPrefs.getIsGoofy())
             
             // If feet off in motion, we'll send a special high priority alert as the last item (to supercede any other announcements). The
             // feet off announcement can also replace the Heel/Toe Off announcement.
@@ -748,6 +748,7 @@ class OneWheelLocalData {
     private let keyAlertsRequiresHeadphones = "ow_alerts_requires_headphones"
     private let keyAlertsDuckAudio = "ow_alerts_duck_audio"
     private let keyAlertsVolume = "ow_alerts_volume"
+    private let keyGoofy = "ow_foot_sensor_goofy"
 
     private let data = UserDefaults.standard
     
@@ -763,7 +764,7 @@ class OneWheelLocalData {
         data.register(defaults: [keyAlertsRequiresHeadphones : true])
         data.register(defaults: [keyAlertsDuckAudio : false])
         data.register(defaults: [keyAlertsVolume : 1.0])
-
+        data.register(defaults: [keyGoofy : false])
     }
     
     func clearPrimaryDeviceUUID() {
@@ -832,6 +833,10 @@ class OneWheelLocalData {
     
     func getOnboarded() -> Bool {
         return data.bool(forKey: keyOnboarded)
+    }
+    
+    func getIsGoofy() -> Bool {
+        return data.bool(forKey: keyGoofy)
     }
 }
 

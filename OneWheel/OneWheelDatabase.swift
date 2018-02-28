@@ -297,16 +297,16 @@ class OneWheelState : Record, CustomStringConvertible {
         return self.describeDelta(prev: OneWheelState())
     }
     
-    func describeDelta(prev: OneWheelState) -> String {
+    func describeDelta(prev: OneWheelState, isGoofy: Bool = false) -> String {
         var description = ""
         if prev.riderPresent != self.riderPresent {
             description += "Rider \(self.riderPresent ? "On" : "Off"). "
         }
         if prev.footPad1 != self.footPad1 {
-            description += "Toe \(self.footPad1 ? "On" : "Off"). "
+            description += (isGoofy ? "Heel " : "Toe ") + "\(self.footPad1 ? "On" : "Off"). "
         }
         if prev.footPad2 != self.footPad2 {
-            description += "Heel \(self.footPad2 ? "On" : "Off"). "
+            description += (isGoofy ? "Toe " : "Heel ") + "\(self.footPad2 ? "On" : "Off"). "
         }
         if prev.icsuFault != self.icsuFault {
             description += "U Fault \(self.icsuFault ? "On" : "Off"). "
