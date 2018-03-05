@@ -208,6 +208,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         
         if let _ = self.connectingDevice {
             // Only connect to one device at a time, re-enable scan if connect fails
+            NSLog("Stopping scan")
             cm?.stopScan()
         }
         // TODO: We should listen for connection error, unclear exactly what circumstances cause that since connect should never time out.
