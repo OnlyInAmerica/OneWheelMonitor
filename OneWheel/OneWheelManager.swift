@@ -100,8 +100,14 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     func stop() {
         startRequested = false
         cm?.stopScan()
-        if let device = connectedDevice {
-            cm?.cancelPeripheralConnection(device)
+        // Dereferencing CBPeripheral should be enough to cancel connection, but to show our intention we'll explicitly cancel and dereference
+        if let connecting = connectingDevice {
+            cm?.cancelPeripheralConnection(connecting)
+            connectingDevice = nil
+        }
+        if let connected = connectedDevice {
+            cm?.cancelPeripheralConnection(connected)
+            connectedDevice = nil
         }
         setHeadphoneNotificationsEnabled(false)
         setUserDefaultsNotificatioinsEnabled(false)
@@ -150,33 +156,34 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     
     private func findDevice() {
         let cm = self.cm!
+        // TODO : This logic might be wrong. retrieveConnectedPeripherals should be in the branch where we don't have primaryDeviceUuid
         if let primaryDeviceUuid = userPrefs.getPrimaryDeviceUUID() {
             // Connect known device
             let knownDevices = cm.retrievePeripherals(withIdentifiers: [primaryDeviceUuid])
-            if knownDevices.count == 0 {
-                let connectedDevices = cm.retrieveConnectedPeripherals(withServices: [serviceUuid])
-                if connectedDevices.count == 1 {
-                    // Locally connect to pre-connected peripheral
-                    let targetDevice = knownDevices[0]
-                    NSLog("Connecting locally to pre-connected device \(targetDevice.identifier)")
-                    connectDevice(targetDevice)
-                } else {
-                    NSLog("Unexpected number (\(knownDevices.count) of connected CBPeripherals matching uuid \(primaryDeviceUuid)")
-                    return
-                }
-            } else if knownDevices.count > 1 {
-                NSLog("Multiple (\(knownDevices.count) known CBPeripherals matching uuid \(primaryDeviceUuid)")
-                return
-            } else {
+            if knownDevices.count == 1 {
                 let targetDevice = knownDevices[0]
                 NSLog("Connecting to known device \(targetDevice.identifier)")
                 connectDevice(targetDevice)
+            } else {
+                NSLog("Unexpeted number (\(knownDevices.count) of known CBPeripherals matching uuid \(primaryDeviceUuid)")
+                // TODO : This is an error, should present list to user
+                // TODO : Possible to remove devices from the 'known' list?
             }
         } else {
             // Discover devices
-            NSLog("Beginning CBPeripheral scan for service \(serviceUuid.uuidString)")
-            cm.scanForPeripherals(withServices: [serviceUuid], options: nil)
-            // Delegate awaits discovery events
+            let connectedDevices = cm.retrieveConnectedPeripherals(withServices: [serviceUuid])
+            if connectedDevices.count > 0 {
+                // TODO : Present list of pre-connected devices for user selection or, alternatively, if user wants to scan for new devices
+                // Locally connect to pre-connected peripheral
+                let targetDevice = connectedDevices[0]
+                NSLog("Connecting locally to a pre-connected device \(targetDevice.identifier). \(connectedDevices.count) total pre-connected devices.")
+                connectDevice(targetDevice)
+            } else {
+                // Scan for devices
+                NSLog("Beginning CBPeripheral scan for service \(serviceUuid.uuidString)")
+                cm.scanForPeripherals(withServices: [serviceUuid], options: nil)
+                // Delegate awaits discovery events
+            }
         }
     }
     
@@ -198,6 +205,14 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
                         rssi RSSI: NSNumber) {
         NSLog("Peripheral discovered: \(peripheral.identifier) - \(peripheral.name ?? "No Name")")
         connectDevice(peripheral)
+        
+        if let _ = self.connectingDevice {
+            // Only connect to one device at a time, re-enable scan if connect fails
+            cm?.stopScan()
+        }
+        // TODO: We should listen for connection error, unclear exactly what circumstances cause that since connect should never time out.
+        // At worst not doing this will potentially leave the app in "connecting" state after connection failed, but client calling #stop() -> #start()
+        // should retry.
     }
     
     // Peripheral connected
