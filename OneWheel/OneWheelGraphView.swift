@@ -301,6 +301,11 @@ class OneWheelGraphView: UIView {
             let dataSourceCount = dataSource.getCount()
             
             for (_, series) in self.series {
+
+                if series is SpeedSeries {
+                    series.max = max((series as! SpeedSeries).defaultMax, 1.10 * rpmToMph(Double(rideData.getMaxRpm())))
+                }
+
                 series.startNewPath(rect: seriesRect, numItems: dataSourceCount, graphView: self)
             }
             
@@ -390,9 +395,6 @@ class OneWheelGraphView: UIView {
     
     private func appendRowToPath(x: CGFloat, row: Row) {
         for (_, series) in self.series {
-            if series is SpeedSeries {
-                series.max = max(series.max, 1.10 * rpmToMph(Double(rideData.getMaxRpm())))
-            }
             series.appendToPath(x: x, row: row)
         }
     }
@@ -995,13 +997,15 @@ class OneWheelGraphView: UIView {
     
     class SpeedSeries : ValueSeries, SeriesEvaluator {
         
+        public let defaultMax = 20.0  // Current world record is ~ 27 MPH
+        
         let rideLocalData: RideLocalData
 
         init(name: String, color: CGColor, rideData: RideLocalData) {
             self.rideLocalData = rideData
             
             super.init(name: name, color: color, labelType: AxisLabelType.Left, gradientUnderPath: true, evaluator: self)
-            max = 20.0 // Current world record is ~ 27 MPH
+            max = defaultMax
             
             // Draw max speed line
             self.drawMaxValLineWithAxisLabels = true

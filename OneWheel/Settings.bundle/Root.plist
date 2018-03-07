@@ -45,6 +45,8 @@
 			<integer>0</integer>
 			<key>MaximumValue</key>
 			<integer>1</integer>
+			<key>MinimumValueImage</key>
+			<string></string>
 		</dict>
 		<dict>
 			<key>Type</key>
