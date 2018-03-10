@@ -1040,6 +1040,22 @@ class OneWheelGraphView: UIView {
         }
     }
     
+    class BatteryVoltageSeries : ValueSeries, SeriesEvaluator {
+        
+        init(name: String, color: CGColor) {
+            super.init(name: name, color: color, labelType: AxisLabelType.Right, gradientUnderPath: false, evaluator: self)
+            max = 59.0
+        }
+        
+        func getValForRow(row: Row) -> Double {
+            return (row[colIdxBattVoltage] as Double) / 10.0
+        }
+        
+        override func printAxisVal(val: Double) -> String {
+            return String(format: "%.1fV", arguments: [val])
+        }
+    }
+    
     class ErrorSeries : BooleanSeries, SeriesEvaluator {
         
         init(name: String, color: CGColor) {

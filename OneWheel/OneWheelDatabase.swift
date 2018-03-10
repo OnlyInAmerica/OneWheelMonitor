@@ -12,7 +12,7 @@ import GRDB
 let tableState = "state"
 
 // Columns currently utilized by graph view
-private var requiredCols = "time, footPad1, footPad2, riderPresent, rpm, batteryLevel, id"
+private var requiredCols = "time, footPad1, footPad2, riderPresent, rpm, batteryLevel, id, batteryVoltage"
 
 let colIdxTime = 0
 let colIdxFoot1 = 1
@@ -21,6 +21,8 @@ let colIdxRider = 3
 let colIdxRpm = 4
 let colIdxBatt = 5
 let colIdxId = 6
+let colIdxBattVoltage = 7
+
 
 // currently unused
 let colIdxMotorTemp = 6
@@ -165,6 +167,12 @@ var migrator: DatabaseMigrator {
             t.add(column: "lastErrorCodeVal", .integer).notNull().defaults(to: 0)
         }
     }
+    
+    migrator.registerMigration("addBatteryVoltage") { db in
+        try db.alter(table: tableState) { t in
+            t.add(column: "batteryVoltage", .integer).notNull().defaults(to: 0)
+        }
+    }
 
     return migrator
 }
@@ -191,6 +199,7 @@ class OneWheelState : Record, CustomStringConvertible {
     let controllerTemp : UInt8
     let lastErrorCode : UInt8
     let lastErrorCodeVal : UInt8
+    let batteryVoltage : UInt16
 
     
     override init() {
@@ -210,6 +219,7 @@ class OneWheelState : Record, CustomStringConvertible {
         self.controllerTemp = 0
         self.lastErrorCode = 0
         self.lastErrorCodeVal = 0
+        self.batteryVoltage = 0
         
         super.init()
     }
@@ -230,7 +240,8 @@ class OneWheelState : Record, CustomStringConvertible {
         motorTemp: UInt8,
         controllerTemp: UInt8,
         lastErrorCode: UInt8,
-        lastErrorCodeVal: UInt8) {
+        lastErrorCodeVal: UInt8,
+        batteryVoltage: UInt16) {
         
         self.time = time
         self.riderPresent = riderPresent
@@ -248,6 +259,7 @@ class OneWheelState : Record, CustomStringConvertible {
         self.controllerTemp = controllerTemp
         self.lastErrorCode = lastErrorCode
         self.lastErrorCodeVal = lastErrorCodeVal
+        self.batteryVoltage = batteryVoltage
         
         super.init()
     }
@@ -269,6 +281,7 @@ class OneWheelState : Record, CustomStringConvertible {
         controllerTemp = row["controllerTemp"]
         lastErrorCode = row["lastErrorCode"]
         lastErrorCodeVal = row["lastErrorCodeVal"]
+        batteryVoltage = row["batteryVoltage"]
         
         super.init()
     }
@@ -290,6 +303,7 @@ class OneWheelState : Record, CustomStringConvertible {
         container["controllerTemp"] = controllerTemp
         container["lastErrorCode"] = lastErrorCode
         container["lastErrorCodeVal"] = lastErrorCodeVal
+        container["batteryVoltage"] = batteryVoltage
     }
     
     var description: String {
@@ -333,6 +347,8 @@ class OneWheelState : Record, CustomStringConvertible {
         if prev.batteryLevel != self.batteryLevel {
             description += "Battery \(self.batteryLevel). "
         }
+        
+        // We should probably squelch the below. These aren't worth announcing
         if prev.motorTemp != self.motorTemp {
             description += "Motor Temp \(self.motorTemp). "
         }
@@ -342,7 +358,14 @@ class OneWheelState : Record, CustomStringConvertible {
         if prev.lastErrorCode != self.lastErrorCode {
             description += "Last Error \(self.lastErrorDescription()). "
         }
+        if prev.batteryVoltage != self.batteryVoltage {
+            description += "Voltage \(self.voltage()). "
+        }
         return description
+    }
+    
+    func voltage() -> Double {
+        return Double(batteryVoltage) / 10.0
     }
     
     func mph() -> Double {
