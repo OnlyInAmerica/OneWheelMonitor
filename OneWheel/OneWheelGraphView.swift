@@ -413,6 +413,7 @@ class OneWheelGraphView: UIView {
     private func drawLabels() {
         //NSLog("Draw axisLabelLayer in")
         
+        var seriesAxisLabelRect = seriesAxisRect
         for (_, series) in series {
             if series is SpeedSeries && series.drawMaxValLineWithAxisLabels {
                 let maxValFrac = (series as! ValueSeries).getMaximumValueInfo().1
@@ -420,7 +421,12 @@ class OneWheelGraphView: UIView {
                     series.drawSeriesMaxVal(rect: seriesRect, root: layer, bgColor: bgColor.cgColor, maxVal: CGFloat(maxValFrac), portraitMode: portraitMode)
                 }
             }
-            series.drawAxisLabels(rect: seriesAxisRect, root: axisLabelLayer, numLabels: 5, bgColor: bgColor.cgColor)
+            series.drawAxisLabels(rect: seriesAxisLabelRect, root: axisLabelLayer, numLabels: 5, bgColor: bgColor.cgColor)
+            
+            if series.labelType == .Right { // TODO : Assumes duplicate labels only on right
+                // Keep insetting axis label rect to allow stacking labels instead of having them overlap
+                seriesAxisLabelRect = seriesAxisLabelRect.insetBy(dx: 20.0, dy: 0.0).applying(CGAffineTransform(translationX: -20.0, y: 0.0))
+            }
         }
         
         if let _ = dataSource {

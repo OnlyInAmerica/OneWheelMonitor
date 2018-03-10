@@ -608,7 +608,6 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         let newState = OneWheelState(time: Date.init(), riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: lastState.rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: lastState.lastErrorCode, lastErrorCodeVal: lastState.lastErrorCodeVal, batteryVoltage: voltageInt)
         writeState(newState)
         lastState = newState
-        NSLog("New voltage \(voltageInt)")
     }
     
     private func queueLowAlert(_ message: String, key: String? = nil, shortMessage: String? = nil) {
