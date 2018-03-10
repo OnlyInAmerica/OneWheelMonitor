@@ -60,13 +60,6 @@ class OneWheelDatabase {
         updateListener?.onChange()
     }
     
-    func getStateRecordsController() throws -> FetchedRecordsController<OneWheelState> {
-        let controller = try FetchedRecordsController(
-            dbPool,
-            request: OneWheelState.order(Column("time")))
-        return controller
-    }
-    
     func getAllStateCursor(start: Int, end: Int, stride: Int) throws -> RowCursor {
         return try dbPool.read { (db) in
             return try Row.fetchCursor(db, "SELECT \(requiredCols) FROM state WHERE id >= ?1 AND id <= ?2 AND id % ?3 == 0", arguments: [start, end, stride])
@@ -177,11 +170,9 @@ var migrator: DatabaseMigrator {
     return migrator
 }
 
-class OneWheelState : Record, CustomStringConvertible {
+class OneWheelState : RowConvertible, Persistable, CustomStringConvertible, Codable {
     
-    override class var databaseTableName : String {
-        return tableState
-    }
+    static let databaseTableName: String = tableState
     
     let time: Date
     let riderPresent: Bool
@@ -202,7 +193,7 @@ class OneWheelState : Record, CustomStringConvertible {
     let batteryVoltage : UInt16
 
     
-    override init() {
+    init() {
         self.time = Date()
         self.riderPresent = false
         self.footPad1 = false
@@ -220,8 +211,6 @@ class OneWheelState : Record, CustomStringConvertible {
         self.lastErrorCode = 0
         self.lastErrorCodeVal = 0
         self.batteryVoltage = 0
-        
-        super.init()
     }
     
     init(
@@ -260,50 +249,6 @@ class OneWheelState : Record, CustomStringConvertible {
         self.lastErrorCode = lastErrorCode
         self.lastErrorCodeVal = lastErrorCodeVal
         self.batteryVoltage = batteryVoltage
-        
-        super.init()
-    }
-    
-    required init(row: Row) {
-        time = row["time"]
-        riderPresent = row["riderPresent"]
-        footPad1 = row["footPad1"]
-        footPad2 = row["footPad2"]
-        icsuFault = row["icsuFault"]
-        icsvFault = row["icsvFault"]
-        charging = row["charging"]
-        bmsCtrlComms = row["bmsCtrlComms"]
-        brokenCapacitor = row["brokenCapacitor"]
-        rpm = row["rpm"]
-        safetyHeadroom = row["safetyHeadroom"]
-        batteryLevel = row["batteryLevel"]
-        motorTemp = row["motorTemp"]
-        controllerTemp = row["controllerTemp"]
-        lastErrorCode = row["lastErrorCode"]
-        lastErrorCodeVal = row["lastErrorCodeVal"]
-        batteryVoltage = row["batteryVoltage"]
-        
-        super.init()
-    }
-    
-    override func encode(to container: inout PersistenceContainer) {
-        container["time"] = time
-        container["riderPresent"] = riderPresent
-        container["footPad1"] = footPad1
-        container["footPad2"] = footPad2
-        container["icsuFault"] = icsuFault
-        container["icsvFault"] = icsvFault
-        container["charging"] = charging
-        container["bmsCtrlComms"] = bmsCtrlComms
-        container["brokenCapacitor"] = brokenCapacitor
-        container["rpm"] = rpm
-        container["safetyHeadroom"] = safetyHeadroom
-        container["batteryLevel"] = batteryLevel
-        container["motorTemp"] = motorTemp
-        container["controllerTemp"] = controllerTemp
-        container["lastErrorCode"] = lastErrorCode
-        container["lastErrorCodeVal"] = lastErrorCodeVal
-        container["batteryVoltage"] = batteryVoltage
     }
     
     var description: String {
