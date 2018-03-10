@@ -12,7 +12,8 @@ import GRDB
 class OneWheelGraphView: UIView {
     
     private let rideData = RideLocalData()
-    
+    private let userPrefs = OneWheelLocalData()
+
     let zoomHintColor = UIColor(red: 0.8, green: 0.8, blue: 0.8, alpha: 1.0).cgColor
     
     var dataSource: GraphDataSource?
@@ -480,9 +481,9 @@ class OneWheelGraphView: UIView {
                 let odometer = rideData.getOdometerSum()
                 // If both are 0 we probably haven't initialized. Should use a no value constant to differentiate from 0
                 if !(batt == 0 && odometer == 0) {
-                    let miles = revolutionstoMiles(Double(rideData.getOdometerSum()))
-                    let milesStr = String(format: "%.1f", miles)
-                    axisLabel = "\(milesStr) Miles | \(batt)%"
+                    let localDistance = userPrefs.getIsMetric() ? revolutionstoKilometers(Double(rideData.getOdometerSum())) : revolutionstoMiles(Double(rideData.getOdometerSum()))
+                    let milesStr = String(format: "%.1f", localDistance)
+                    axisLabel = "\(milesStr) \(userPrefs.getIsMetric() ? "Kilometers" : "Miles") | \(batt)%"
                 }
             }
             var labelRect = axisLabel.boundingRect(with: rect.size, options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: [NSAttributedStringKey.font: labelFont], context: nil)
@@ -1005,11 +1006,10 @@ class OneWheelGraphView: UIView {
         
         public let defaultMax = 20.0  // Current world record is ~ 27 MPH
         
-        let rideLocalData: RideLocalData
+        let rideLocalData = RideLocalData()
+        let userPrefs = OneWheelLocalData()
 
-        init(name: String, color: CGColor, rideData: RideLocalData) {
-            self.rideLocalData = rideData
-            
+        init(name: String, color: CGColor) {
             super.init(name: name, color: color, labelType: AxisLabelType.Left, gradientUnderPath: true, evaluator: self)
             max = defaultMax
             
@@ -1018,15 +1018,15 @@ class OneWheelGraphView: UIView {
         }
         
         public override func getMaximumValueInfo() -> (Date, Float) {
-            return (rideLocalData.getMaxRpmDate() ?? Date.distantFuture, Float(rpmToMph(Double(rideLocalData.getMaxRpm())) / max))
+            return (rideLocalData.getMaxRpmDate() ?? Date.distantFuture, (userPrefs.getIsMetric() ? Float(rpmToKmph(Double(rideLocalData.getMaxRpm()))) : Float(rpmToMph(Double(rideLocalData.getMaxRpm()))) ) / Float(max))
         }
         
         func getValForRow(row: Row) -> Double {
-            return rpmToMph(row[colIdxRpm])
+            return userPrefs.getIsMetric() ? rpmToKmph(row[colIdxRpm]) : rpmToMph(row[colIdxRpm])
         }
         
         override func printAxisVal(val: Double) -> String {
-            return "\(Int(val))MPH"
+            return "\(Int(val))\(userPrefs.getIsMetric() ? "KPH" : "MPH")"
         }
     }
     

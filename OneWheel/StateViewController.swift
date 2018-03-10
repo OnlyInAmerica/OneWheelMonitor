@@ -50,7 +50,7 @@ class StateViewController: UIViewController {
         self.graphView.dataSource = self
         self.graphView.bgColor = UIColor(red: 0.05, green: 0.05, blue: 0.05, alpha: 1.0)
         self.graphView.addSeries(newSeries: OneWheelGraphView.ErrorSeries(name: "Error", color: UIColor(red:0.99, green:0.07, blue:0.55, alpha:0.6).cgColor))
-        self.graphView.addSeries(newSeries: OneWheelGraphView.SpeedSeries(name: "Speed", color: UIColor(red:0.89, green:0.89, blue:0.89, alpha:1.0).cgColor, rideData: rideData))
+        self.graphView.addSeries(newSeries: OneWheelGraphView.SpeedSeries(name: "Speed", color: UIColor(red:0.89, green:0.89, blue:0.89, alpha:1.0).cgColor))
         self.graphView.addSeries(newSeries: OneWheelGraphView.BatterySeries(name: "Battery", color: UIColor(red:0.00, green:0.68, blue:0.94, alpha:1.0).cgColor))
         self.graphView.addSeries(newSeries: OneWheelGraphView.BatteryVoltageSeries(name: "BatteryV", color: UIColor(red:0.30, green:0.92, blue:0.76, alpha:1.0).cgColor))
 
@@ -93,10 +93,12 @@ class StateViewController: UIViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         subscribeToState(doSubscribe: true)
+        setUserDefaultsNotificatioinsEnabled(true)
     }
     
     override func viewDidDisappear(_ animated: Bool) {
         subscribeToState(doSubscribe: false)
+        setUserDefaultsNotificatioinsEnabled(false)
     }
     
     func startNewRide() {
@@ -240,6 +242,20 @@ class StateViewController: UIViewController {
         } else {
             muteAudioButton.title = "Unmute Audio"
         }
+    }
+    
+    // MARK : NSUserDefaults monitoring
+    
+    private func setUserDefaultsNotificatioinsEnabled(_ enabled: Bool) {
+        NotificationCenter.default.removeObserver(self, name: UserDefaults.didChangeNotification, object: nil)
+        if enabled {
+            NotificationCenter.default.addObserver(self, selector: #selector(handleUserDefaultsChange(_:)), name: UserDefaults.didChangeNotification, object: nil)
+        }
+    }
+    
+    @objc func handleUserDefaultsChange(_ notification: Notification) {
+        // Currently this is only needed when unit system is toggled
+        refreshGraph()
     }
 }
 

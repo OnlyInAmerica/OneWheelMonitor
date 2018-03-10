@@ -317,6 +317,10 @@ class OneWheelState : RowConvertible, Persistable, CustomStringConvertible, Coda
         return rpmToMph(Double(self.rpm))
     }
     
+    func kph() -> Double {
+        return rpmToKmph(Double(self.rpm))
+    }
+    
     func lastErrorDescription() -> String {
         return "\(errorCodeMap[self.lastErrorCode] ?? "Unknown") \(self.lastErrorCodeVal)"
     }
@@ -334,6 +338,14 @@ func rpmToMph(_ rpm: Double) -> Double {
 
 func revolutionstoMiles(_ revolutions: Double) -> Double {
     return (revolutions * 35.0) / 63360.0
+}
+
+func rpmToKmph(_ rpm: Double) -> Double {
+    return 60.0 * (35.0 * rpm) / 39370.099999999999
+}
+
+func revolutionstoKilometers(_ revolutions: Double) -> Double {
+    return (revolutions * 35.0) / 39370.099999999999
 }
 
 protocol UpdateListener {

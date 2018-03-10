@@ -35,7 +35,9 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     private let alertQueue = AlertQueue()
     
     // Used to throttle alert generation
-    private let speedMonitor: SpeedMonitor = SpeedMonitor()
+    private lazy var speedMonitor: SpeedMonitor = { // Var because we re-create on unit system change
+        SpeedMonitor(metric: userPrefs.getIsMetric())
+    }()
     private let batteryMonitor: BenchmarkMonitor = BatteryMonitor()
     private let headroomMonitor: BenchmarkMonitor = HeadroomMonitor()
     private let alertThrottler = CancelableAlertThrottler()
@@ -482,12 +484,12 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         let date = Date.init()
         let newState = OneWheelState(time: date, riderPresent: lastState.riderPresent, footPad1: lastState.footPad1, footPad2: lastState.footPad2, icsuFault: lastState.icsuFault, icsvFault: lastState.icsvFault, charging: lastState.charging, bmsCtrlComms: lastState.bmsCtrlComms, brokenCapacitor: lastState.brokenCapacitor, rpm: rpm, safetyHeadroom: lastState.safetyHeadroom, batteryLevel: lastState.batteryLevel, motorTemp: lastState.motorTemp, controllerTemp: lastState.controllerTemp, lastErrorCode: lastState.lastErrorCode, lastErrorCodeVal: lastState.lastErrorCodeVal, batteryVoltage: lastState.batteryVoltage)
         writeState(newState)
-        let mph = newState.mph()
-        let mphRound = Int(mph)
+        let localSpeed = newState.localSpeed(isMetric: userPrefs.getIsMetric())
+        let localSpeedRound = Int(localSpeed)
         let lastSpeedBenchmark = speedMonitor.lastBenchmarkIdx
-        if shouldSoundAlerts && userPrefs.getSpeedAlertsEnabled() && speedMonitor.passedBenchmark(mph) && /* Only announce speed increases */ lastSpeedBenchmark > speedMonitor.lastBenchmarkIdx {
+        if shouldSoundAlerts && userPrefs.getSpeedAlertsEnabled() && speedMonitor.passedBenchmark(localSpeed) && /* Only announce speed increases */ lastSpeedBenchmark > speedMonitor.lastBenchmarkIdx {
             NSLog("Announcing speed change from \(lastSpeedBenchmark) to \(speedMonitor.lastBenchmarkIdx)")
-            queueHighAlert("Speed \(mphRound)", key: "Speed", shortMessage: "\(mphRound)")
+            queueHighAlert("Speed \(localSpeedRound)", key: "Speed", shortMessage: "\(localSpeedRound)")
         }
         
         // TODO : Temporarily using rpm to pace some other characteristics we only need coarse time resolution on
@@ -508,8 +510,8 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         if rideData.getMaxRpm() < rpm && !speedMonitor.wheelSlipDetected {
             NSLog("Setting new max rpm \(rpm)")
             rideData.setMaxRpm(Int(rpm), date: date)
-            if shouldSoundAlerts && userPrefs.getSpeedAlertsEnabled() && mphRound > 12 {
-                alertThrottler.scheduleAlert(key: "TopSpeed", alertQueue: alertQueue, alert: speechManager.createSpeechAlert(priority: .LOW, message: "New Top Speed \(mphRound)", key:"TopSpeed"))
+            if shouldSoundAlerts && userPrefs.getSpeedAlertsEnabled() && localSpeedRound > 12 {
+                alertThrottler.scheduleAlert(key: "TopSpeed", alertQueue: alertQueue, alert: speechManager.createSpeechAlert(priority: .LOW, message: "New Top Speed \(localSpeedRound)", key:"TopSpeed"))
             }
         }
         lastState = newState
@@ -677,11 +679,15 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     
     // MARK : NSUserDefaults settings change
     @objc func handleUserDefaultsChange(_ notification: Notification) {
-        // Respond to NSUserDefaults aren't checked at the moment of their effect
+        // Respond to NSUserDefaults that aren't checked at the moment of their effect
         setAVSessionInfo()
         
         if userPrefs.getAutoLightsEnabled() {
             applyAutoLights(Date())
+        }
+        
+        if userPrefs.getIsMetric() != speedMonitor.metric {
+            speedMonitor = SpeedMonitor(metric: userPrefs.getIsMetric())
         }
     }
     
@@ -785,6 +791,7 @@ class OneWheelLocalData {
     private let keyAlertsDuckAudio = "ow_alerts_duck_audio"
     private let keyAlertsVolume = "ow_alerts_volume"
     private let keyGoofy = "ow_foot_sensor_goofy"
+    private let keyMetric = "ow_metric"
 
     private let data = UserDefaults.standard
     
@@ -801,6 +808,7 @@ class OneWheelLocalData {
         data.register(defaults: [keyAlertsDuckAudio : false])
         data.register(defaults: [keyAlertsVolume : 1.0])
         data.register(defaults: [keyGoofy : false])
+        data.register(defaults: [keyMetric : false])
     }
     
     func clearPrimaryDeviceUUID() {
@@ -873,6 +881,10 @@ class OneWheelLocalData {
     
     func getIsGoofy() -> Bool {
         return data.bool(forKey: keyGoofy)
+    }
+    
+    func getIsMetric() -> Bool {
+        return data.bool(forKey: keyMetric)
     }
 }
 
@@ -1024,12 +1036,22 @@ class SpeedMonitor: BenchmarkMonitor {
     
     private var lastSpeed: Double? = nil
     private var lastSpeedDate: Date? = nil
-    private let wheelSlipThresholdMphps = 31.0 // Mph / s
+    private var wheelSlipThresholdLocalUnits: Double { // Mph / s, or kph / s
+        get {
+            return metric ? 31.0 : 50.0
+        }
+    }
     var wheelSlipDetected = false
     
-    init() {
-        let benchmarks = [12.0, 14.0] + Array(stride(from: 15.0, through: 30.0, by: 1.0))
-        let hysteresis = 1.5
+    let metric: Bool
+    
+    private let benchmarksMph = [12.0, 14.0] + Array(stride(from: 15.0, through: 30.0, by: 1.0))
+    private let benchmarksKph = [20.0] + Array(stride(from: 23.0, through: 50.0, by: 2.0))
+
+    init(metric: Bool = false) {
+        let benchmarks = metric ? benchmarksKph : benchmarksMph
+        let hysteresis = metric ? 1.5 : 2.4
+        self.metric = metric
         super.init(benchmarks: benchmarks, hysteresis: hysteresis)
     }
     
@@ -1040,9 +1062,9 @@ class SpeedMonitor: BenchmarkMonitor {
         // Rough wheel slip detection based on instantaneous acceleration
         if let lastSpeed = self.lastSpeed, let lastSpeedDate = self.lastSpeedDate {
             let accel = (val - lastSpeed) / (now.timeIntervalSince(lastSpeedDate))
-            if accel >= wheelSlipThresholdMphps {
+            if accel >= wheelSlipThresholdLocalUnits {
                 wheelSlipDetected = true
-            } else if accel <= -wheelSlipThresholdMphps || val == 0.0 {
+            } else if accel <= -wheelSlipThresholdLocalUnits || val == 0.0 {
                wheelSlipDetected = false
             }
         }
@@ -1081,4 +1103,10 @@ class HeadroomMonitor: BenchmarkMonitor {
 protocol ConnectionListener {
     func onConnected(oneWheel: OneWheel)
     func onDisconnected(oneWheel: OneWheel)
+}
+
+extension OneWheelState {
+    func localSpeed(isMetric: Bool) -> Double {
+        return isMetric ? self.kph() : self.mph()
+    }
 }
