@@ -80,7 +80,11 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     private let pollingInterval: TimeInterval = 10.0
     private var lastPolledDate: Date?
     
-    private let tripMileageAnnounceInterval = 0.5
+    private var tripMileageAnnounceInterval: Double {
+        get {
+            return userPrefs.getIsMetric() ? 1.0 : 0.5 // Announce every 1 km or .5 miles
+        }
+    }
     
     // MARK : Public API
     
@@ -589,18 +593,20 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
 
         rideOdometer = rideData.getOdometerSum()
         
-        let lastAnnouncedMileage = revolutionstoMiles(Double(rideData.getOdometerLastAnnounced()))
-        let nowMileage = revolutionstoMiles(Double(rideOdometer))
+        let isMetric = userPrefs.getIsMetric()
+        let lastAnnouncedRevs = Double(rideData.getOdometerLastAnnounced())
+        let lastAnnouncedDistance = isMetric ? revolutionstoKilometers(lastAnnouncedRevs) : revolutionstoMiles(lastAnnouncedRevs)
+        let nowDistance = isMetric ? revolutionstoKilometers(Double(rideOdometer)) : revolutionstoMiles(Double(rideOdometer))
         
-        let mileageSinceAnnounce = nowMileage - lastAnnouncedMileage
+        let distanceSinceAnnounce = nowDistance - lastAnnouncedDistance
         
-        NSLog("Last mileage \(lastAnnouncedMileage) now mileage \(nowMileage)")
+        NSLog("Last announced distance \(lastAnnouncedDistance), now distance \(nowDistance)")
         
-        if rideOdometer > 0 && mileageSinceAnnounce >= tripMileageAnnounceInterval {
+        if rideOdometer > 0 && distanceSinceAnnounce >= tripMileageAnnounceInterval {
             if shouldSoundAlerts && userPrefs.getMileageAlertsEnabled() {
                 // TODO : I think everyone wants to know estimated miles remaining vs miles covered...
                 // Let's calculate a running average here and possibly announce along with battery report?
-                queueLowAlert("\(String(format: "%.1f", nowMileage)) ride miles", key: "Mileage")
+                queueLowAlert("\(String(format: "%.1f", nowDistance)) ride \(isMetric ? "kilometers" : "miles")", key: "Mileage")
             }
             rideData.setOdometerLastAnnounced(revs: rideOdometer)
         }

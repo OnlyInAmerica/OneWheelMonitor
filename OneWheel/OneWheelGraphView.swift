@@ -271,6 +271,8 @@ class OneWheelGraphView: UIView {
                 let newDataRange = CGPoint(x: max(0, self.dataRange.x - xTransInDataRange), y: min(1.0, self.dataRange.y - xTransInDataRange))
                 if newDataRange != self.dataRange {
                     self.dataRange = newDataRange
+                    // When panning the number of items displayed doesn't change
+                    rowCache.removeAll()
                     refreshGraph()
                 }
             }
@@ -285,6 +287,8 @@ class OneWheelGraphView: UIView {
 
             if newDataRange != self.dataRange {
                 self.dataRange = newDataRange
+                // When panning the number of items displayed doesn't change
+                rowCache.removeAll()
                 refreshGraph()
             }
         }
@@ -321,7 +325,7 @@ class OneWheelGraphView: UIView {
                 }
                 
                 if series is SpeedSeries {
-                    series.max = max((series as! SpeedSeries).defaultMax, 1.10 * rpmToMph(Double(rideData.getMaxRpm())))
+                    series.max = max((series as! SpeedSeries).defaultMax, 1.10 * (userPrefs.getIsMetric() ? rpmToKmph(Double(rideData.getMaxRpm())) : rpmToMph(Double(rideData.getMaxRpm()))))
                 }
 
                 series.startNewPath(rect: seriesRect, numItems: dataSourceCount, graphView: self)
@@ -861,7 +865,7 @@ class OneWheelGraphView: UIView {
         // returns a value between [0, 1]
         func getNormalizedVal(row: Row) -> Double {
             let val = evaluator.getValForRow(row: row)
-            return (val / (max - min))
+            return ((val - min) / (max - min))
         }
         
 //        internal func forEachData(rect: CGRect, graphView: OneWheelGraphView, onData: (CGFloat, OneWheelState) -> CGFloat) {
@@ -1101,6 +1105,7 @@ class OneWheelGraphView: UIView {
         
         init(name: String, color: CGColor) {
             super.init(name: name, color: color, labelType: AxisLabelType.Right, gradientUnderPath: false, evaluator: self)
+            min = 40.0
             max = 59.0
         }
         

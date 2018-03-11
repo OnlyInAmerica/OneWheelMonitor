@@ -50,9 +50,9 @@ class StateViewController: UIViewController {
         self.graphView.dataSource = self
         self.graphView.bgColor = UIColor(red: 0.05, green: 0.05, blue: 0.05, alpha: 1.0)
         self.graphView.addSeries(newSeries: OneWheelGraphView.ErrorSeries(name: "Error", color: UIColor(red:0.99, green:0.07, blue:0.55, alpha:0.6).cgColor))
-        self.graphView.addSeries(newSeries: OneWheelGraphView.SpeedSeries(name: "Speed", color: UIColor(red:0.89, green:0.89, blue:0.89, alpha:1.0).cgColor))
+        self.graphView.addSeries(newSeries: OneWheelGraphView.SpeedSeries(name: "Speed", color: UIColor(red:0.80, green:0.80, blue:0.80, alpha:1.0).cgColor))
         self.graphView.addSeries(newSeries: OneWheelGraphView.BatterySeries(name: "Battery", color: UIColor(red:0.00, green:0.68, blue:0.94, alpha:1.0).cgColor))
-        self.graphView.addSeries(newSeries: OneWheelGraphView.BatteryVoltageSeries(name: "BatteryV", color: UIColor(red:0.30, green:0.92, blue:0.76, alpha:1.0).cgColor))
+        self.graphView.addSeries(newSeries: OneWheelGraphView.BatteryVoltageSeries(name: "BatteryV", color: UIColor(red:0.01, green:0.72, blue:0.55, alpha:1.0).cgColor))
 
         //        self.graphView.addSeries(newSeries: OneWheelGraphView.MotorTempSeries(name: "MotorTemp", color: UIColor(red:1.00, green:0.52, blue:0.00, alpha:1.0).cgColor))
 //        self.graphView.addSeries(newSeries: OneWheelGraphView.ControllerTempSeries(name: "ControllerTemp", color: UIColor(red:0.82, green:0.72, blue:0.47, alpha:1.0).cgColor))
