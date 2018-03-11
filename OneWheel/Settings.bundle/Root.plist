@@ -10,6 +10,42 @@
 			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 			<key>Title</key>
+			<string>Chart</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Speed</string>
+			<key>Key</key>
+			<string>ow_chart_speed</string>
+			<key>DefaultValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Battery %</string>
+			<key>Key</key>
+			<string>ow_chart_battery_percentage</string>
+			<key>DefaultValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Battery Voltage</string>
+			<key>Key</key>
+			<string>ow_chart_battery_voltage</string>
+			<key>DefaultValue</key>
+			<false/>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
 			<string>Unit System</string>
 			<key>FooterText</key>
 			<string>Enable Metric for kilometers and kph, leave disabled for miles and mph</string>

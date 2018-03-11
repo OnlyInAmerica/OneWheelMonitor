@@ -23,6 +23,7 @@
 		605A6D191FF804ED0047DF03 /* OneWheelUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605A6D181FF804ED0047DF03 /* OneWheelUITests.swift */; };
 		605A6D281FF805A60047DF03 /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 605A6D271FF805A60047DF03 /* CoreBluetooth.framework */; };
 		605A6D2A1FF806210047DF03 /* OneWheelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605A6D291FF806210047DF03 /* OneWheelManager.swift */; };
+		6082B9A72054A7C00009D692 /* OneWheelLocalData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6082B9A62054A7C00009D692 /* OneWheelLocalData.swift */; };
 		60E429E11FF849320050BF8F /* OneWheelDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60E429E01FF849320050BF8F /* OneWheelDatabase.swift */; };
 		B771503D70F6FB7B3D522CE5 /* Pods_OneWheelUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F6735238DB921C2BB240C1B8 /* Pods_OneWheelUITests.framework */; };
 		D4DF3F936B454EB5FAF94CDF /* Pods_OneWheel.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 029B3EF094E4A56DD122CE32 /* Pods_OneWheel.framework */; };
@@ -92,6 +93,7 @@
 		605A6D1A1FF804ED0047DF03 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		605A6D271FF805A60047DF03 /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
 		605A6D291FF806210047DF03 /* OneWheelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneWheelManager.swift; sourceTree = "<group>"; };
+		6082B9A62054A7C00009D692 /* OneWheelLocalData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneWheelLocalData.swift; sourceTree = "<group>"; };
 		60E429E01FF849320050BF8F /* OneWheelDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneWheelDatabase.swift; sourceTree = "<group>"; };
 		62B4FAE9EFC184E29A0BF1B0 /* Pods-OneWheelUITests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OneWheelUITests.debug.xcconfig"; path = "Pods/Target Support Files/Pods-OneWheelUITests/Pods-OneWheelUITests.debug.xcconfig"; sourceTree = "<group>"; };
 		B9CC24C448D96659CF5A6D6E /* Pods-OneWheel.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OneWheel.release.xcconfig"; path = "Pods/Target Support Files/Pods-OneWheel/Pods-OneWheel.release.xcconfig"; sourceTree = "<group>"; };
@@ -224,6 +226,7 @@
 				605A6D041FF804ED0047DF03 /* Info.plist */,
 				605A6D291FF806210047DF03 /* OneWheelManager.swift */,
 				60E429E01FF849320050BF8F /* OneWheelDatabase.swift */,
+				6082B9A62054A7C00009D692 /* OneWheelLocalData.swift */,
 			);
 			path = OneWheel;
 			sourceTree = "<group>";
@@ -645,6 +648,7 @@
 				60E429E11FF849320050BF8F /* OneWheelDatabase.swift in Sources */,
 				605A6CFB1FF804ED0047DF03 /* StateViewController.swift in Sources */,
 				604313EB1FFFFA9100B21214 /* OneWheelGraphView.swift in Sources */,
+				6082B9A72054A7C00009D692 /* OneWheelLocalData.swift in Sources */,
 				605A6CF91FF804ED0047DF03 /* AppDelegate.swift in Sources */,
 				602B202E200A817000B4BDC3 /* SpeechAlertManager.swift in Sources */,
 			);

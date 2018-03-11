@@ -290,6 +290,19 @@ class OneWheelGraphView: UIView {
         }
     }
     
+    private func shouldDisplaySeries(_ series: Series) -> Bool {
+        if series is SpeedSeries {
+            return userPrefs.getShowChartSpeed()
+        }
+        if series is BatterySeries {
+            return userPrefs.getShowChartBatteryPercentage()
+        }
+        if series is BatteryVoltageSeries {
+            return userPrefs.getShowChartBatteryVoltage()
+        }
+        return true
+    }
+    
     func refreshGraph() {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
@@ -302,7 +315,11 @@ class OneWheelGraphView: UIView {
             let dataSourceCount = dataSource.getCount()
             
             for (_, series) in self.series {
-
+                
+                if !shouldDisplaySeries(series) {
+                    continue
+                }
+                
                 if series is SpeedSeries {
                     series.max = max((series as! SpeedSeries).defaultMax, 1.10 * rpmToMph(Double(rideData.getMaxRpm())))
                 }
@@ -387,7 +404,11 @@ class OneWheelGraphView: UIView {
             
             // Complete paths
             for (_, series) in self.series {
-                series.completePath()
+                if !shouldDisplaySeries(series) {
+                    series.hide()
+                } else {
+                    series.completePath()
+                }
             }
             drawLayers()
             CATransaction.commit()
@@ -396,6 +417,9 @@ class OneWheelGraphView: UIView {
     
     private func appendRowToPath(x: CGFloat, row: Row) {
         for (_, series) in self.series {
+            if !shouldDisplaySeries(series) {
+                continue
+            }
             series.appendToPath(x: x, row: row)
         }
     }
@@ -416,6 +440,10 @@ class OneWheelGraphView: UIView {
         
         var seriesAxisLabelRect = seriesAxisRect
         for (_, series) in series {
+            if !shouldDisplaySeries(series) {
+                continue
+            }
+            
             if series is SpeedSeries && series.drawMaxValLineWithAxisLabels {
                 let maxValFrac = (series as! ValueSeries).getMaximumValueInfo().1
                 if maxValFrac > 0 {
@@ -704,10 +732,20 @@ class OneWheelGraphView: UIView {
         
         override func completePath() {
             shapeLayer?.path = path
+            shapeLayer?.isHidden = false
             if gradientUnderPath {
                 bgMaskLayer?.path = closePath(path: path!, rect: pathRect!)
                 bgLayer?.mask = bgMaskLayer
+                bgLayer?.isHidden = false
             }
+        }
+        
+        override func hide() {
+            super.hide()
+            // Series plot
+            shapeLayer?.isHidden = true
+            bgLayer?.isHidden = true
+            
         }
         
         // Subclass overrides
@@ -935,7 +973,9 @@ class OneWheelGraphView: UIView {
             }
             
             maxValLayer!.frame = rect
+            maxValLayer!.isHidden = false
             maxValLabel!.frame = rect
+            maxValLabel!.isHidden = false
             
             let labelSideMargin: CGFloat = portraitMode ? 60 : 10  // In portrait mode we let the seriesRect extend behind axis labels
             let maxYPos: CGFloat = ((1.0 - maxVal) * rect.height) + rect.origin.y
@@ -967,6 +1007,17 @@ class OneWheelGraphView: UIView {
         
         func printAxisVal(val: Double) -> String {
             return "\(val)"
+        }
+        
+        func hide() {
+            // Series max
+            maxValLayer?.isHidden = true
+            maxValLabel?.isHidden = true
+            
+            // Series axis labels
+            for layer in axisLabelLayers ?? [] {
+                layer.isHidden = true
+            }
         }
     }
     
