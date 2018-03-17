@@ -150,7 +150,8 @@ class StateViewController: UIViewController {
             let newCursor = try! owManager.db!.getAllStateCursor(start: start, end: end, stride: stride)
             completion(newCursor)
         } else {
-            let newCursor = try! owManager.db!.getRecentStateCursor()
+            // We can't request a range for recent, because bounds are fixed by nature of query
+            let newCursor = try! owManager.db!.getRecentStateCursor(stride: stride)
             completion(newCursor)
         }
     }

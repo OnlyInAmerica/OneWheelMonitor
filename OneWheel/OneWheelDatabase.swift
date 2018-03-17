@@ -99,7 +99,7 @@ class OneWheelDatabase {
         }
     }
     
-    func getRecentStateCursor() throws -> RowCursor {
+    func getRecentStateCursor(stride: Int) throws -> RowCursor {
         return try dbPool.read { (db) in
             var lastDate: Date? = nil
             
@@ -115,7 +115,7 @@ class OneWheelDatabase {
                 to: lastDate!)!
             let sinceDateStr = dateFormatter.string(from: startDate)
             NSLog("Fetching state since \(sinceDateStr)")
-            return try Row.fetchCursor(db, "SELECT \(requiredCols) FROM state WHERE time > ?", arguments: [sinceDateStr])
+            return try Row.fetchCursor(db, "SELECT \(requiredCols) FROM state WHERE time > ?1 AND id % ?2 == 0", arguments: [sinceDateStr, stride])
         }
     }
     
