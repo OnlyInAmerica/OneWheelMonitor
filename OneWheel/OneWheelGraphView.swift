@@ -216,7 +216,7 @@ class OneWheelGraphView: UIView {
     }
     
     // Whether to fully draw every intermediate pan step (true) or transform view until pan complete (false)
-    var smoothPan = true
+    var smoothPan = false
     
     func onPan(_ sender: UIPanGestureRecognizer) {
         if portraitMode {
@@ -249,16 +249,25 @@ class OneWheelGraphView: UIView {
 
             if (!smoothPan) {
                 
-                // TODO: Xcode complaining about complexity of expression. Something's wrong here...
-//                if xScale <= 1.0 ||                                                             // Not zoomed in
-//                    (xTransNormalized > 0.0 && self.dataRange.x + xTransNormal <= 0.0) ||       // Panning beyond left bounds
-//                    (xTransNormalized < 0.0 && self.dataRange.x + xTransNormal >= 1.0) {        // Panning beyond right bounds
-//                    return
-//                }
+                let leftLimit: Bool = xTransNormalized > 0.0 && self.dataRange.x + xTransNormal <= 0.0
+                let rightLimit: Bool = xTransNormalized < 0.0 && self.dataRange.y + xTransNormal >= 1.0
+                if xScale <= 1.0 ||                                                             // Not zoomed in
+                    (leftLimit) ||       // Panning beyond left bounds
+                    (rightLimit) {        // Panning beyond right bounds
+                    return
+                }
 
                 CATransaction.begin()
                 CATransaction.setDisableActions(true)
-                zoomLayer.transform = CATransform3DTranslate(zoomLayer.transform, xTransNormalized, 0.0, 0.0)
+                zoomLayer.transform = CATransform3DTranslate(zoomLayer.transform, translation.x, 0.0, 0.0)
+                
+                let seriesRectFromZoomLayer = self.layer.convert(self.seriesRect, from: self.zoomLayer)
+                let zlVisibleFrac = (self.seriesRect.width / seriesRectFromZoomLayer.width)
+                let zlStartFrac = (self.seriesRect.origin.x - seriesRectFromZoomLayer.origin.x) / seriesRectFromZoomLayer.width
+                
+                let newDataRange = CGPoint(x: max(0.0, dataRange.x + (zlStartFrac / xScale)), y: min(1.0, dataRange.x + ((zlStartFrac + zlVisibleFrac) / xScale)))
+                drawZoomHint(rect: seriesRect, root: axisLabelLayer, dataRange: newDataRange)
+                
                 CATransaction.commit()
             } else {
                 
