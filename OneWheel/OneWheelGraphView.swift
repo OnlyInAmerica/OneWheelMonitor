@@ -342,7 +342,7 @@ class OneWheelGraphView: UIView {
             
             let rect = seriesRect
             let dataCount = Int(CGFloat(dataSourceCount) * (dataRange.y - dataRange.x))
-            let widthPtsPerData: CGFloat = 2
+            let widthPtsPerData: CGFloat = 4
             let maxPoints = Int(rect.width / widthPtsPerData)
             let numPoints = min(dataCount, maxPoints)
             let deltaX = rect.width / (CGFloat(numPoints - 1))
