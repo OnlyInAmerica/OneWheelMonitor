@@ -702,7 +702,7 @@ class OneWheelManager : NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     private func applyAutoLights(_ now: Date) {
         if let peripheral = connectedDevice {
             let hour = Calendar.current.component(.hour, from: now)
-            let isProbablyDark = (hour > 17 || hour < 8)
+            let isProbablyDark = (hour >= 17 || hour <= 8)
             let lightsOnDesired = isProbablyDark
             if lightsOn != lightsOnDesired {
                 NSLog("Current hour is \(hour). Setting lights: \(isProbablyDark)")
